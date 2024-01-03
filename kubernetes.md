@@ -1,8 +1,34 @@
- # kubernetess
+# kubernetess
 文档内容基于v1.17.04版本
 
-[toc]
+## 目录
+<!-- vim-markdown-toc GFM -->
 
+* [容器发展历史](#容器发展历史)
+* [容器与虚拟机比较](#容器与虚拟机比较)
+* [高可用集群部署流程](#高可用集群部署流程)
+* [证书](#证书)
+    * [常见证书](#常见证书)
+    * [手动生成证书](#手动生成证书)
+    * [证书管理kubeadm](#证书管理kubeadm)
+    * [手动更换ca证书（todo）](#手动更换ca证书todo)
+    * [证书api（todo）](#证书apitodo)
+    * [启用已签名的 kubelet 服务证书（todo）](#启用已签名的-kubelet-服务证书todo)
+* [cert-manager](#cert-manager)
+* [kraken](#kraken)
+* [nfs-provisioner](#nfs-provisioner)
+* [node-local-dns](#node-local-dns)
+* [控制器](#控制器)
+* [api](#api)
+* [crd](#crd)
+* [Istio](#istio)
+* [rbac](#rbac)
+* [cni](#cni)
+    * [flannel](#flannel)
+* [集群内核调优参考](#集群内核调优参考)
+* [参考资料](#参考资料)
+
+<!-- vim-markdown-toc -->
 ## 容器发展历史
 一开始是Cloud Foundry利用Cgroups和Namespace机制隔离各个应用的环境，但由于环境的打包过程不如docker镜像方便进而被docker取代，而由于大规模部署应用的需求出现了swarm这类容器集群管理项目，compose项目的推出也为容器编排提供了有力帮助，这些使得docker在当时站住了主流。而后不满docker一家独大的现状，谷歌、red hat等开源领域玩家牵头建立了CNCF，并以kubernetes项目为核心来对抗docker。由于kubernetes生态迅速崛起，docker将容器运行时containerd捐赠给CNCF，从此也标志着以kubernetes为核心容器技术发展
 

@@ -1,7 +1,27 @@
 # linux
 
-[toc]
+## 目录
 
+<!-- vim-markdown-toc GFM -->
+
+* [发展历史](#发展历史)
+* [文件管理](#文件管理)
+* [账号管理](#账号管理)
+* [quota、raid、lvm](#quotaraidlvm)
+    * [quota](#quota)
+    * [raid](#raid)
+    * [lvm](#lvm)
+* [计划任务](#计划任务)
+* [程序管理](#程序管理)
+* [SElinuxux](#selinuxux)
+* [systemd](#systemd)
+* [日志记录](#日志记录)
+* [开机流程](#开机流程)
+* [核心模块](#核心模块)
+* [资料查询](#资料查询)
+    * [man](#man)
+
+<!-- vim-markdown-toc -->
 ## 发展历史
 1. 1969年贝尔实验室、麻省理工学院、奇异公司发起Multics计划，目的是制作使大型主机提供300个以上终端机使用的操作系统，但由于资金短缺等原因贝尔实验室退出了该计划
 2. 贝尔实验室里的Thompson从Multics计划中获得了一些点子，由于个人需要，针对POP-7主机用Assembler语言开发Unics系统

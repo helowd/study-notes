@@ -1,7 +1,22 @@
 # python基础
 
-[toc]
+## 目录
 
+<!-- vim-markdown-toc GFM -->
+
+* [对象](#对象)
+* [闭包](#闭包)
+* [装饰器](#装饰器)
+* [上下文管理器](#上下文管理器)
+* [类](#类)
+* [@property装饰器](#property装饰器)
+* [__slots__魔术方法](#slots__魔术方法)
+* [静态方法　@staticmethod](#静态方法staticmethod)
+* [类方法　@classmethod](#类方法classmethod)
+* [继承](#继承)
+* [多态](#多态)
+
+<!-- vim-markdown-toc -->
 ## 对象
 
 python是一门面向对象的语言，一切皆对象，程序运行中，所有的数据都是存储到内存中然后再运行
