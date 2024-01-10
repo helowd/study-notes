@@ -127,3 +127,7 @@ X window
 ```
 man -f [command]  查看某个命令的资料所在页
 man -k [key]  根据关键字去所有的man手册里匹配
+
+## 网络调试
+telnet
+nslookup
