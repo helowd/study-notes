@@ -1,5 +1,17 @@
 # git
 
+## 目录
+<!-- vim-markdown-toc GFM -->
+
+* [实现原理](#实现原理)
+* [github](#github)
+* [常用命令](#常用命令)
+    * [解决冲突：](#解决冲突)
+    * [临时修复bug和cherry-pick](#临时修复bug和cherry-pick)
+* [忽略特殊文件](#忽略特殊文件)
+
+<!-- vim-markdown-toc -->
+
 ## 实现原理
 目录结构
 ```

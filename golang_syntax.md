@@ -296,8 +296,22 @@ func updateName(name *string) {
 ```
 
 ### defer
-
+defer函数按后进先出顺序执行
 ```golang
+// 当defer语句被求值时，延迟函数的参数也会被求值，这里打印0
+func a() {
+    i := 0
+    defer fmt.Println(i)
+    i++
+    return
+}
+
+// 延迟函数在周围函数返回后递增返回值 i 。因此，该函数返回 2
+func c() (i int) {
+    defer func() { i++ }()
+    return 1
+}
+
 func exampleFunction() {
     // 在函数结束时执行清理操作
     defer cleanup()
@@ -334,52 +348,53 @@ func openFile(filename string) *File {
 内置函数panic可以停止go程序的正常控制流，当你使用 panic 调用时，任何延迟的函数调用都将正常运行，记录日志然后程序退出
 
 ```golang
-// panic和defer的结合使用
-func highlow(high int, low int) {
-    if high < low {
-        fmt.Println("Panic!")
-        panic("highlow() low greater than high")
-    }
-    defer fmt.Println("Deferred: highlow(", high, ",", low, ")")
-    fmt.Println("Call: highlow(", high, ",", low, ")")
+package main
 
-    highlow(high, low + 1)
-}
+import "fmt"
 
 func main() {
-    highlow(2, 0)
-    fmt.Println("Program finished successfully!")
+    f()
+    fmt.Println("Returned normally from f.")
 }
+
+func f() {
+    defer func() {
+        if r := recover(); r != nil {
+            fmt.Println("Recovered in f", r)
+        }
+    }()
+    fmt.Println("Calling g.")
+    g(0)
+    fmt.Println("Returned normally from g.")
+}
+
+func g(i int) {
+    if i > 3 {
+        fmt.Println("Panicking!")
+        panic(fmt.Sprintf("%v", i))
+    }
+    defer fmt.Println("Defer in g", i)
+    fmt.Println("Printing in g", i)
+    g(i + 1)
+}
+
+// 输出：
+Calling g.
+Printing in g 0
+Printing in g 1
+Printing in g 2
+Printing in g 3
+Panicking!
+Defer in g 3
+Defer in g 2
+Defer in g 1
+Defer in g 0
+Recovered in f 4
+Returned normally from f.
 ```
 
 ### recover
-
-当程序处于紧急状态时，对 recover() 的调用无法返回 nil。 你可以在此处执行一些操作来清理混乱。panic 和 recover 函数的组合是 Go 处理异常的惯用方式。 其他编程语言使用 try/catch 块
-
-```golang
-func main() {
-    defer func() {
- handler := recover()
-        if handler != nil {
-            fmt.Println("main(): recover", handler)
-        }
-    }()
-
-    highlow(2, 0)
-    fmt.Println("Program finished successfully!")
-}
-// 输出：
-// Call: highlow( 2 , 0 )
-// Call: highlow( 2 , 1 )
-// Call: highlow( 2 , 2 )
-// Panic!
-// Deferred: highlow( 2 , 2 )
-// Deferred: highlow( 2 , 1 )
-// Deferred: highlow( 2 , 0 )
-// main(): recover from panic highlow() low greater than high
-
-// Program exited.
-```
+Recover是一个内置函数，可以重新获得对发生恐慌的 goroutine 的控制。恢复仅在延迟函数内有用。在正常执行期间，调用recover将返回nil并且没有其他效果。如果当前 goroutine 发生恐慌，则调用恢复将捕获为恐慌提供的值并恢复正常执行。
 
 ### init函数
 
