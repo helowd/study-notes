@@ -7,56 +7,60 @@
 * [命令](#命令)
 * [特性](#特性)
 * [流程控制](#流程控制)
-     * [if](#if)
-     * [for](#for)
-     * [switch](#switch)
+    * [if](#if)
+    * [for](#for)
+    * [switch](#switch)
 * [函数](#函数)
-     * [指针](#指针)
-     * [defer](#defer)
-     * [panic](#panic)
-     * [recover](#recover)
-     * [init函数](#init函数)
+    * [指针](#指针)
+    * [defer](#defer)
+    * [panic](#panic)
+    * [recover](#recover)
+    * [init函数](#init函数)
 * [数据](#数据)
-     * [输出](#输出)
-     * [常量](#常量)
-     * [变量](#变量)
-     * [类型转换](#类型转换)
-     * [new关键字分配内存](#new关键字分配内存)
-     * [make](#make)
-     * [数组](#数组)
-     * [切片](#切片)
-          * [扩展切片](#扩展切片)
-          * [append](#append)
-          * [删除](#删除)
-          * [切片副本](#切片副本)
-          * [二维切片（todo）](#二维切片todo)
-     * [映射](#映射)
-          * [访问](#访问)
-          * [删除delete](#删除delete)
-          * [循环](#循环)
-     * [结构体](#结构体)
-          * [结构嵌入](#结构嵌入)
-          * [用json编码和解码结构](#用json编码和解码结构)
+    * [输出](#输出)
+    * [常量](#常量)
+    * [变量](#变量)
+    * [类型转换](#类型转换)
+    * [new关键字分配内存](#new关键字分配内存)
+    * [make](#make)
+    * [数组](#数组)
+    * [切片](#切片)
+        * [扩展切片](#扩展切片)
+        * [append](#append)
+        * [删除](#删除)
+        * [切片副本](#切片副本)
+        * [二维切片（todo）](#二维切片todo)
+    * [映射](#映射)
+        * [访问](#访问)
+        * [删除delete](#删除delete)
+        * [循环](#循环)
+    * [结构体](#结构体)
+        * [结构嵌入](#结构嵌入)
+        * [用json编码和解码结构](#用json编码和解码结构)
 * [日志处理](#日志处理)
-     * [log包](#log包)
-     * [记录到文件](#记录到文件)
-     * [记录框架](#记录框架)
+    * [log包](#log包)
+    * [记录到文件](#记录到文件)
+    * [记录框架](#记录框架)
 * [包](#包)
 * [模块](#模块)
+    * [go.mod](#gomod)
 * [方法](#方法)
-     * [方法中的指针](#方法中的指针)
-     * [嵌入方法](#嵌入方法)
-     * [重载方法](#重载方法)
-     * [封装](#封装)
+    * [方法中的指针](#方法中的指针)
+    * [嵌入方法](#嵌入方法)
+    * [重载方法](#重载方法)
+    * [封装](#封装)
 * [接口](#接口)
-     * [实现字符串接口](#实现字符串接口)
-     * [扩展现有实现](#扩展现有实现)
-     * [服务器api](#服务器api)
+    * [实现字符串接口](#实现字符串接口)
+    * [扩展现有实现](#扩展现有实现)
+    * [服务器api](#服务器api)
 * [goroutine](#goroutine)
 * [channel](#channel)
-     * [有缓冲channel](#有缓冲channel)
-     * [channel方向](#channel方向)
-     * [多路复用](#多路复用)
+    * [有缓冲channel](#有缓冲channel)
+    * [channel方向](#channel方向)
+    * [多路复用](#多路复用)
+* [泛型 generics](#泛型-generics)
+* [闭包 closures](#闭包-closures)
+* [go web项目规范](#go-web项目规范)
 
 <!-- vim-markdown-toc -->
 ## code style
@@ -67,7 +71,7 @@ gofmt程序能自动处理大部分格式问题
 2. 不限制行长度，也可以进行折行并插入适当缩进
 3. 控制结构if for switch在语法上不需要使用圆括号
 4. 块注释/**/ 和 行注释//。块注释主要用作包的注释，也可以用来禁止代码。godoc能提取包中的文档内容
-5. 命名：包名用纯小写字母，接口命名应该加上er后缀，其他使用驼峰命名（MixedCaps大驼峰用于类名接口，mixedCaps小驼峰用于变量函数）
+5. 命名：包名用纯小写字母，接口命名应该加上er后缀，其他使用驼峰命名（MixedCaps大驼峰，mixedCaps小驼峰）
 6. go以分号结束语句，一行中的多个语句需要用分号隔开，但是在标识符后词法分析器会自动插入分号
 
 ## 命令
@@ -75,10 +79,14 @@ gofmt程序能自动处理大部分格式问题
 go run  会执行两项操作，先编译成功再执行  
 go build  仅仅把源码编程成可执行文件，不执行  
 go get 下载和安装远程包或模块，以及相关依赖  
-go test 单元测试  
+go test 单元测试，文件名格式 func_name_test.go，依赖testing包
 go mod init 初始化一个新go模块，会在当前目录创建go.mod文件，用于管理项目依赖关系  
 go mod tidy 移除未使用的依赖，整理和更新模块的依赖关系，更新go.mod和go.sum文件  
-go install 将套件编译成.a.file, main套件则编译成可执行档  而有了第一项功能，在下次编译的时候，就不会将套件的程式码重新编译，而是直接用编译好的.a file。而.a file就位于GOPATH/pkg里面
+go mod edit 命令行方式编辑go.mod文件
+go clean -modcache  删除下载好的模块依赖
+go install 将套件编译成.a.file, main套件则编译成可执行档（路径在$GOPATH/bin中）  而有了第一项功能，在下次编译的时候，就不会将套件的程式码重新编译，而是直接用编译好的.a file。而.a file就位于GOPATH/pkg里面
+go list -f '{{.Target}}'  查看当前包的安装路径
+go work  用来管理工作区，达到跨模块编辑和运行程序
 
 ## 特性
 
@@ -418,7 +426,7 @@ func init() {
 
 ## 数据
 
-:= 语法用来声明并赋值一个变量
+:= 语法用来声明并赋值一个变量，用在函数内部，可以代替var
 
 ### 输出
 
@@ -437,7 +445,8 @@ fmt.Printf("%d %x; %d %x\n", x, x, int64(x), int64(x))
 
 ### 常量
 
-常量是不变量
+常量是不变量  
+无类型常量采用上下文所需类型
 
 ```golang
 // 不能使用冒号等于号来声明常量
@@ -1015,6 +1024,19 @@ func Sum(number1, number2 int) int {
 ## 模块
 Go 模块通常包含可提供相关功能的包。 包的模块还指定了 Go 运行你组合在一起的代码所需的上下文。 此上下文信息包括编写代码时所用的 Go 版本
 
+### go.mod
+```golang
+module example.com/hello
+
+go 1.16
+
+// 使用本地模块
+replace example.com/greetings => ../greetings
+
+// 指定远程模块的版本（相当于git仓库的tag） 
+require example.com/greetings v1.1.0
+```
+
 ## 方法
 方法是一种特殊的函数，必须在函数名称之前加入一个额外的参数。 此额外参数称为“接收方”。
 ```golang
@@ -1485,4 +1507,150 @@ func main() {
 // 输出：
 // Done replicating!
 // Done processing!
+```
+
+## 泛型 generics
+```golang
+package main
+
+import "fmt"
+
+type Number interface {
+    int64 | float64
+}
+
+func main() {
+    fmt.Printf("Generic Sums: %v and %v\n",
+        SumIntsOrFloats[string, int64](ints),
+        SumIntsOrFloats[string, float64](floats))
+
+    fmt.Printf("Generic Sums, type parameters inferred: %v and %v\n",
+        SumIntsOrFloats(ints),
+        SumIntsOrFloats(floats))
+
+    fmt.Printf("Generic Sums with Constraint: %v and %v\n",
+        SumNumbers(ints),
+        SumNumbers(floats))
+}
+
+func SumIntsOrFloats[K comparable, V int64 | float64](m map[K]V) V {
+    var s V
+    for _, v := range m {
+        s += v
+    }
+    return s
+}
+
+// SumNumbers sums the values of map m. Its supports both integers
+// and floats as map values.
+func SumNumbers[K comparable, V Number](m map[K]V) V {
+    var s V
+    for _, v := range m {
+        s += v
+    }
+    return s
+}
+```
+
+## 闭包 closures
+把函数当参数传递
+```golang
+func viewHandler(w http.ResponseWriter, r *http.Request, title string)
+func editHandler(w http.ResponseWriter, r *http.Request, title string)
+func saveHandler(w http.ResponseWriter, r *http.Request, title string)
+
+func makeHandler(fn func (http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        // Here we will extract the page title from the Request,
+        // and call the provided handler 'fn'
+    }
+}
+```
+
+## go web项目规范
+基本原则：可读可维护，可扩展和模块化，规范一致
+
+/cmd  项目主干，通常有一个main函数，从/internal和/pkg目录导入和调用代码，除此之外没有别的东西
+```
+cmd
+├── ctl
+│   └── main.go
+├── server
+│   └── main.go
+└── task
+    └── main.go
+```
+/internal  私有应用程序和库代码
+```
+internal
+├── app
+│   ├── ctl
+│   ├── server
+│   └── task
+└── pkg
+
+其中 /internal/app 下存放各个组件的逻辑代码，/internal/pkg 下存放各组件间的共享代码。
+```
+/pkg  外部应用程序可以使用的库代码
+/vendor  应用程序依赖项，go mod vendor命令会创建/vendor目录
+/api  openapi/swagger规范，json模式文件，协议定义文件
+/web  前端代码，如果为restful api项目就不需要此项目，将前端代码作为一个独立的项目
+/configs  配置目录
+/init  system init配置
+/scripts  执行各种构建、安装、分析等操作的脚本
+/build  打包和持续集成，将你的云( AMI )、容器( Docker )、操作系统( deb、rpm、pkg )包配置和脚本放在 /build/package 目录下。  
+        将你的 CI (travis、circle、drone)配置和脚本放在 /build/ci 目录中
+/deployments  aaS、PaaS、系统和容器编排部署配置和模板(docker-compose、kubernetes/helm、mesos、terraform、bosh)
+/test  额外的外部测试应用程序和测试数据
+/docs  设计和用户文档
+/tools  这个项目的支持工具。注意，这些工具可以从 /pkg 和 /internal 目录导入代码
+/examples  你的应用程序和/或公共库的示例。
+/assets  图像、徽标等
+/thied_party  外部辅助工具，分叉代码和其他第三方工具(例如 Swagger UI)。
+
+根目录下文件
+/README.md
+/Makefile  项目管理工具
+/CHANGELOG  存放项目更新记录
+/CONTRIBUTING.md  说明如何贡献代码、项目规范
+/LICENSE
+
+总结
+```
+project
+├── CHANGELOG
+├── CONTRIBUTING.md
+├── LICENSE
+├── Makefile
+├── README.md
+├── api
+│   └── openapi
+│       └── openapi.yaml
+├── assets
+├── build
+├── cmd
+│   ├── ctl
+│   │   └── main.go
+│   ├── server
+│   │   └── main.go
+│   └── task
+│       └── main.go
+├── configs
+├── deployments
+├── docs
+├── examples
+├── githooks
+├── init
+├── internal
+│   ├── app
+│   │   ├── ctl
+│   │   ├── server
+│   │   └── task
+│   └── pkg
+├── pkg
+├── scripts
+├── test
+├── third_party
+├── tools
+└── web
 ```
