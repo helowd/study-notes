@@ -7,60 +7,62 @@
 * [命令](#命令)
 * [特性](#特性)
 * [流程控制](#流程控制)
-     * [if](#if)
-     * [for](#for)
-     * [switch](#switch)
+    * [if](#if)
+    * [for](#for)
+    * [switch](#switch)
 * [函数](#函数)
-     * [指针](#指针)
-     * [defer](#defer)
-     * [panic](#panic)
-     * [recover](#recover)
-     * [init函数](#init函数)
+    * [指针](#指针)
+    * [defer](#defer)
+    * [panic](#panic)
+    * [recover](#recover)
+    * [init函数](#init函数)
 * [数据](#数据)
-     * [输出](#输出)
-     * [常量](#常量)
-     * [变量](#变量)
-     * [类型转换](#类型转换)
-     * [new关键字分配内存](#new关键字分配内存)
-     * [make](#make)
-     * [数组](#数组)
-     * [切片](#切片)
-          * [扩展切片](#扩展切片)
-          * [append](#append)
-          * [删除](#删除)
-          * [切片副本](#切片副本)
-          * [二维切片（todo）](#二维切片todo)
-     * [映射](#映射)
-          * [访问](#访问)
-          * [删除delete](#删除delete)
-          * [循环](#循环)
-     * [结构体](#结构体)
-          * [结构嵌入](#结构嵌入)
-          * [用json编码和解码结构](#用json编码和解码结构)
+    * [输出](#输出)
+    * [常量](#常量)
+    * [变量](#变量)
+    * [类型转换](#类型转换)
+    * [new关键字分配内存](#new关键字分配内存)
+    * [make](#make)
+    * [数组](#数组)
+    * [切片](#切片)
+        * [扩展切片](#扩展切片)
+        * [append](#append)
+        * [删除](#删除)
+        * [切片副本](#切片副本)
+        * [二维切片（todo）](#二维切片todo)
+    * [映射](#映射)
+        * [访问](#访问)
+        * [删除delete](#删除delete)
+        * [循环](#循环)
+    * [结构体](#结构体)
+        * [结构嵌入](#结构嵌入)
+        * [用json编码和解码结构](#用json编码和解码结构)
 * [日志处理](#日志处理)
-     * [log包](#log包)
-     * [记录到文件](#记录到文件)
-     * [记录框架](#记录框架)
+    * [log包](#log包)
+    * [记录到文件](#记录到文件)
+    * [记录框架](#记录框架)
 * [包](#包)
 * [模块](#模块)
-     * [go.mod](#gomod)
+    * [go.mod](#gomod)
 * [方法](#方法)
-     * [方法中的指针](#方法中的指针)
-     * [嵌入方法](#嵌入方法)
-     * [重载方法](#重载方法)
-     * [封装](#封装)
+    * [方法中的指针](#方法中的指针)
+    * [嵌入方法](#嵌入方法)
+    * [重载方法](#重载方法)
+    * [封装](#封装)
 * [接口](#接口)
-     * [实现字符串接口](#实现字符串接口)
-     * [扩展现有实现](#扩展现有实现)
-     * [服务器api](#服务器api)
+    * [实现字符串接口](#实现字符串接口)
+    * [扩展现有实现](#扩展现有实现)
+    * [服务器api](#服务器api)
 * [goroutine](#goroutine)
 * [channel](#channel)
-     * [有缓冲channel](#有缓冲channel)
-     * [channel方向](#channel方向)
-     * [多路复用](#多路复用)
+    * [有缓冲channel](#有缓冲channel)
+    * [channel方向](#channel方向)
+    * [多路复用](#多路复用)
+    * [select](#select)
 * [泛型 generics](#泛型-generics)
 * [闭包 closures](#闭包-closures)
 * [go web项目规范](#go-web项目规范)
+* [test](#test)
 
 <!-- vim-markdown-toc -->
 ## code style
@@ -87,6 +89,7 @@ go clean -modcache  删除下载好的模块依赖
 go install 将套件编译成.a.file, main套件则编译成可执行档（路径在$GOPATH/bin中）  而有了第一项功能，在下次编译的时候，就不会将套件的程式码重新编译，而是直接用编译好的.a file。而.a file就位于GOPATH/pkg里面  
 go list -f '{{.Target}}'  查看当前包的安装路径  
 go work  用来管理工作区，达到跨模块编辑和运行程序  
+go clean -modcache  清除已经下载的依赖模块
 
 ## 特性
 
@@ -1374,11 +1377,11 @@ func main() {
 
 ## channel
 channel是goroutine之间的通信机制，channel有类型之分，创建通道需要使用make `cn := make(chan int)`  
-一个channel可以执行发送和接受数据两种操作，发送数据在通道后使用<-，接受数据在通道前使用<-  
-发送和接收都属于阻止操作
+运算符为 <-，箭头指向数据方向
 ```golang
-ch <- x // sends (or writes ) x through channel ch
-x = <-ch // x receives (or reads) data sent to the channel ch
+ch <- v    // Send v to channel ch.
+v := <-ch  // Receive from ch, and
+           // assign value to v.
 <-ch // receives data, but the result is discarded
 
 // 关闭通道
@@ -1507,6 +1510,33 @@ func main() {
 // 输出：
 // Done replicating!
 // Done processing!
+```
+
+### select
+```golang
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func main() {
+	tick := time.Tick(100 * time.Millisecond)  // 定义了一个定时管道
+	boom := time.After(500 * time.Millisecond)  // 定义一个超时管道
+	for {
+		select {
+		case <-tick:
+			fmt.Println("tick.")
+		case <-boom:
+			fmt.Println("BOOM!")
+			return
+		default:
+			fmt.Println("    .")
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+}
 ```
 
 ## 泛型 generics
@@ -1652,4 +1682,28 @@ project
 ├── third_party
 ├── tools
 └── web
+```
+
+## test
+可以创建以`_test.go`为结尾的文件作为测试文件，其中包含以`Test`开头的函数`func (t *testing.T)`
+```golang
+package morestrings
+
+import "testing"
+
+func TestReverseRunes(t *testing.T) {
+    cases := []struct {
+        in, want string
+    }{
+        {"Hello, world", "dlrow ,olleH"},
+        {"Hello, 世界", "界世 ,olleH"},
+        {"", ""},
+    }
+    for _, c := range cases {
+        got := ReverseRunes(c.in)
+        if got != c.want {
+            t.Errorf("ReverseRunes(%q) == %q, want %q", c.in, got, c.want)
+        }
+    }
+}
 ```
