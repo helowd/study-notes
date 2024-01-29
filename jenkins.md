@@ -2,6 +2,14 @@
 
 ## 目录
 
+<!-- vim-markdown-toc GFM -->
+
+* [最佳实践](#最佳实践)
+* [介绍以及安装方式](#介绍以及安装方式)
+* [agent](#agent)
+
+<!-- vim-markdown-toc -->
+
 ## 最佳实践
 编写一个pipeline要考虑的：
 1. 一旦碰到错误就退出
