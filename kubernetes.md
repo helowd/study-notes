@@ -1,4 +1,4 @@
-# kubernetess
+# kubernetes
 文档内容基于v1.17.04版本
 
 ## 目录
@@ -6,7 +6,10 @@
 
 * [容器发展历史](#容器发展历史)
 * [容器与虚拟机比较](#容器与虚拟机比较)
-* [高可用集群部署流程](#高可用集群部署流程)
+* [高可用集群部署流程（kubeadm）](#高可用集群部署流程kubeadm)
+* [pod](#pod)
+    * [downward api: 让 Pod 里的容器能够直接获取到这个 Pod API 对象本身的信息](#downward-api-让-pod-里的容器能够直接获取到这个-pod-api-对象本身的信息)
+    * [probe](#probe)
 * [证书](#证书)
     * [常见证书](#常见证书)
     * [手动生成证书](#手动生成证书)
@@ -19,6 +22,8 @@
 * [nfs-provisioner](#nfs-provisioner)
 * [node-local-dns](#node-local-dns)
 * [控制器](#控制器)
+    * [statefulset](#statefulset)
+    * [离线业务job与cronjob](#离线业务job与cronjob)
 * [api](#api)
 * [crd](#crd)
 * [Istio](#istio)
@@ -29,16 +34,78 @@
 * [参考资料](#参考资料)
 
 <!-- vim-markdown-toc -->
+
 ## 容器发展历史
 一开始是Cloud Foundry利用Cgroups和Namespace机制隔离各个应用的环境，但由于环境的打包过程不如docker镜像方便进而被docker取代，而由于大规模部署应用的需求出现了swarm这类容器集群管理项目，compose项目的推出也为容器编排提供了有力帮助，这些使得docker在当时站住了主流。而后不满docker一家独大的现状，谷歌、red hat等开源领域玩家牵头建立了CNCF，并以kubernetes项目为核心来对抗docker。由于kubernetes生态迅速崛起，docker将容器运行时containerd捐赠给CNCF，从此也标志着以kubernetes为核心容器技术发展
 
 ## 容器与虚拟机比较
-容器利用linux的cgroups和namespace技术实现，实际上是宿主机上的一个特殊的进程，共享内核。而虚拟机利用额外的工具如hypervisor等技术实现对宿主机资源的隔离，相比容器隔离更加的彻底
+容器利用linux的cgroups（资源限制）和namespace（资源隔离）技术实现，实际上是宿主机上的一个特殊的进程，共享内核。而虚拟机利用额外的工具如hypervisor等技术实现对宿主机资源的隔离，相比容器隔离更加的彻底
 
-## 高可用集群部署流程
+容器镜像：rootfs
+
+## 高可用集群部署流程（kubeadm）
 1. 准备机器，lb集群+master集群+node集群，相互能通信
-2. 配置环境，kubeadm、kubectl、kubelet工具，cri和cr，关闭swap，
+2. 配置环境，kubeadm、kubectl、kubelet工具，cri和cr，关闭swap
 3. 初始化master，加入其他节点到集群
+
+kubeadm init
+```
+在执行kubeadm init时，会为集群生成一个bootstrap token，在后面只要持有和这个token，任何安装kubelet和kubeadm的节点都可以通过kubeadm join加入到这个集群中
+
+在token生成之后，kubeadm会将ca.crt等master节点的重要信息通过configmap的方式保存在etcd中，供后续节点使用，这个configmap名字是cluster-info
+
+kubeadm init最后一步是安装默认插件，默认会安装kube-proxy和dns这两个插件，分别为集群提供服务发现和dns功能，也是两个容器镜像
+```
+kubeadm join
+```
+此时kubeadm至少需要发起一次“不安全模式”的访问到kube-apiserver，从而拿到保存在configmap中cluster-info信息，而bootstrap token扮演就是这个过程中安全验证的角色
+```
+
+## pod
+
+### downward api: 让 Pod 里的容器能够直接获取到这个 Pod API 对象本身的信息
+此yaml文件申明了一个projected类型的Volume，来源为downward api，声明了要暴露pod的metadata.labels信息给容器，这样pod的labels字段的值，就会被kubernetes自动挂载成为容器里的/etc/podinfo/labels文件
+
+projected volume包括secret，configmap，downward api，serviceaccounttoken
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-downwardapi-volume
+  labels:
+    zone: us-est-coast
+    cluster: test-cluster1
+    rack: rack-22
+spec:
+  containers:
+    - name: client-container
+      image: k8s.gcr.io/busybox
+      command: ["sh", "-c"]
+      args:
+      - while true; do
+          if [[ -e /etc/podinfo/labels ]]; then
+            echo -en '\n\n'; cat /etc/podinfo/labels; fi;
+          sleep 5;
+        done;
+      volumeMounts:
+        - name: podinfo
+          mountPath: /etc/podinfo
+          readOnly: false
+  volumes:
+    - name: podinfo
+      projected:
+        sources:
+        - downwardAPI:
+            items:
+              - path: "labels"
+                fieldRef:
+                  fieldPath: metadata.labels
+```
+
+### probe
+只要 Pod 的 restartPolicy 指定的策略允许重启异常的容器（比如：Always），那么这个 Pod 就会保持 Running 状态，并进行容器重启。否则，Pod 就会进入 Failed 状态 。
+
+对于包含多个容器的 Pod，只有它里面所有的容器都进入异常状态后，Pod 才会进入 Failed 状态。在此之前，Pod 都是 Running 状态。此时，Pod 的 READY 字段会显示正常容器的个数
 
 ## 证书
 用于控制k8s内部、外部通信的
@@ -94,10 +161,10 @@ kubeadm certs check-expiration 查看证书过期状态信息
 kubeadm upgrade 会自动更新证书  
 kubeadm alpha certs renew all 更新所有证书，更新完后需要移除manifests下文件以重启静态pod  
 
-<u>kubeadm不管理由外部ca签名的证书。  
+kubeadm不管理由外部ca签名的证书。  
 kubeadm不管理ca证书的更新  
 kubelet会自动轮换证书，不由kubeadm更新。  
-如果是HA集群需要在所有master节点执行更新证书动作。</u>
+如果是HA集群需要在所有master节点执行更新证书动作
 
 ### 手动更换ca证书（todo）
 https://kubernetes.io/zh-cn/docs/tasks/tls/manual-rotation-of-ca-certificates/
@@ -133,6 +200,31 @@ for {
   }
 }
 ```
+
+### statefulset
+StatefulSet 这个控制器的主要作用之一，就是使用 Pod 模板创建 Pod 的时候，对它们进行编号，并且按照编号顺序逐一完成创建工作。而当 StatefulSet 的“控制循环”发现 Pod 的“实际状态”与“期望状态”不一致，需要新建或者删除 Pod 进行“调谐”的时候，它会严格按照这些 Pod 编号的顺序，逐一完成这些操作。
+
+headless service: 访问“my-svc.my-namespace.svc.cluster.local”解析到的，直接就是 my-svc 代理的某一个 Pod 的 IP 地址。这里的区别在于，Headless Service 不需要分配一个 VIP，而是可以直接以 DNS 记录的方式解析出被代理 Pod 的 IP 地址。
+
+clusterIP字段为None
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  ports:
+  - port: 80
+    name: web
+  clusterIP: None
+  selector:
+    app: nginx
+```
+
+### 离线业务job与cronjob
+job只能设置restartPolicy为Never和OnFailure，如果job失败job controller会不断尝试创建一个新的pod
 
 ## api
 在 Kubernetes 项目中，一个 API 对象在 Etcd 里的完整资源路径，是由：Group（API 组）、Version（API 版本）和 Resource（API 资源类型）三个部分组成的
