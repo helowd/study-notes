@@ -153,6 +153,7 @@ man -k [key]  根据关键字去所有的man手册里匹配
 ## 网络调试
 telnet
 nslookup
+nc
 
 ## tty
 "tty" 是 teletypewriter 的缩写，是一种最初用于与计算机进行交互的设备。在现代计算机系统中，"tty" 通常用来指代终端（Terminal）。

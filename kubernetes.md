@@ -28,6 +28,12 @@
 * [crd](#crd)
 * [Istio](#istio)
 * [rbac](#rbac)
+* [持久化](#持久化)
+    * [持久化过程](#持久化过程)
+    * [StorageClass](#storageclass)
+    * [本地持久化](#本地持久化)
+* [service](#service)
+* [ingress](#ingress)
 * [cni](#cni)
     * [flannel](#flannel)
 * [集群内核调优参考](#集群内核调优参考)
@@ -245,18 +251,66 @@ CRD 仅仅是资源的定义，而 Controller 可以去监听 CRD 的 CRUD 事�
 通过在pod创建时往里面添加一个envoy容器来管理pod网络的进出流量，从而实现微服务的治理。这个添加的容器的功能是由控制器Initializer实时监控完成的
 
 ## rbac
+kubernetes中的所有api对象，都保存在etcd中，对这些api对象的操作，一定都是通过kube-apiserver实现的，所以需要apiserver来完成授权工作
+
 Role：角色，它其实是一组规则，定义了一组对 Kubernetes API 对象的操作权限。
 Subject：被作用者，既可以是“人”，也可以是“机器”，也可以是你在 Kubernetes 里定义的“用户”。
 RoleBinding：定义了“被作用者”和“角色”的绑定关系。
 
+非namespaced对象：
+ClusterRole
+ClusterFoleBinding
+
 kubernetes内置用户：ServiceAccount
-每个ServiceAccount都有一个secret
+每个ServiceAccount都有一个secret，用来与apiserver进行交互的授权文件
 如果一个 Pod 没有声明 serviceAccountName，Kubernetes 会自动在它的 Namespace 下创建一个名叫 default 的默认 ServiceAccount，然后分配给这个 Pod。默认的ServiceAccount没有关联任何ROle，有访问APIServer的绝大多数权限
 
 ServiceAccount用户：`system:serviceaccount:<ServiceAccount 名字 >`
 ServiceAccount用户组：`system:serviceaccounts:<Namespace 名字 >`
 
+kubernetes中内置了很多个为系统保留的ClusterFole，名字都以system:，通常是绑定给kubernetes系统组件对应的sa使用的
+
 cluster-admin角色，是kubernetes中的最高权限（vers=*）
+
+## 持久化
+
+### 持久化过程
+当一个pod调度到一个节点上后，kubelet就要负责为这个pod创建它的volume目录。默认情况下这个路径在宿主机上为
+```
+/var/lib/kubelet/pods/<Pod 的 ID>/volumes/kubernetes.io~<Volume 类型 >/<Volume 名字 >
+```
+接下来，如果volume类型是远程块存储即一款磁盘，需要通过api调用把块挂载到pod所在的宿主机上，这一步称为attach
+```
+gcloud compute instances attach-disk < 虚拟机名字 > --disk < 远程磁盘名字 >
+```
+attach完成后，kubelet需要格式化这个磁盘设备，然后将它挂载到宿主机指定的挂载点上，这个挂载点即volume宿主机目录，这一步称为mount。  
+如果volume类型为远程文件存储，比如nfs，kubelet会跳过attach操作，直接mount
+```
+mount -t nfs <NFS 服务器地址 >:/ /var/lib/kubelet/pods/<Pod 的 ID>/volumes/kubernetes.io~<Volume 类型 >/<Volume 名字 > 
+```
+经过attach和mount的处理，kubelet只要把这个volume目录通过cri里的mounts参数传递给cr，然后就可以为pod里的容器挂载这个持久化的volume了，这一步相当于执行了如下命令
+```
+docker run -v /var/lib/kubelet/pods/<Pod 的 ID>/volumes/kubernetes.io~<Volume 类型 >/<Volume 名字 >:/< 容器内的目标目录 > 我的镜像 ...
+```
+对应的，在删除一个pv的时候，kubernetes也需要unmount和dettach两个阶段来处理
+
+### StorageClass
+sc对象的作用就是创建pv的模板，sc对象会定义以下两个部分内容：
+1. PV 的属性。比如，存储类型、Volume 的大小等等。  
+2. 创建这种 PV 需要用到的存储插件。比如，Ceph 等等。
+有了这两个信息，kubernetes就能够根据用户提交的pvc找到一个对应的sc，然后kubrnetes就会调用该sc声明的存储插件，创建出需要的pv
+
+### 本地持久化
+比较适用于高优先级的系统应用，需要在多个不同的节点上存储数据，并且对i/o较为敏感，相比于正常的pv，一旦这些节点宕机且不能恢复，本地数据就可能丢失，这就要求使用本地持久化的应用必须具备数据备份和恢复的能力，允许把这些数据定时备份在其他位置
+
+## service
+
+## ingress
+工作在七层，是service的“service”，ingress就是kubernetes中的反向代理。  
+
+首先需要在集群中安装ingress-controller，然后这个pod会监听ingress对象以及它所代理的后端service变化的控制器，当一个新的ingress对象创建后，ingress-controller会根据ingress对象里定义的内容生成一份对应的nginx配置文件（/etc/nginx/nginx.conf），并使用这个配置文件启动一个nginx服务，而一旦ingress对象被更新，ingress-controller就会更新这个配置文件，如果只是被代理的service对象被更新，ingress-controller所管理的nginx是不需要reload的，此外ingress-controller还允许通过configmap对象来对上述的nginx配置文件进行定制。
+
+为了让用户能够用到这个nginx，我们需要创建一个service来把ingress-controller管理的nginx服务暴露出去，
 
 ## cni
 
