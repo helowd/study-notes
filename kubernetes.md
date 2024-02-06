@@ -26,6 +26,7 @@
     * [离线业务job与cronjob](#离线业务job与cronjob)
 * [api](#api)
 * [crd](#crd)
+* [operator](#operator)
 * [Istio](#istio)
 * [rbac](#rbac)
 * [持久化](#持久化)
@@ -242,10 +243,12 @@ kind: CronJob
 ```
 
 ## crd
-operator=crd+controller
 CRD 仅仅是资源的定义，而 Controller 可以去监听 CRD 的 CRUD 事件来添加自定义业务逻辑。
 
 对于 Kubernetes 里的核心 API 对象，比如：Pod、Node 等，是不需要 Group 的（即：它们 Group 是“”）
+
+## operator
+operator=crd+controller
 
 ## Istio
 通过在pod创建时往里面添加一个envoy容器来管理pod网络的进出流量，从而实现微服务的治理。这个添加的容器的功能是由控制器Initializer实时监控完成的
