@@ -24,10 +24,10 @@
 * [控制器](#控制器)
     * [statefulset](#statefulset)
     * [离线业务job与cronjob](#离线业务job与cronjob)
+* [Istio](#istio)
 * [api](#api)
 * [crd](#crd)
 * [operator](#operator)
-* [Istio](#istio)
 * [rbac](#rbac)
 * [持久化](#持久化)
     * [持久化过程](#持久化过程)
@@ -233,6 +233,9 @@ spec:
 ### 离线业务job与cronjob
 job只能设置restartPolicy为Never和OnFailure，如果job失败job controller会不断尝试创建一个新的pod
 
+## Istio
+通过在pod创建时往里面添加一个envoy容器来管理pod网络的进出流量，从而实现微服务的治理。这个添加的容器的功能是由控制器Initializer实时监控完成的
+
 ## api
 在 Kubernetes 项目中，一个 API 对象在 Etcd 里的完整资源路径，是由：Group（API 组）、Version（API 版本）和 Resource（API 资源类型）三个部分组成的
 ```yaml
@@ -250,8 +253,9 @@ CRD 仅仅是资源的定义，而 Controller 可以去监听 CRD 的 CRUD 事�
 ## operator
 operator=crd+controller
 
-## Istio
-通过在pod创建时往里面添加一个envoy容器来管理pod网络的进出流量，从而实现微服务的治理。这个添加的容器的功能是由控制器Initializer实时监控完成的
+Operator 的工作原理，实际上是利用了 Kubernetes 的自定义 API 资源（CRD），来描述我们想要部署的“有状态应用”；然后在自定义控制器里，根据自定义 API 对象的变化，来完成具体的部署和运维工作。
+
+operator启动后会自动创建对应的crd
 
 ## rbac
 kubernetes中的所有api对象，都保存在etcd中，对这些api对象的操作，一定都是通过kube-apiserver实现的，所以需要apiserver来完成授权工作
