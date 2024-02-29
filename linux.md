@@ -29,7 +29,7 @@
 2. 贝尔实验室里的Thompson从Multics计划中获得了一些点子，由于个人需要，针对POP-7主机用Assembler语言开发Unics系统
 3. Thompson和Ritchie将Unics用B语言编写，由于B语言编译出的核心效能不好，后来Ritchie用C语言重新改写与编译Unics核心，最终命名Unix
 4. 后由于AT&T在1979年发行的第七版Unix中提到不可对学生提供原始码，Tanenbaum教授自己动手写了Minix这个Unix Like系统
-5. Stallman在1984年发起GNU计划，旨在引导自由软件计划，在Unix的基础上，GUN开发了gcc、c library、bash等，1990年。推出了GPL，此时还是缺少一个自由的unix核心
+5. Stallman在1984年发起GNU计划，旨在引导自由软件计划，在Unix的基础上，GNU开发了gcc、c library、bash等，1990年。推出了GPL，此时还是缺少一个自由的unix核心
 6. 到了1991年，芬兰的赫尔辛基大学的Linus Torvalds在BBS上面贴了一则消息， 宣称他以bash, gcc等GNU 的工具写了一个小小的核心程式，该核心程式单纯是个玩具，不像GNU 那么专业。不过该核心程式可以在Intel的386机器上面运作就是了。这让很多人很感兴趣！从此开始了Linux不平凡的路程！第一个核心版本为0.02，linux遵循POSIX规范以让软件都能够在linux上跑
 7. 这个『Kernel + Softwares + Tools + 可完整安装程序』的咚咚，我们称之为Linux distribution，他们都支持LSB和FHS标准，所以都大同小异
 
