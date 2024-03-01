@@ -33,6 +33,12 @@ read-host 输入到标准输入
 new-item 新建文件  
 stop-computer  关闭本地和远程计算机
 restart-computer  重启机器 
+$env:username  获得当前用户名
+start-service sshd  启动sshd服务
+stop-service sshd  关闭sshd服务
+get-service sshd  查看sshd服务状态
+set-service sshd -starttype automatic  设置sshd服务开机自启
+get-filehash -path "file" -algorithm sha256  获得文件哈希值
 
 ## 脚本执行
 绕过策略执行脚本
