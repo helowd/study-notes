@@ -346,9 +346,9 @@ sysctl --system
 基于kubernetes-v1.29.2、dockerCE-v25.0.3、cri-dockerd-v0.3.10、flannel-v0.24.2、CentOS-7
 
 1. 准备机器配置
-RAM：>2GB
-cpu_cores：>2
-节点之中不可以有重复的主机名、MAC 地址或 product_uuid
+RAM：>2GB  
+cpu_cores：>2  
+节点之中不可以有重复的主机名、MAC 地址或 product_uuid  
 开启机器上的某些端口：6443、2379-2380、10250、10259、10257
 
 关闭swap：
