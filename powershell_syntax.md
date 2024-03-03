@@ -39,6 +39,7 @@ stop-service sshd  关闭sshd服务
 get-service sshd  查看sshd服务状态
 set-service sshd -starttype automatic  设置sshd服务开机自启
 get-filehash -path "file" -algorithm sha256  获得文件哈希值
+Start-Process ssh -ArgumentList "-N -R centos-7-01:7890:127.0.0.1:7890 centos-7-01" -NoNewWindow  命令在后台运行
 
 ## 脚本执行
 绕过策略执行脚本
