@@ -8,9 +8,11 @@
     * [语法](#语法)
     * [记忆](#记忆)
     * [内建函数](#内建函数)
+    * [关键字](#关键字)
     * [流程控制](#流程控制)
     * [数组](#数组)
-    * [printf](#printf)
+    * [自定义函数](#自定义函数)
+* [printf](#printf)
 * [参考资料](#参考资料)
 
 <!-- vim-markdown-toc -->
@@ -51,16 +53,46 @@ FS  字段分隔符，默认是空白
 -f  告诉awk从指定文件提取程序
 *  相乘，如$2 * $3
 /  相除，如pay/n
-> < == >= <= != && || !  一些可用的逻辑运算符
+> < == >= <= != && || ! ~ !~ 一些可用的逻辑运算符
 emp = emp + 1  awk中的变量都有初始值，不需要先初始化再使用
 names = names $1 " "  字符串拼接
 { last=$0 } END { print last }  打印最后一行，END中NR值能读到，但$0不会
 /Beth/  打印包含Beth的行
+$4 ~ /Asia/  匹配所有第四个字段包含Asia的输入行
+ARGC  命令行参数的个数
+ARGV  命令行参数数组
+FILENAME  当前输入文件名
+FNR  当前输入文件的记录个数
+OFMT  数值的输出格式，默认"%.6g"
+OFS  输出字段的分隔符，默认空白
+ORS  输出的记录的分隔符，默认"\n"
+RLENGTH  被函数match匹配的字符串的长度
+RS  控制着输入行的记录分隔符，默认"\n"
+RSTART  被函数match匹配的字符串的开始
+SUBSEP  下标分隔符，默认"\034"
 ```
 
 ### 内建函数
 ```
 length($1)  计算字符串中的字符数
+rand()  返回一个大于等于0，小于1的伪随机浮点数
+srand(x)  可以使随机数生成器的开始点从x开始，随机数种子
+int(x)  取x的整数部分
+sqrt(x)  x的方根
+sub(r,s)  将$0的最左最长的，能被r匹配的子字符串替换为s，返回替换发生的次数
+sub(r,s,t)  在t中执行替换
+split(s,a)  用FS将s分割到数组a中，返回字段的个数
+split(s,a,fs)  用fs分割
+substr(s,p,n)  返回s中从位置p开始的，长度为n的子字符串
+system(expression)  用于执行unix命令，命令由expression给出，system的返回值就是命令的退出状态
+```
+
+### 关键字
+```
+break
+continue
+next  开始主循环的下一次迭代
+exit expression  马上执行END动作，如果已经在END中就退出程序，将expression作为程序退出状态返回
 ```
 
 ### 流程控制
@@ -94,6 +126,8 @@ for
 {   for (i = 1; i <= $3; i = i + 1)
         printf("\t%.2f\n", $1 * (1 + $2) ^ i)
 }
+
+for (expression in array) statements
 ```
 
 ### 数组
@@ -114,7 +148,23 @@ END {   for (i = NR; i > 0; i = i - 1)
     }
 ```
 
-### printf
+### 自定义函数
+函数定义可以出现在任何 模式-动作 语句可以出现的地方  
+函数体内，参数是局部变量，其它所有变量都是全局的
+
+语法：
+```
+function name(parameter-list) {
+    statements
+}
+
+# 计算参数的最大值，如果没有为return提供表达式，或者最后一句执行的语句不是return，那么返回值就是未定义的
+function max(m, n) {
+    return m > n ? m : n
+}
+```
+
+## printf
 语法格式：printf(format, value1, value2, ... , valueN)
 
 示例：
