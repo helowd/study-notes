@@ -1214,16 +1214,52 @@ PS1='\[\033[0;41m\]<\u@\h \W>\$\[\033[0m\] '
 ```
 
 ## 重定向
+标准输入(stdin) ：代码为0 ，使用< 或<< ；  键盘鼠标  
+标准输出(stdout)：代码为1 ，使用> 或>> ；  屏幕或文件  
+标准错误输出(stderr)：代码为2 ，使用2> 或2>> ； 屏幕或文件  
+![](./linux_cmd_redirect.png)
 
-文件描述符 0 通常是标准输入（STDIN），1 是标准输出（STDOUT），2 是标准错误输出（STDERR）
+1. 将stdout与stderr分别存到不通的档案去
+```bash
+find /home -name .bashrc > list_right 2> list_error
+```
 
-1. 屏蔽 stdout 和 stderr 
+2. 将错误的资料丢弃，萤幕上显示正确的资料
+```bash
+find /home -name .bashrc 2> /dev/null
+```
+
+3. 将指令的资料全部写入名为list 的档案中
+```bash
+find /home - name .bashrc > list 2>&1
+find /home -name .bashrc &> list 
+```
+
+4. stdin <与<<
+```bash
+# 用cat来建立一个文件
+cat > catfile
+testing
+cat file test
+# 这里按ctrl+d离开完成创建
+
+# 用stdin取代键盘输入新建文件
+cat > catfile < ~/.bashrc
+
+# eof
+cat > catfile << "eof" 
+> This is a test. 
+> OK now stop 
+> eof 
+```
+
+5. 屏蔽 stdout 和 stderr 
 
 ```bash
 command > /dev/null 2>&1
 ```
 
-2. 覆盖方式自动写入多行文本
+6. 覆盖方式自动写入多行文本
 
 ```bash
 make(){
@@ -1234,7 +1270,7 @@ EOF
 }
 ```
 
-3. 标准错误输出重定向示例
+7. 标准错误输出重定向示例
 
 ```bash
 err() {

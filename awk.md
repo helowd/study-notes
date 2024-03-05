@@ -13,6 +13,9 @@
     * [数组](#数组)
     * [自定义函数](#自定义函数)
 * [printf](#printf)
+* [案例](#案例)
+    * [依据日志文件计算流量](#依据日志文件计算流量)
+    * [nginx access.log日志分析](#nginx-accesslog日志分析)
 * [参考资料](#参考资料)
 
 <!-- vim-markdown-toc -->
@@ -176,6 +179,7 @@ function max(m, n) {
 { printf("%-8s $%6.2f\n", $1, $2 * $3) }
 ```
 
+## 案例
 ```bash
 # 计算总额
 #
@@ -204,6 +208,84 @@ awk '{if(NR==1) printf "%10s %10s %10s %10s %10s\n",$1,$2,$3,$4,"Total "} {if(NR
 # /aa     100%
 # /bb     0%
 awk 'NR>1{routes[$2]++; if($3==200) success[$2]++} END{printf "路由\t成功率\n"; for(route in routes) {rate=success[route]/routes[route]*100; printf "%s\t%.of%%\n", route,rate}}'
+```
+
+
+```bash
+awk -F ".”'{
+    if(NF!=4)
+        print "error";
+    else {
+        msg = “yes" ;
+        for(i=1 ; i<=NF;i++){
+            if($i<0[|$i>255){
+                msg ="no";
+                break;
+            }
+        }
+        print msg;
+    }
+}' nowcoder .txt
+```
+
+### 依据日志文件计算流量
+
+算出2022年7月份的每一分钟的流量.-----使用循环多级嵌套，正则结合for循环，流量需要求和
+```
+2022-7-1 00:01:01 78
+2022-7-1 00:01:04 89
+2022-7-1 00:02:04 89
+2022-7-1 00:03:01 178
+....
+2022-7-3 00:04:34 839
+2022-7-4 00:01:04 189
+2022-7-4 00:01:54 89
+.... 
+2022-7-30 00:03:01 178
+2022-7-31 00:07:05 8900
+```
+脚本：
+```bash
+awk '{time[$1,substr($1,5,1),substr($2,1,5)]+=$3}END{for (i in time)print i,time[i]}'  test.txt |sort -n -k 3 -t -
+```
+
+### nginx access.log日志分析
+对nginx的日志文件access.log进行分析，分析出单个ip地址累计下载获取的文件大小的总数（对每次访问数据的大小进行求和)，显示下载总数最大的前100个ip地址和下载文件大小，按照下载文件大小的降序排列
+```
+以下是nginx日志的字段含义
+$time_iso8601|$host $http_cf_connecting_ip |$request |$status|$body_bytes_sent|$http_referer |$http_user_agent
+
+2019-04-25T09:51:58+08:00 | a.google.com|47.52.197.27|GET /2/depth?symbol=aaaHTTP/1.1 | 200| 24|-| apple
+2019-04-25TO9:52:58+08:00 | b.google.com |47.75.159.123|GET /2/depth?symbol=bbbHTTP/1.1 [ 200| 407|-l python-requests/2.20.0
+2019-04-25T09:53:58+08:00 | c.google.com | 13.125.219.4|GET /2/ticker?timestamp=1556157118&symbol=ccc HTTP/1.1|200|162/|-|chrome
+2019-04-25TO9:54:58+08:00 | d.shuzibi.co|-/|HEAD /justfor.txt HTTP/1.0|200|0/-1-
+2019-04-25T09:55:58+08:00| e.google.com |13.251.98.2|GET /2/order_detail?apiKey=dddHTTP/1.1 [200| 231/-l python-requests/2.18.4
+2019-04-25T09:56:58+08:00|f.google.com|210.3.168.106|GET /v2/trade_detail?apiKey=eeeHTTP/1.1 | 200|24|-l-
+```
+脚本：
+```
+awk '{access[$1]+=$10}END{for (i in access) print i,access[i]}'access.log |sort -k 2 -n -r / head -100 result.txt
+```
+
+计算每分钟带宽（body_bytes_sent）
+```bash
+awk -F"/" '{f1ow[substr($1,1,16)]+=$(NF-2)}END{for (i in flow) printi,f1ow[i]3' nginx.log
+```
+
+统计每个URL（即不带问号的前面的内容）的每分钟的频率
+```bash
+awk -F"[l ?]+" '{flow[substr($1,1,16)$5]+=1}END{for (i in flow)print i,fTow[i]}' nginx.1og
+```
+
+编写时间段的正则，使用sed/grep/awk过滤出下面时间段的日志，输出到屏幕  
+06/Jul/2022:1:24    06/Jul/2022:23:24
+```bash
+awk '$4~/01\/Jul\/2022:([1-9]|1[0-9]|2[0-3])/{print $0}' access.log |wc -l
+```
+
+对nginx的日志文件access.log进行分析，分析出单个ip地址累计下载获取的文件大小的总数（对每次访问数据的大小进行求和），显示下载总数最大的前100个ip地址和下载文件大小，按照下载文件大小的降序排列
+```bash
+awk '{ip[$1]+=$10}END{for(i in ip) print i,ip[i]}' access.log |sort -r -n -k 2 |head -100
 ```
 
 ## 参考资料
