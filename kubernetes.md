@@ -164,6 +164,29 @@ easyrsa、openssl、cfssl等工具生成证书
 
 ### 证书管理kubeadm
 kubeadm certs check-expiration 查看证书过期状态信息  
+```
+[zj@centos-7-01 Documents]$ sudo kubeadm certs check-expiration
+[check-expiration] Reading configuration from the cluster...
+[check-expiration] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+
+CERTIFICATE                EXPIRES                  RESIDUAL TIME   CERTIFICATE AUTHORITY   EXTERNALLY MANAGED
+admin.conf                 Mar 03, 2025 11:18 UTC   362d            ca                      no
+apiserver                  Mar 03, 2025 11:18 UTC   362d            ca                      no
+apiserver-etcd-client      Mar 03, 2025 11:18 UTC   362d            etcd-ca                 no
+apiserver-kubelet-client   Mar 03, 2025 11:18 UTC   362d            ca                      no
+controller-manager.conf    Mar 03, 2025 11:18 UTC   362d            ca                      no
+etcd-healthcheck-client    Mar 03, 2025 11:18 UTC   362d            etcd-ca                 no
+etcd-peer                  Mar 03, 2025 11:18 UTC   362d            etcd-ca                 no
+etcd-server                Mar 03, 2025 11:18 UTC   362d            etcd-ca                 no
+front-proxy-client         Mar 03, 2025 11:18 UTC   362d            front-proxy-ca          no
+scheduler.conf             Mar 03, 2025 11:18 UTC   362d            ca                      no
+super-admin.conf           Mar 03, 2025 11:18 UTC   362d            ca                      no
+
+CERTIFICATE AUTHORITY   EXPIRES                  RESIDUAL TIME   EXTERNALLY MANAGED
+ca                      Mar 01, 2034 11:18 UTC   9y              no
+etcd-ca                 Mar 01, 2034 11:18 UTC   9y              no
+front-proxy-ca          Mar 01, 2034 11:18 UTC   9y              no
+```
 kubeadm upgrade 会自动更新证书  
 kubeadm alpha certs renew all 更新所有证书，更新完后需要移除manifests下文件以重启静态pod  
 
