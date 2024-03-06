@@ -38,6 +38,13 @@
     * [flannel](#flannel)
 * [集群内核调优参考](#集群内核调优参考)
 * [高可用集群部署流程（kubeadm）](#高可用集群部署流程kubeadm)
+    * [1. 准备机器配置](#1-准备机器配置)
+    * [2. 安装容器运行时](#2-安装容器运行时)
+    * [3. 安装容器运行时接口](#3-安装容器运行时接口)
+    * [4. 安装kubeadm、kubelet、kubectl](#4-安装kubeadmkubeletkubectl)
+    * [5. 初始化master节点](#5-初始化master节点)
+    * [6. 配置kubeconfig文件](#6-配置kubeconfig文件)
+    * [7. 安装网络插件flannel，使各节点各pod能相互通信](#7-安装网络插件flannel使各节点各pod能相互通信)
     * [注意事项：](#注意事项)
 * [参考资料](#参考资料)
 
@@ -98,49 +105,58 @@ spec:
 对于包含多个容器的 Pod，只有它里面所有的容器都进入异常状态后，Pod 才会进入 Failed 状态。在此之前，Pod 都是 Running 状态。此时，Pod 的 READY 字段会显示正常容器的个数
 
 ## 证书
-用于控制k8s内部、外部通信的
+用于控制k8s内部之间和外部通信的
 
 ### 常见证书
 通过kubeadm命令自动生成的证书目录：
-```bash
+```
 [root@dev ~]# tree /etc/kubernetes/ 
 /etc/kubernetes/
-├── admin.conf
-├── controller-manager.conf
-├── kubelet.conf
+├── admin.conf  # 通验证apiserver服务端证书的ca证书、过kubectl命令访问apiserver使用的客户端证书和对应的私钥
+├── controller-manager.conf  # 验证apiserver服务端证书的ca证书、作为客户端访问apiserver使用的证书和对应的私钥
+├── kubelet.conf  # 同上
 <!-- ├── manifests
 │   ├── etcd.yaml
 │   ├── kube-apiserver.yaml
 │   ├── kube-controller-manager.yaml
 │   └── kube-scheduler.yaml -->
 ├── pki
-│   ├── apiserver.crt
-│   ├── apiserver-etcd-client.crt
-│   ├── apiserver-etcd-client.key
-│   ├── apiserver.key
-│   ├── apiserver-kubelet-client.crt
-│   ├── apiserver-kubelet-client.key
-│   ├── ca.crt
+│   ├── apiserver.crt  # 对外提供服务的服务器证书
+│   ├── apiserver-etcd-client.crt  # 用于访问 etcd 的客户端证书
+│   ├── apiserver-etcd-client.key  # 用于访问 etcd 的客户端证书的私钥
+│   ├── apiserver.key  # 服务器证书对应的私钥
+│   ├── apiserver-kubelet-client.crt  # 用于访问 kubelet 的客户端证书
+│   ├── apiserver-kubelet-client.key  # 用于访问 kubelet 的客户端证书的私钥
+│   ├── ca.crt  # 用于验证访问 kube-apiserver 的客户端的证书的 CA 根证书
 │   ├── ca.key
 │   ├── etcd
-│   │   ├── ca.crt
+│   │   ├── ca.crt  # 用于验证访问 etcd 服务器的客户端证书的 CA 根证书
 │   │   ├── ca.key
 │   │   ├── healthcheck-client.crt
 │   │   ├── healthcheck-client.key
-│   │   ├── peer.crt
-│   │   ├── peer.key
-│   │   ├── server.crt
-│   │   └── server.key
+│   │   ├── peer.crt  # peer 证书，用于 etcd 节点之间的相互访问，同时用作服务器证书和客户端证书
+│   │   ├── peer.key  # peer 证书对应的私钥
+│   │   ├── server.crt  # 对外提供服务的服务器证书
+│   │   └── server.key  # 服务器证书对应的私钥
 │   ├── front-proxy-ca.crt
 │   ├── front-proxy-ca.key
-│   ├── front-proxy-client.crt
-│   ├── front-proxy-client.key
-│   ├── sa.key
-│   └── sa.pub
-└── scheduler.conf
-
-3 directories, 30 files
+│   ├── front-proxy-client.crt  # 作为客户端访问apiserver的证书
+│   ├── front-proxy-client.key  # 作为客户端访问apiserver的证书的私钥
+│   ├── sa.key  # 用于生成和验证service account token的公钥和私钥
+│   └── sa.pub  
+└── scheduler.conf  # 验证apiserver服务端证书的ca证书、作为客户端访问apiserver使用的证书和对应的私钥
 ```
+
+kubelet证书目录
+```
+[zj@centos-7-01 create_k8s]$ tree /var/lib/kubelet/pki/
+/var/lib/kubelet/pki/
+├── kubelet-client-2024-03-03-03-18-42.pem  # 作为客户端访问apiserver使用的证书
+├── kubelet-client-current.pem -> /var/lib/kubelet/pki/kubelet-client-2024-03-03-03-18-42.pem
+├── kubelet.crt  # 对外提供服务使用的服务端证书
+└── kubelet.key  # 服务器证书对应的私钥
+```
+
 ### 手动生成证书
 easyrsa、openssl、cfssl等工具生成证书
 
@@ -345,11 +361,11 @@ sysctl --system
 ## 高可用集群部署流程（kubeadm）
 基于kubernetes-v1.29.2、dockerCE-v25.0.3、cri-dockerd-v0.3.10、flannel-v0.24.2、CentOS-7
 
-1. 准备机器配置
+### 1. 准备机器配置
 RAM：>2GB  
 cpu_cores：>2  
 节点之中不可以有重复的主机名、MAC 地址或 product_uuid  
-开启机器上的某些端口：6443、2379-2380、10250、10259、10257
+开启机器上的某些端口，并不被占用：6443、2379-2380、10250、10259、10257
 
 关闭swap：
 ```bash
@@ -357,7 +373,7 @@ sudo swapoff -a
 sudo sed -i '/.*swap.*/d' /etc/fstab 
 ```
 
-2. 安装容器运行时
+### 2. 安装容器运行时
 配置网络环境：
 ```bash
 cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
@@ -392,13 +408,13 @@ lsmod | grep overlay
 }
 ```
 
-3. 安装容器运行时接口
+### 3. 安装容器运行时接口
 按照cri-dockerd GitHub仓库，cri-dockerd服务启动参数需要指定--pod-infra-container-image，设置systemctl enable --now
 
-4. 安装kubeadm、kubelet、kubectl
+### 4. 安装kubeadm、kubelet、kubectl
 按照kubernetes官网，设置kubelet systemctl enable --now
 
-5. 初始化master节点
+### 5. 初始化master节点
 ```yaml
 apiVersion: kubeadm.k8s.io/v1beta3
 bootstrapTokens:
@@ -447,14 +463,14 @@ cgroupDriver: systemd
 containerRuntimeEndpoint: unix:///var/run/cri-dockerd.sock
 ``` 
 
-6. 配置kubeconfig文件
+### 6. 配置kubeconfig文件
 ```bash
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
-7. 安装网络插件flannel，使各节点各pod能相互通信
+### 7. 安装网络插件flannel，使各节点各pod能相互通信
 ```yaml
 apiVersion: v1
 kind: Namespace
