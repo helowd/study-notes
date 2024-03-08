@@ -39,6 +39,11 @@
 * [异常处理](#异常处理)
 * [继承](#继承)
 * [包](#包)
+    * [包的作用域](#包的作用域)
+    * [import](#import)
+    * [java文件编译顺序](#java文件编译顺序)
+    * [最佳实践](#最佳实践)
+        * [编译和运行](#编译和运行)
 
 <!-- vim-markdown-toc -->
 
@@ -795,93 +800,234 @@ animal : eat
 ```
 
 ## 包
+在java中，使用package来解决名字冲突，Java定义了一种名字空间，称之为包：package。一个类总是属于某个包，类名（比如Person）只是一个简写，真正的完整类名是包名.类名
 
-1. 使用包
-```java
-package net.java.util;
-public class Something{
-   ...
-}
-```
-那么它的路径应该是 net/java/util/Something.java 这样保存的
+在Java虚拟机执行的时候，JVM只看完整类名，因此，只要包名不同，类就不同
 
-2. 创建包
-创建一个animals包，往包中加入一个接口interface
-```java
-/* 文件名: Animal.java */
-package animals;
- 
-interface Animal {
-   public void eat();
-   public void travel();
-}
-```
-接下来，在同一个包中加入该接口的实现：
-```java
-package animals;
- 
-/* 文件名 : MammalInt.java */
-public class MammalInt implements Animal{
- 
-   public void eat(){
-      System.out.println("Mammal eats");
-   }
- 
-   public void travel(){
-      System.out.println("Mammal travels");
-   } 
- 
-   public int noOfLegs(){
-      return 0;
-   }
- 
-   public static void main(String args[]){
-      MammalInt m = new MammalInt();
-      m.eat();
-      m.travel();
-   }
-}
-```
-然后，编译这两个文件，并把他们放在一个叫做animals的子目录中。 用下面的命令来运行：
-```bash
-$ mkdir animals
-$ cp Animal.class  MammalInt.class animals
-$ java animals/MammalInt
-Mammal eats
-Mammal travel
-```
+要特别注意：包没有父子关系。java.util和java.util.zip是不同的包，两者没有任何继承关系。
 
-3. import  
-import 关键字用于引入其他包中的类、接口或静态成员，它允许你在代码中直接使用其他包中的类，而不需要完整地指定类的包名
+在定义class的时候，我们需要在第一行声明这个class属于哪个包
 ```java
-// 第一行非注释行是 package 语句
-package com.example;
- 
-// import 语句引入其他包中的类
-import java.util.ArrayList;
-import java.util.List;
- 
-// 类的定义
-public class MyClass {
-    // 类的成员和方法
+// Person.java文件
+package ming; // 申明包名ming
+
+public class Person {
+}
+
+// Arrays.jva文件
+package mr.jun; // 申明包名mr.jun
+
+public class Arrays {
 }
 ```
 
-4. 目录组织
+没有定义包名的class，它使用的是默认包，非常容易引起名字冲突，因此，不推荐不写包名的做法。
+
+我们还需要按照包结构把上面的Java文件组织起来。假设以package_sample作为根目录，src作为源码目录，那么所有文件结构就是：
+```
+package_sample
+└─ src
+    ├─ hong
+    │  └─ Person.java
+    │  ming
+    │  └─ Person.java
+    └─ mr
+       └─ jun
+          └─ Arrays.java
+```
+
+即所有Java文件对应的目录层次要和包的层次一致。
+
+编译后的.class文件也需要按照包结构存放。如果使用IDE，把编译后的.class文件放到bin目录下，那么，编译的文件结构就是：
+```
+package_sample
+└─ bin
+   ├─ hong
+   │  └─ Person.class
+   │  ming
+   │  └─ Person.class
+   └─ mr
+      └─ jun
+         └─ Arrays.class
+```
+
+### 包的作用域
+位于同一个包的类，可以访问包作用域的字段和方法。不用public、protected、private修饰的字段和方法就是包作用域。例如，Person类定义在hello包下面：
 ```java
-// 文件名 :  Car.java
- 
-package vehicle;
- 
-public class Car {
-   // 类实现  
+package hello;
+
+public class Person {
+    // 包作用域:
+    void hello() {
+        System.out.println("Hello!");
+    }
+}
+```
+Main类也定义在hello包下面：
+```java
+package hello;
+
+public class Main {
+    public static void main(String[] args) {
+        Person p = new Person();
+        p.hello(); // 可以调用，因为Main和Person在同一个包
+    }
+}
+```
+
+### import
+在一个class中，我们总会引用其他的class。例如，小明的ming.Person类，如果要引用小军的mr.jun.Arrays类，他有三种写法：
+
+1. 直接写出完整类名
+```java
+// Person.java
+package ming;
+
+public class Person {
+    public void run() {
+        mr.jun.Arrays arrays = new mr.jun.Arrays();
+    }
+}
+```
+
+2. 使用import语句，导入Arrays，然后写简单类名
+```java
+// Person.java
+package ming;
+
+// 导入完整类名:
+import mr.jun.Arrays;
+
+public class Person {
+    public void run() {
+        Arrays arrays = new Arrays();
+    }
+}
+```
+
+3. import static
+```java
+package main;
+
+// 导入System类的所有静态字段和静态方法:
+import static java.lang.System.*;
+
+public class Main {
+    public static void main(String[] args) {
+        // 相当于调用System.out.println(…)
+        out.println("Hello, world!");
+    }
+}
+```
+
+### java文件编译顺序
+java编译器最终编译出.class文件只使用完整类名，因此在代码中，当编译器遇到一个class名称时：
+
+如果是完整类名，就直接根据完整类名查找这个class；
+
+如果是简单类名，按下面的顺序依次查找：
+
+查找当前package是否存在这个class；
+
+查找import的包是否包含这个class；
+
+查找java.lang包是否包含这个class。
+
+如果按照上面的规则还无法确定类名，则编译报错。
+
+如果有两个class名称相同，例如，mr.jun.Arrays和java.util.Arrays，那么只能import其中一个，另一个必须写完整类名。
+
+示例：
+```java
+// Main.java
+package test;
+
+import java.text.Format;
+
+public class Main {
+    public static void main(String[] args) {
+        java.util.List list; // ok，使用完整类名 -> java.util.List
+        Format format = null; // ok，使用import的类 -> java.text.Format
+        String s = "hi"; // ok，使用java.lang包的String -> java.lang.String
+        System.out.println(s); // ok，使用java.lang包的System -> java.lang.System
+        MessageFormat mf = null; // 编译错误：无法找到MessageFormat: MessageFormat cannot be resolved to a type
+    }
 }
 
-// 把源文件放在一个目录中，这个目录要对应类所在包的名字
-// ....\vehicle\Car.java
+// 在编译class的时候，编译器会自动帮我们做两个import动作：
+
+// 默认自动import当前package的其他class；
+// 默认自动import java.lang.*。
+
+//  注意：自动导入的是java.lang包，但类似java.lang.reflect这些包仍需要手动导入。
 ```
-通常，一个公司使用它互联网域名的颠倒形式来作为它的包名.例如：互联网域名是 runoob.com，所有的包名都以 com.runoob 开头。包名中的每一个部分对应一个子目录。
 
-例如：有一个 com.runoob.test 的包，这个包包含一个叫做 Runoob.java 的源文件，那么相应的，应该有如下面的一连串子目录：
+### 最佳实践
+为了避免名字冲突，我们需要确定唯一的包名。推荐的做法是使用倒置的域名来确保唯一性。例如：
+```
+org.apache
+org.apache.commons.log
+com.liaoxuefeng.sample
+```
+子包就可以根据功能自行命名。
 
-....\com\runoob\test\Runoob.java
+要注意不要和java.lang包的类重名，即自己的类不要使用这些名字：
+```
+String
+System
+Runtime
+...
+```
+要注意也不要和JDK常用类重名：
+```
+java.util.List
+java.text.Format
+java.math.BigInteger
+...
+```
+
+#### 编译和运行
+假设我们创建了如下的目录结构：
+```
+work
+├── bin
+└── src
+    └── com
+        └── itranswarp
+            ├── sample
+            │   └── Main.java
+            └── world
+                └── Person.java
+```
+其中，bin目录用于存放编译后的class文件，src目录按包结构存放Java源码，我们怎么一次性编译这些Java源码呢？
+
+首先，确保当前目录是work目录，即存放src和bin的父目录：
+```
+$ ls 
+bin src
+```
+
+然后，编译src目录下的所有Java文件：
+```
+$ javac -d ./bin src/**/*.java
+
+命令行-d指定输出的class文件存放bin目录，后面的参数src/**/*.java表示src目录下的所有.java文件，包括任意深度的子目录。
+```
+
+如果编译无误，则javac命令没有任何输出。可以在bin目录下看到如下class文件：
+```
+bin
+└── com
+    └── itranswarp
+        ├── sample
+        │   └── Main.class
+        └── world
+            └── Person.class
+```
+
+现在，我们就可以直接运行class文件了。根据当前目录的位置确定classpath，例如，当前目录仍为work，则classpath为bin或者./bin：
+```
+-cp 等于 -classpath
+$ java -cp bin com.itranswarp.sample.Main  
+Hello, world!
+```
