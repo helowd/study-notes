@@ -4,23 +4,38 @@
 <!-- vim-markdown-toc GFM -->
 
 * [简介](#简介)
-* [与java的区别](#与java的区别)
-* [注释](#注释)
-* [变量](#变量)
-* [条件判断](#条件判断)
-* [switch](#switch)
-* [循环](#循环)
-* [异常处理](#异常处理)
-* [运算](#运算)
-* [命名](#命名)
+    * [特性](#特性)
+    * [helloworld](#helloworld)
+* [与java的不同](#与java的不同)
 * [坑](#坑)
-* [输出](#输出)
 
 <!-- vim-markdown-toc -->
-## 简介
-需要运行在java平台上，通常作为java平台的脚本语言使用，groovy可以使用java语言编写的库，语法和java相似，源码可以当作脚本执行．
 
-## 与java的区别
+## 简介
+Apache的Groovy是Java平台上设计的面向对象编程语言。这门动态语言拥有类似Python、Ruby和Smalltalk中的一些特性，可以作为Java平台的脚本语言使用，Groovy代码动态地编译成运行于Java虚拟机（JVM）上的Java字节码，并与其他Java代码和库进行互操作。由于其运行在JVM上的特性，Groovy可以使用其他Java语言编写的库。Groovy的语法与Java非常相似，大多数Java代码也符合Groovy的语法规则，尽管可能语义不同。 Groovy 1.0于2007年1月2日发布，并于2012年7月发布了Groovy 2.0。从版本2开始，Groovy也可以静态编译，提供类型推论和Java相近的性能。Groovy 2.4是Pivotal软件赞助的最后一个主要版本，截止于2015年3月。Groovy已经将其治理结构更改为Apache软件基金会的项目管理委员会（PMC）。
+
+### 特性
+大部分有效的Java文件也是有效的Groovy文件。
+
+Groovy代码比Java代码更加紧凑，因为它不需要Java需要的所有元素。这两种语言的相似性，让Java程序员可以先从熟悉的Java语法开始逐步学习Groovy。 Groovy特性包括了Java中不支持的静态和动态类型（使用关键字 def），运算符重载，提供了lists（列表）和关联数组(maps)提供了原生语法，原生支持正则表达式，多态迭代，字符串内嵌表达式，添加帮助方法以及Null条件运算符，自动空指针检查（列：variable?.method(),或 variable?.field）
+
+与java不同的是，Groovy源代码文件可以当作（未编译的）脚本执行，如果它含有任何类定义之外的代码，或者它是具有main方法的类，或者它是Runnable或GroovyTestCase。 Groovy脚本在执行之前完成解析，编译和生成（类似于Perl和Ruby）。这发生在下一个层次，编译后的版本不会保存为进程的组件
+
+可以直接通过groovy script.groovy的方式运行脚本，而无需先编译
+
+### helloworld
+```groovy
+class Example {
+   static void main(String[] args) {
+      // One can see the use of a semi-colon after each statement
+      // 用关键字def声明一个变量，这里会声明x成一个值为5的整数变量
+      def x = 5;
+      println('Hello World', x); 
+   }
+}
+```
+
+## 与java的不同
 groovy源自java，但在此之上增强了某些特性，并且允许某些简化
 1. groovy默认导入以下库，无须再用import导入
 ```groovy
@@ -32,284 +47,59 @@ java.net.*
 java.util.*
 groovy.lang.*
 groovy.util.*
+
+// 可以直接使用println "hellowolrd!"打印
 ```
-2. 多方法
+
+2. 类型推断:
+    * Groovy 是一种动态类型语言，因此它可以进行类型推断，无需显式声明变量的类型。
+    * 例如，在 Groovy 中可以直接给变量赋值，而无需指定类型。
 ```groovy
-int method(String arg) {
-    return 1;
-}
-int method(Object arg) {
-    return 2;
-}
-Object o = "Object";
-int result = method(o);
-
-// in java
-// assertEquals(2, result);
-
-// in groovy
-// assertEquals(1, result);
+// Groovy 中的类型推断
+def myVariable = 10
 ```
-3. 数组初始化
+
+```java
+// Java 中的显式类型声明
+int myVariable = 10;
+```
+
+3. 闭包支持:
+    * Groovy 对闭包（匿名函数）提供了更好的支持，使得编写函数式编程风格的代码更为简单。
+    * 例如，可以在 Groovy 中直接将闭包传递给方法或赋值给变量。
+
 ```groovy
-// java
-int[] array = {1, 2, 3};
-int[] array2 = new int[] {4, 5, 6};
-
-// groovy
-int[] array = [1, 2, 3]
-def array2 = new int[] {1, 2, 3}  // groovy 3.0+
+// Groovy 中的闭包
+def closure = { name -> "Hello, $name!" }
+println closure("John")  // 输出: Hello, John!
 ```
-## 注释
+
+```java
+// Java 中无法直接使用闭包，需使用接口或 lambda 表达式
+// 以下示例使用 Java 8 的 lambda 表达式
+import java.util.function.Function;
+
+Function<String, String> closure = (String name) -> {
+    return "Hello, " + name + "!";
+};
+System.out.println(closure.apply("John"));  // 输出: Hello, John!
+```
+
+4. groovy无须每条语句后面都加分号
+
+5. def定义前可以添加修饰符，如 public，private 和 protected。默认情况下，如果未提供可见性修饰符，则该方法为 public。
 ```groovy
-// 单行注释，可以独占一行，也可以放在语句后面
-/* 多行注释　*/
-/**
-*文档注释
-*/
-```
-## 变量
-```groovy
-// 变量定义
-String x
-def y
-var z
-// 变量赋值
-x = 1
-x = new java.util.Date()
-x = -3.1499392
-x = false
-x = "Hi"
-// 多重赋值
-def (a, b, c) = [10, 20, 'foo']
-assert a == 10 && b == 20 && c == 'foo'
-// 或者声明类型
-def (int i, String j) = [10, 'foo']
-assert i == 10 && j == 'foo'
-//　列表
-def list = []
-def list = ['foo', 'bar']  // list string
-// 地图
-def map = [:]
-def map1 = [someKey: 'someValue']  // list String:String
-def map2 = ['someKey': 'someValue']
-```
-## 条件判断
-```groovy
-def x = false
-def y = false
-
-if ( !x ) {
-    x = true
-}
-
-assert x == true
-
-if ( x ) {
-    x = false
-} else {
-    y = true
-}
-
-assert x == y
-
-if ( ... ) {
-    ...
-} else if (...) {
-    ...
-} else {
-    ...
-}
-
-assert ('a' =~ /a/)
-assert !('a' =~ /b/)
-```
-## switch
-Groovy 中的 switch 语句向后兼容 Java 代码；因此您可能会遇到多次匹配共享相同代码的情况。但其中一个区别是 Groovy switch 语句可以处理任何类型的 switch 值，并且可以执行不同类型的匹配。
-```groovy
-def x = 1.23
-def result = ""
-
-switch (x) {
-    case "foo":
-        result = "found foo"
-        // lets fall through
-
-    case "bar":
-        result += "bar"
-
-    case [4, 5, 6, 'inList']:
-        result = "list"
-        break
-
-    case 12..30:
-        result = "range"
-        break
-
-    case Integer:
-        result = "integer"
-        break
-
-    case Number:
-        result = "number"
-        break
-
-    case ~/fo*/: // toString() representation of x matches the pattern?
-        result = "foo regex"
-        break
-
-    case { it < 0 }: // or { x < 0 }
-        result = "negative"
-        break
-
-    default:
-        result = "default"
-}
-
-assert result == "number"
-```
-## 循环
-1. for
-```groovy
-// java/c
-String message = ''
-for (int i = 0; i < 5; i++) {
-    message += 'Hi '
-}
-assert message == 'Hi Hi Hi Hi Hi '
-
-// groovy
-// iterate over a range
-def x = 0
-for ( i in 0..9 ) {
-    x += i
-}
-assert x == 45
-
-// iterate over a list
-x = 0
-for ( i in [0, 1, 2, 3, 4] ) {
-    x += i
-}
-assert x == 10
-
-// iterate over an array
-def array = (0..4).toArray()
-x = 0
-for ( i in array ) {
-    x += i
-}
-assert x == 10
-
-// iterate over a map
-def map = ['abc':1, 'def':2, 'xyz':3]
-x = 0
-for ( e in map ) {
-    x += e.value
-}
-assert x == 6
-
-// iterate over values in a map
-x = 0
-for ( v in map.values() ) {
-    x += v
-}
-assert x == 6
-
-// iterate over the characters in a string
-def text = "abc"
-def list = []
-for (c in text) {
-    list.add(c)
-}
-assert list == ["a", "b", "c"]
-```
-2. while
-```groovy
-def x = 0
-def y = 5
-
-while ( y-- > 0 ) {
-    x++
-}
-
-assert x == 5
-```
-3. do...while
-```groovy
-// classic Java-style do..while loop
-def count = 5
-def fact = 1
-do {
-    fact *= count--
-} while(count > 1)
-assert fact == 120
-```
-## 异常处理
-与java相同
-```groovy
-try {
-    'moo'.toLong()   // this will generate an exception
-    assert false     // asserting that this point should never be reached
-} catch ( e ) {
-    assert e in NumberFormatException
-}
-
-def z
-try {
-    def i = 7, j = 0
-    try {
-        def k = i / j
-        assert false        //never reached due to Exception in previous line
-    } finally {
-        z = 'reached here'  //always executed even if Exception thrown
-    }
-} catch ( e ) {
-    assert e in ArithmeticException
-    assert z == 'reached here'
+class Example {
+   static def DisplayName() {
+      println("This is how methods work in groovy");
+      println("This is an example of a simple method");
+   } 
+    
+   static void main(String[] args) {
+      DisplayName();
+   } 
 }
 ```
-## 运算
-```groovy
-// 一元运算符
-def a = 2
-def b = a++ * 3             
-
-assert a == 3 && b == 6
-
-def c = 3
-def d = c-- * 2             
-
-assert c == 2 && d == 6
-
-def e = 1
-def f = ++e + 3             
-
-assert e == 2 && f == 5
-
-def g = 4
-def h = --g + 1             
-
-assert g == 3 && h == 4
-
-// 关系运算符
-assert 1 + 2 == 3
-assert 3 != 4
-
-assert -2 < 3
-assert 2 <= 2
-assert 3 <= 4
-
-assert 5 > 1
-assert 5 >= -2
-
-// 逻辑运算符
-assert !false           
-assert true && true     
-assert true || false 
-```
-## 命名
-类似java
 
 ## 坑
 在jenkins共享库的groovy脚本中，sh包裹的多行语句块里，groovy不能正常解析sh中$符号和groovy中的$符号，例如以下代码会报错
@@ -336,83 +126,3 @@ sh """
     fi
 """
 ```
-
-## 输出
-在Groovy中，`println`是用于输出文本到控制台的函数。它可以用于输出简单的文本、变量的值以及其他类型的数据。下面详细说明`println`的用法：
-
-1. 输出文本：
-
-你可以直接使用`println`来输出简单的文本：
-
-```groovy
-println "Hello, World!"
-```
-
-这将在控制台输出：`Hello, World!`
-
-2. 输出变量的值：
-
-你可以使用`${}`来在字符串中插入变量的值：
-
-```groovy
-def name = "John"
-println "My name is ${name}."
-```
-
-这将在控制台输出：`My name is John.`
-
-3. 输出多个值：
-
-你可以使用逗号来输出多个值，并它们会用空格分隔：
-
-```groovy
-def x = 10
-def y = 20
-println "The values are: $x, $y"
-```
-
-这将在控制台输出：`The values are: 10, 20`
-
-4. 输出多行文本：
-
-你可以使用三引号字符串来输出多行文本：
-
-```groovy
-println """
-This is a multi-line
-text output in Groovy.
-"""
-```
-
-这将在控制台输出：
-
-```
-This is a multi-line
-text output in Groovy.
-```
-
-5. 输出其他类型的数据：
-
-`println`可以输出除文本和变量外的其他数据类型，例如列表、映射、布尔值等：
-
-```groovy
-def list = [1, 2, 3]
-def map = ['a': 1, 'b': 2]
-def isTrue = true
-def x = 8
-
-println list
-println map
-println isTrue
-println x
-```
-
-这将在控制台输出：
-
-```
-[1, 2, 3]
-[a:1, b:2]
-true
-8
-```
-print函数会在输出时省略换行符，而println会添加换行符。

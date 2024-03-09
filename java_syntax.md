@@ -4,12 +4,13 @@
 <!-- vim-markdown-toc GFM -->
 
 * [简介](#简介)
+    * [helloworld](#helloworld)
     * [安装](#安装)
 * [基本概念](#基本概念)
 * [命名](#命名)
 * [注释](#注释)
 * [变量和数据类型](#变量和数据类型)
-    * [变量声明示例：](#变量声明示例)
+    * [变量声明示例](#变量声明示例)
     * [基本数据类型](#基本数据类型)
     * [引用类型](#引用类型)
         * [字符串](#字符串)
@@ -37,13 +38,34 @@
     * [访问修饰符](#访问修饰符)
     * [非访问修饰符](#非访问修饰符)
 * [异常处理](#异常处理)
-* [继承](#继承)
 * [包](#包)
     * [包的作用域](#包的作用域)
     * [import](#import)
     * [java文件编译顺序](#java文件编译顺序)
     * [最佳实践](#最佳实践)
         * [编译和运行](#编译和运行)
+* [面向对象编程](#面向对象编程)
+    * [方法](#方法)
+        * [this变量](#this变量)
+        * [方法参数](#方法参数)
+        * [可变参数](#可变参数)
+        * [参数绑定](#参数绑定)
+    * [构造方法](#构造方法)
+        * [默认构造方法](#默认构造方法)
+        * [多构造方法](#多构造方法)
+    * [方法重载](#方法重载)
+    * [继承](#继承)
+        * [protected](#protected)
+        * [super](#super)
+        * [阻止继承](#阻止继承)
+        * [向上转型](#向上转型)
+        * [向下转型](#向下转型)
+        * [instanceof操作符](#instanceof操作符)
+        * [区分继承和组合](#区分继承和组合)
+    * [多态Override](#多态override)
+        * [方法签名](#方法签名)
+        * [复写Object方法](#复写object方法)
+        * [final](#final)
 
 <!-- vim-markdown-toc -->
 
@@ -68,7 +90,17 @@ Java语言常年霸占着三大市场：
 
 Android移动平台。
 
-helloworld：
+### helloworld
+这段代码是一个非常简单的Java程序，它包含一个名为Hello的公共类和一个名为main的公共静态方法。让我详细解释一下每一部分的含义：
+
+1. public class Hello { }：这是一个类的定义。关键字public表示这个类是公共的，可以被其他类访问。类名为Hello，它是一个标识符，遵循Java的命名规范（首字母大写的驼峰命名法）。大括号内是类的主体，这里为空，表示这个类没有任何属性或方法。
+
+2. public static void main(String[] args) { }：这是一个名为main的公共静态方法。在Java程序中，main方法是程序的入口点，JVM会从这里开始执行程序。关键字public表示这个方法是公共的，可以被其他类访问；static表示这个方法是静态的，可以直接通过类名调用，而不需要实例化类；void表示这个方法没有返回值；main是方法的名称；String[] args是一个参数数组，它包含了从命令行传入的参数。
+
+3. System.out.println("Hello, world!");：这是main方法中的唯一一条语句。它使用System.out.println方法在控制台打印一条消息，消息内容是"Hello, world!"。在Java中，System.out是一个PrintStream对象，它提供了各种输出方法，println方法用于打印一行字符串并换行。
+
+所以，这段代码的作用是在控制台输出"Hello, world!"。当你执行这个Java程序时，JVM会调用main方法，并执行其中的代码，从而输出"Hello, world!"到控制台。
+
 ```java
 // HelloWorld.java
 public class HelloWorld {
@@ -171,7 +203,7 @@ public class HelloWorld {
 java中变量分为两种：基本类型变量和引用类型变量  
 java中变量需要先声明后使用，也需要被初始化 
 
-### 变量声明示例：
+### 变量声明示例
 ```java
 int a, b, c;         // 声明三个int型整数：a、 b、c
 int d = 3, e = 4, f = 5; // 声明三个整数并赋予初值
@@ -186,17 +218,21 @@ String[][] str = new String[3][4];  //　声明二维数组
 ```
 
 ### 基本数据类型
-基本数据类型是CPU可以直接进行运算的类型。Java定义了以下几种基本数据类型：
+基本数据类型是CPU可以直接进行运算的类型。Java定义了以下几种基本数据类型：  
 整数类型：byte，short，int，long  
 浮点数类型：float，double  
 字符类型：char  
 布尔类型：boolean  
 
+基础数据类型变量可以反复赋值。每次赋值都会新建或者覆盖之前的变量的内存空间  
+![](./basic_var.png)
+
 ### 引用类型
 除了上述基本类型的变量，剩下的都是引用类型。例如，引用类型最常用的就是String字符串，引用类型的变量类似于C语言的指针，它内部存储一个“地址”，指向某个对象在内存的位置
 
 #### 字符串
-java中加号+用来连接任意字符串和其它数据类型，其它数据类型会自动转为字符串再连接，从java13开始字符串可以用"""..."""来表示多行字符串
+java中加号+用来连接任意字符串和其它数据类型，其它数据类型会自动转为字符串再连接  
+从java13开始字符串可以用"""..."""来表示多行字符串
 ```java
 public class Main {
     public static void main(String[] args) {
@@ -217,6 +253,21 @@ String s = """
 ...........WHERE id > 100
 ...........ORDER BY name DESC
 ...........""";
+```
+
+字符串变量内容不可变，当对一个已经创建的字符串变量重新赋值时，会新开辟一个内存空间，并把这个字符串变量的指向改成这个新的内存空间，旧的内存空间依旧存在  
+![](./StringPoint.png)
+```java
+public class Main {
+    public static void main(String[] args) {
+        String s = "hello";
+        String t = s;
+        s = "world";
+        System.out.println(t); // t是"hello"还是"world"?
+    }
+}
+
+// 输出 hello
 ```
 
 #### 空值null
@@ -642,11 +693,11 @@ James,Larry,Tom,Lacy,
    * public : 对所有类可见。使用对象：类、接口、变量、方法
    * protected : 对同一包内的类和所有子类可见。使用对象：变量、方法。 注意：不能修饰类（外部类）。
 ### 非访问修饰符
-   * static 修饰符，用来修饰类方法和类变量。
+   * static 共享修饰符，表示静态的，用于修饰方法、变量，表示方法或变量属于类而不是实例。
         ```java
         public class InstanceCounter {
-        private static int numInstances = 0;
-        protected static int getCount() {
+            private static int numInstances = 0;
+            protected static int getCount() {
             return numInstances;
         }
 
@@ -669,7 +720,7 @@ James,Larry,Tom,Lacy,
         }
         }
         ```
-   * final 修饰符，用来修饰类、方法和变量，final 修饰的类不能够被继承，修饰的方法不能被继承类重新定义，修饰的变量为常量，是不可修改的。
+   * final 常量修饰符，用来修饰类、方法和变量，final 修饰的类不能够被继承，修饰的方法不能被继承类重新定义，修饰的变量为常量，是不可修改的。
    * abstract 修饰符，用来创建抽象类和抽象方法。
    * synchronized 和 volatile 修饰符，主要用于线程的编程。
 
@@ -678,13 +729,13 @@ James,Larry,Tom,Lacy,
 ```java
 // 文件名 : ExcepTest.java
 import java.io.*;
-public class ExcepTest{
+public class ExcepTest {
  
-   public static void main(String args[]){
-      try{
+   public static void main(String args[]) {
+      try {
          int a[] = new int[2];
          System.out.println("Access element three :" + a[3]);
-      }catch(ArrayIndexOutOfBoundsException e){
+      } catch(ArrayIndexOutOfBoundsException e) {
          System.out.println("Exception thrown  :" + e);
       }
       System.out.println("Out of the block");
@@ -707,15 +758,15 @@ public void checkNumber(int num) {
 
 3. finally，无论是否发生异常，finally 代码块中的代码总会被执行
 ```java
-public class ExcepTest{
-  public static void main(String args[]){
+public class ExcepTest {
+  public static void main(String args[]) {
     int a[] = new int[2];
-    try{
+    try {
        System.out.println("Access element three :" + a[3]);
-    }catch(ArrayIndexOutOfBoundsException e){
+    } catch(ArrayIndexOutOfBoundsException e) {
        System.out.println("Exception thrown  :" + e);
     }
-    finally{
+    finally {
        a[0] = 6;
        System.out.println("First element value: " +a[0]);
        System.out.println("The finally statement is executed");
@@ -727,75 +778,6 @@ public class ExcepTest{
 Exception thrown  :java.lang.ArrayIndexOutOfBoundsException: 3
 First element value: 6
 The finally statement is executed
-*/
-```
-
-## 继承
-```java
-// 公共父类
-public class Animal { 
-    private String name;  
-    private int id; 
-    public Animal(String myName, int myid) { 
-        name = myName; 
-        id = myid;
-    } 
-    public void eat(){ 
-        System.out.println(name+"正在吃"); 
-    }
-    public void sleep(){
-        System.out.println(name+"正在睡");
-    }
-    public void introduction() { 
-        System.out.println("大家好！我是"         + id + "号" + name + "."); 
-    } 
-}
-
-// 企鹅类
-public class Penguin extends Animal { 
-    public Penguin(String myName, int myid) { 
-        super(myName, myid); 
-    } 
-}
-
-//　老鼠类
-public class Mouse extends Animal { 
-    public Mouse(String myName, int myid) { 
-        super(myName, myid); 
-    } 
-}
-```
-super与this关键字
-```java
-class Animal {
-  void eat() {
-    System.out.println("animal : eat");
-  }
-}
- 
-class Dog extends Animal {
-  void eat() {
-    System.out.println("dog : eat");
-  }
-  void eatTest() {
-    this.eat();   // this 调用自己的方法
-    super.eat();  // super 调用父类方法
-  }
-}
- 
-public class Test {
-  public static void main(String[] args) {
-    Animal a = new Animal();
-    a.eat();
-    Dog d = new Dog();
-    d.eatTest();
-  }
-}
-
-/* 输出
-animal : eat
-dog : eat
-animal : eat
 */
 ```
 
@@ -1031,3 +1013,965 @@ bin
 $ java -cp bin com.itranswarp.sample.Main  
 Hello, world!
 ```
+
+## 面向对象编程
+
+### 方法
+语法：
+```
+修饰符 方法返回类型 方法名(方法参数列表) {
+    若干方法语句;
+    return 方法返回值;
+}
+```
+方法返回值通过return语句实现，如果没有返回值，返回类型设置为void，可以省略return
+
+#### this变量
+在方法内部，可以使用一个隐含的变量this，它始终指向当前实例。因此，通过this.field就可以访问当前实例的字段。
+
+如果没有命名冲突，可以省略this。例如：
+```java
+class Person {
+    private String name;
+
+    public String getName() {
+        return name; // 相当于this.name
+    }
+}
+```
+
+但是，如果有局部变量和字段重名，那么局部变量优先级更高，就必须加上this：
+```java
+class Person {
+    private String name;
+
+    public void setName(String name) {
+        this.name = name; // 前面的this不可少，少了就变成局部变量name了
+    }
+}
+```
+
+#### 方法参数
+方法可以包含0个或任意个参数。方法参数用于接收传递给方法的变量值。调用方法时，必须严格按照参数的定义一一传递。例如：
+```java
+class Person {
+    ...
+    public void setNameAndAge(String name, int age) {
+        ...
+    }
+}
+```
+调用这个setNameAndAge()方法时，必须有两个参数，且第一个参数必须为String，第二个参数必须为int：
+
+Person ming = new Person();
+ming.setNameAndAge("Xiao Ming"); // 编译错误：参数个数不对
+ming.setNameAndAge(12, "Xiao Ming"); // 编译错误：参数类型不对
+
+#### 可变参数
+可变参数用类型...定义，可变参数相当于数组类型：
+```java
+class Group {
+    private String[] names;
+
+    public void setNames(String... names) {
+        this.names = names;
+    }
+}
+```
+上面的setNames()就定义了一个可变参数。调用时，可以这么写：
+```
+Group g = new Group();
+g.setNames("Xiao Ming", "Xiao Hong", "Xiao Jun"); // 传入3个String
+g.setNames("Xiao Ming", "Xiao Hong"); // 传入2个String
+g.setNames("Xiao Ming"); // 传入1个String
+g.setNames(); // 传入0个String
+```
+
+完全可以把可变参数改写为String[]类型：
+```
+class Group {
+    private String[] names;
+
+    public void setNames(String[] names) {
+        this.names = names;
+    }
+}
+```
+但是，调用方需要自己先构造String[]，比较麻烦。例如：
+```
+Group g = new Group();  
+g.setNames(new String[] {"Xiao Ming", "Xiao Hong", "Xiao Jun"}); // 传入1个String[]
+```
+
+另一个问题是，调用方可以传入null：
+```
+Group g = new Group();
+g.setNames(null);
+```
+而可变参数可以保证无法传入null，因为传入0个参数时，接收到的实际值是一个空数组而不是null。
+
+#### 参数绑定
+调用方把参数传递给实例方法时，调用时传递的值会按参数位置一一绑定。  
+
+结论：
+基本类型参数的传递，是调用方值的复制。双方各自的后续修改，互不影响。  
+引用类型参数的传递，调用方的变量，和接收方的参数变量，指向的是同一个对象。双方任意一方对这个对象的修改，都会影响对方（因为指向同一个对象嘛）
+```java
+public class Main {
+    public static void main(String[] args) {
+        Person p = new Person();
+        String bob = "Bob";
+        p.setName(bob); // 传入bob变量
+        System.out.println(p.getName()); // "Bob"
+        bob = "Alice"; // bob改名为Alice
+        System.out.println(p.getName()); // "Bob"还是"Alice"?
+    }
+}
+
+class Person {
+    private String name;
+
+    public String getName() {
+        return this.name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+
+// 输出 Bob
+// bob改名为Alice实际上是新创建一块内存空间并把bob指向新的内存空间，原有Bob值的内存空间还保留着
+```
+
+### 构造方法
+能否在创建对象实例时就把内部字段全部初始化为合适的值？
+
+这时，我们就需要构造方法。
+
+创建实例的时候，实际上是通过构造方法来初始化实例的。我们先来定义一个构造方法，能在创建Person实例的时候，一次性传入name和age，完成初始化：
+```java
+public class Main {
+    public static void main(String[] args) {
+        Person p = new Person("Xiao Ming", 15);
+        System.out.println(p.getName());
+        System.out.println(p.getAge());
+    }
+}
+
+class Person {
+    private String name;
+    private int age;
+
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+    
+    public String getName() {
+        return this.name;
+    }
+
+    public int getAge() {
+        return this.age;
+    }
+}
+```
+由于构造方法是如此特殊，所以构造方法的名称就是类名。构造方法的参数没有限制，在方法内部，也可以编写任意语句。但是，和普通方法相比，构造方法没有返回值（也没有void），调用构造方法，必须用new操作符。
+
+#### 默认构造方法
+任何class都有构造方法，如果一个类没有定义构造方法，编译器会自动为我们生成一个默认构造方法，它没有参数，也没有执行语句，类似这样：
+```java
+class Person {
+    public Person() {
+    }
+}
+```
+如果我们自定义了一个构造方法，那么，编译器就不再自动创建默认构造方法
+
+如果既要能使用带参数的构造方法，又想保留不带参数的构造方法，那么只能把两个构造方法都定义出来：
+```java
+public class Main {
+    public static void main(String[] args) {
+        Person p1 = new Person("Xiao Ming", 15); // 既可以调用带参数的构造方法
+        Person p2 = new Person(); // 也可以调用无参数构造方法
+    }
+}
+
+class Person {
+    private String name;
+    private int age;
+
+    public Person() {
+    }
+
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+    
+    public String getName() {
+        return this.name;
+    }
+
+    public int getAge() {
+        return this.age;
+    }
+}
+```
+
+没有在构造方法中初始化字段时，引用类型的字段默认是null，数值类型的字段用默认值，int类型默认值是0，布尔类型默认值是false
+```java
+class Person {
+    private String name; // 默认初始化为null
+    private int age; // 默认初始化为0
+
+    public Person() {
+    }
+}
+```
+
+在Java中，创建对象实例的时候，按照如下顺序进行初始化：
+
+先初始化字段，例如，int age = 10;表示字段初始化为10，double salary;表示字段默认初始化为0，String name;表示引用类型字段默认初始化为null；
+
+执行构造方法的代码进行初始化。
+
+因此，构造方法的代码由于后运行，所以，new Person("Xiao Ming", 12)的字段值最终由构造方法的代码确定。
+```java
+class Person {
+    private String name = "Unamed";
+    private int age = 10;
+
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+}
+```
+
+#### 多构造方法
+可以定义多个构造方法，在通过new操作符调用的时候，编译器通过构造方法的参数数量、位置和类型自动区分：
+```java
+class Person {
+    private String name;
+    private int age;
+
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    public Person(String name) {
+        this.name = name;
+        this.age = 12;
+    }
+
+    public Person() {
+    }
+}
+```
+如果调用new Person("Xiao Ming", 20);，会自动匹配到构造方法public Person(String, int)。
+
+如果调用new Person("Xiao Ming");，会自动匹配到构造方法public Person(String)。
+
+如果调用new Person();，会自动匹配到构造方法public Person()。
+
+一个构造方法可以调用其他构造方法，这样做的目的是便于代码复用。调用其他构造方法的语法是this(…)：
+```java
+class Person {
+    private String name;
+    private int age;
+
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    public Person(String name) {
+        this(name, 18); // 调用另一个构造方法Person(String, int)
+    }
+
+    public Person() {
+        this("Unnamed"); // 调用另一个构造方法Person(String)
+    }
+}
+```
+
+### 方法重载
+在一个类中，方法名相同，但各自参数不同，称为重载（overload）。方法重载返回值类型通常都是相同的
+```java
+class Hello {
+    public void hello() {
+        System.out.println("Hello, world!");
+    }
+
+    public void hello(String name) {
+        System.out.println("Hello, " + name + "!");
+    }
+
+    public void hello(String name, int age) {
+        if (age < 18) {
+            System.out.println("Hi, " + name + "!");
+        } else {
+            System.out.println("Hello, " + name + "!");
+        }
+    }
+}
+```
+
+方法重载的目的是，功能类似的方法使用同一名字，更容易记住
+
+举个例子，String类提供了多个重载方法indexOf()，可以查找子串：
+
+int indexOf(int ch)：根据字符的Unicode码查找；
+
+int indexOf(String str)：根据字符串查找；
+
+int indexOf(int ch, int fromIndex)：根据字符查找，但指定起始位置；
+
+int indexOf(String str, int fromIndex)根据字符串查找，但指定起始位置。
+```java
+public class Main {
+    public static void main(String[] args) {
+        String s = "Test string";
+        int n1 = s.indexOf('t');
+        int n2 = s.indexOf("st");
+        int n3 = s.indexOf("st", 4);
+        System.out.println(n1);
+        System.out.println(n2);
+        System.out.println(n3);
+    }
+}
+```
+
+### 继承
+起到复用代码的作用，当我们让Student从Person继承时，Student就获得了Person的所有功能，我们只需要为Student编写新增的功能
+
+java使用extends关键字来实现继承
+```java
+class Person {
+    private String name;
+    private int age;
+
+    public String getName() {...}
+    public void setName(String name) {...}
+    public int getAge() {...}
+    public void setAge(int age) {...}
+}
+
+class Student extends Person {
+    // 不要重复name和age字段/方法,
+    // 只需要定义新增score字段/方法:
+    private int score;
+
+    public int getScore() { … }
+    public void setScore(int score) { … }
+}
+```
+注意：子类自动获得了父类的所有字段，严禁定义与父类重名的字段！
+
+在OOP的术语中，我们把Person称为超类（super class），父类（parent class），基类（base class），把Student称为子类（subclass），扩展类（extended class）
+
+在Java中，没有明确写extends的类，编译器会自动加上extends Object。所以，任何类，除了Object，都会继承自某个类。
+
+Java只允许一个class继承自一个类，因此，一个类有且仅有一个父类。只有Object特殊，它没有父类。
+
+#### protected
+继承有个特点，就是子类无法访问父类的private字段或者private方法。例如，Student类就无法访问Person类的name和age字段：
+```java
+class Person {
+    private String name;
+    private int age;
+}
+
+class Student extends Person {
+    public String hello() {
+        return "Hello, " + name; // 编译错误：无法访问name字段
+    }
+}
+```
+
+这使得继承的作用被削弱了。为了让子类可以访问父类的字段，我们需要把private改为protected。用protected修饰的字段可以被子类访问：
+```java
+class Person {
+    protected String name;
+    protected int age;
+}
+
+class Student extends Person {
+    public String hello() {
+        return "Hello, " + name; // OK!
+    }
+}
+```
+
+因此，protected关键字可以把字段和方法的访问权限控制在继承树内部，一个protected字段和方法可以被其子类，以及子类的子类所访问，后面我们还会详细讲解。
+
+#### super
+super关键字表示父类（超类）。子类引用父类的字段时，可以用super.fieldName。例如：
+```java
+class Student extends Person {
+    public String hello() {
+        return "Hello, " + super.name;
+    }
+}
+```
+实际上，这里使用super.name，或者this.name，或者name，效果都是一样的。编译器会自动定位到父类的name字段。
+
+但是，在某些时候，就必须使用super。我们来看一个例子：
+```java
+public class Main {
+    public static void main(String[] args) {
+        Student s = new Student("Xiao Ming", 12, 89);
+    }
+}
+
+class Person {
+    protected String name;
+    protected int age;
+
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+}
+
+class Student extends Person {
+    protected int score;
+
+    public Student(String name, int age, int score) {
+        this.score = score;
+    }
+}
+```
+
+这段代码会编译失败，这是因为在Java中，任何class的构造方法，第一行语句必须是调用父类的构造方法。如果没有明确地调用父类的构造方法，编译器会帮我们自动加一句super();，所以，Student类的构造方法实际上是这样：
+```java
+class Student extends Person {
+    protected int score;
+
+    public Student(String name, int age, int score) {
+        super(); // 自动调用父类的构造方法
+        this.score = score;
+    }
+}
+```
+但是，Person类并没有无参数的构造方法，因此，编译失败。
+
+解决方法是调用Person类存在的某个构造方法。例如：
+```java
+class Student extends Person {
+    protected int score;
+
+    public Student(String name, int age, int score) {
+        super(name, age); // 调用父类的构造方法Person(String, int)
+        this.score = score;
+    }
+}
+```
+
+因此我们得出结论：如果父类没有默认的构造方法，子类就必须显式调用super()并给出参数以便让编译器定位到父类的一个合适的构造方法。
+
+子类不会继承任何父类的构造方法。子类默认的构造方法是编译器自动生成的，不是继承的。
+
+#### 阻止继承
+正常情况下，只要某个class没有final修饰符，那么任何类都可以从该class继承。
+
+从Java 15开始，允许使用sealed修饰class，并通过permits明确写出能够从该class继承的子类名称。
+
+例如，定义一个Shape类：
+```java
+public sealed class Shape permits Rect, Circle, Triangle {
+    ...
+}
+```
+上述Shape类就是一个sealed类，它只允许指定的3个类继承它。如果写：
+```java
+public final class Rect extends Shape {...}
+```
+是没问题的，因为Rect出现在Shape的permits列表中。
+
+#### 向上转型
+把一个子类类型安全地变为父类类型的赋值，被称为向上转型（upcasting）。
+
+向上转型实际上是把一个子类型安全地变为更加抽象的父类型：
+```java
+Student s = new Student();
+Person p = s; // upcasting, ok
+Object o1 = p; // upcasting, ok
+Object o2 = s; // upcasting, ok
+```
+注意到继承树是Student > Person > Object，所以，可以把Student类型转型为Person，或者更高层次的Object
+
+#### 向下转型
+和向上转型相反，如果把一个父类类型强制转型为子类类型，就是向下转型（downcasting）。例如：
+```java
+Person p1 = new Student(); // upcasting, ok
+Person p2 = new Person();
+Student s1 = (Student) p1; // ok
+Student s2 = (Student) p2; // runtime error! ClassCastException!
+```
+把p2转型为Student会失败，因为p2的实际类型是Person，不能把父类变为子类，因为子类功能比父类多，多的功能无法凭空变出来。
+
+#### instanceof操作符
+为了避免向下转型出错，Java提供了instanceof操作符，可以先判断一个实例究竟是不是某种类型，instanceof实际上判断一个变量所指向的实例是否是指定类型，或者这个类型的子类。如果一个引用变量为null，那么对任何instanceof的判断都为false。
+
+instanceof示例：
+```java
+Person p = new Student();
+if (p instanceof Student) {
+    // 只有判断成功才会向下转型:
+    Student s = (Student) p; // 一定会成功
+}
+
+// 从Java 14开始，判断instanceof后，可以直接转型为指定变量，避免再次强制转型
+public class Main {
+    public static void main(String[] args) {
+        Object obj = "hello";
+        if (obj instanceof String s) {
+            // 可以直接使用变量s:
+            System.out.println(s.toUpperCase());
+        }
+    }
+}
+```
+
+#### 区分继承和组合
+在使用继承时，我们要注意逻辑一致性。
+
+考察下面的Book类：
+```java
+class Book {
+    protected String name;
+    public String getName() {...}
+    public void setName(String name) {...}
+}
+```
+这个Book类也有name字段，那么，我们能不能让Student继承自Book呢？
+```java
+class Student extends Book {
+    protected int score;
+}
+```
+显然，从逻辑上讲，这是不合理的，Student不应该从Book继承，而应该从Person继承。
+
+究其原因，是因为Student是Person的一种，它们是is关系，而Student并不是Book。实际上Student和Book的关系是has关系。
+
+具有has关系不应该使用继承，而是使用组合，即Student可以持有一个Book实例：
+```java
+class Student extends Person {
+    protected Book book;
+    protected int score;
+}
+```
+因此，继承是is关系，组合是has关系。
+
+### 多态Override 
+在继承关系中，子类如果定义了一个与父类方法签名完全相同的方法，被称为覆写（Override）。
+
+例如，在Person类中，我们定义了run()方法：
+```java
+class Person {
+    public void run() {
+        System.out.println("Person.run");
+    }
+}
+```
+在子类Student中，覆写这个run()方法：
+```java
+class Student extends Person {
+    @Override
+    public void run() {
+        System.out.println("Student.run");
+    }
+}
+```
+Override和Overload不同的是，如果方法签名不同，就是Overload，Overload方法是一个新方法；如果方法签名相同，并且返回值也相同，就是Override
+
+注意：方法名相同，方法参数相同，但方法返回值不同，也是不同的方法。在Java程序中，出现这种情况，编译器会报错。
+
+加上@Override可以让编译器帮助检查是否进行了正确的覆写。但@Override不是必须的
+
+#### 方法签名
+方法签名指的是方法的唯一标识，包括方法的名称、参数列表和返回类型。在 Java 中，方法签名用于区分不同的方法，并且决定了方法重载和方法重写的规则。
+
+一个方法的签名由以下三部分组成：
+
+方法名称：方法的名称是唯一的，用于标识方法的功能。  
+参数列表：参数列表指定了方法接受的参数的数量、类型和顺序。方法的参数列表中的每个参数都包括参数的类型和参数的名称（可选），参数列表用逗号分隔。  
+返回类型：返回类型指定了方法执行后返回的结果的类型。如果方法没有返回值，则返回类型为 void。  
+
+方法签名的形式为：
+```java
+methodName(parameter1Type parameter1Name, parameter2Type parameter2Name, ...)
+```
+
+Java的实例方法调用是基于运行时的实际类型的动态调用，而非变量的声明类型。
+
+这个非常重要的特性在面向对象编程中称之为多态。它的英文拼写非常复杂：Polymorphic。
+```java
+public class Main {
+    public static void main(String[] args) {
+        Person p = new Student();
+        p.run(); // 应该打印Person.run还是Student.run?
+    }
+}
+
+class Person {
+    public void run() {
+        System.out.println("Person.run");
+    }
+}
+
+class Student extends Person {
+    @Override
+    public void run() {
+        System.out.println("Student.run");
+    }
+}
+
+// 这里会运行Student中run方法
+```
+
+#### 复写Object方法
+因为所有的class最终都继承自Object，而Object定义了几个重要的方法：
+
+toString()：把instance输出为String；  
+equals()：判断两个instance是否逻辑相等； 
+hashCode()：计算一个instance的哈希值。  
+在必要的情况下，我们可以覆写Object的这几个方法。例如：
+```java
+class Person {
+    ...
+    // 显示更有意义的字符串:
+    @Override
+    public String toString() {
+        return "Person:name=" + name;
+    }
+
+    // 比较是否相等:
+    @Override
+    public boolean equals(Object o) {
+        // 当且仅当o为Person类型:
+        if (o instanceof Person) {
+            Person p = (Person) o;
+            // 并且name字段相同时，返回true:
+            return this.name.equals(p.name);
+        }
+        return false;
+    }
+
+    // 计算hash:
+    @Override
+    public int hashCode() {
+        return this.name.hashCode();
+    }
+}
+```
+
+#### final
+继承可以允许子类覆写父类的方法。如果一个父类不允许子类对它的某个方法进行覆写，可以把该方法标记为final。用final修饰的方法不能被Override：
+```java
+class Person {
+    protected String name;
+    public final String hello() {
+        return "Hello, " + name;
+    }
+}
+
+class Student extends Person {
+    // compile error: 不允许覆写
+    @Override
+    public String hello() {
+    }
+}
+```
+如果一个类不希望任何其他类继承自它，那么可以把这个类本身标记为final。用final修饰的类不能被继承：
+```java
+final class Person {
+    protected String name;
+}
+
+// compile error: 不允许继承自Person
+class Student extends Person {
+}
+```
+对于一个类的实例字段，同样可以用final修饰。用final修饰的字段在初始化后不能被修改。例如：
+```java
+class Person {
+    public final String name = "Unamed";
+}
+对final字段重新赋值会报错：
+
+Person p = new Person();
+p.name = "New Name"; // compile error!
+可以在构造方法中初始化final字段：
+```java
+class Person {
+    public final String name;
+    public Person(String name) {
+        this.name = name;
+    }
+}
+```
+这种方法更为常用，因为可以保证实例一旦创建，其final字段就不可修改。
+
+### 抽象类abstract
+如果父类的方法本身不需要实现任何功能，仅仅是为了定义方法签名，目的是让子类去覆写它，那么，可以把父类的方法声明为抽象方法：
+```java
+class Person {
+    public abstract void run();
+}
+```
+把一个方法声明为abstract，表示它是一个抽象方法，本身没有实现任何方法语句。因为这个抽象方法本身是无法执行的，所以，Person类也无法被实例化。编译器会告诉我们，无法编译Person类，因为它包含抽象方法。
+
+必须把Person类本身也声明为abstract，才能正确编译它：
+```java
+abstract class Person {
+    public abstract void run();
+}
+```
+
+因为抽象类本身被设计成只能用于被继承，因此，抽象类可以强迫子类实现其定义的抽象方法，否则编译会报错。因此，抽象方法实际上相当于定义了“规范”。
+
+#### 面向抽象编程
+当我们定义了抽象类Person，以及具体的Student、Teacher子类的时候，我们可以通过抽象类Person类型去引用具体的子类的实例：
+```java
+Person s = new Student();
+Person t = new Teacher();
+```
+这种引用抽象类的好处在于，我们对其进行方法调用，并不关心Person类型变量的具体子类型：
+```java
+// 不关心Person变量的具体子类型:
+s.run();
+t.run();
+```
+同样的代码，如果引用的是一个新的子类，我们仍然不关心具体类型：
+```java
+// 同样不关心新的子类是如何实现run()方法的：
+Person e = new Employee();
+e.run();
+```
+
+这种尽量引用高层类型，避免引用实际子类型的方式，称之为面向抽象编程。
+
+面向抽象编程的本质就是：
+
+上层代码只定义规范（例如：abstract class Person）；
+
+不需要子类就可以实现业务逻辑（正常编译）；
+
+具体的业务逻辑由不同的子类实现，调用者并不关心。
+
+### 接口interface
+在抽象类中，抽象方法本质上是定义接口规范：即规定高层类的接口，从而保证所有子类都有相同的接口实现，这样，多态就能发挥出威力。
+
+如果一个抽象类没有字段，所有方法全部都是抽象方法：
+```java
+abstract class Person {
+    public abstract void run();
+    public abstract String getName();
+}
+```
+就可以把该抽象类改写为接口：interface。
+
+在Java中，使用interface可以声明一个接口：
+```java
+interface Person {
+    void run();
+    String getName();
+}
+```
+所谓interface，就是比抽象类还要抽象的纯抽象接口，因为它连字段都不能有。因为接口定义的所有方法默认都是public abstract的，所以这两个修饰符不需要写出来（写不写效果都一样）。
+
+当一个具体的class去实现一个interface时，需要使用implements关键字。举个例子：
+```java
+class Student implements Person {
+    private String name;
+
+    public Student(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public void run() {
+        System.out.println(this.name + " run");
+    }
+
+    @Override
+    public String getName() {
+        return this.name;
+    }
+}
+```
+我们知道，在Java中，一个类只能继承自另一个类，不能从多个类继承。但是，一个类可以实现多个interface，例如：
+```java
+class Student implements Person, Hello { // 实现了两个interface
+    ...
+}
+```
+
+#### 术语
+注意区分术语：
+
+Java的接口特指interface的定义，表示一个接口类型和一组方法签名，而编程接口泛指接口规范，如方法签名，数据格式，网络协议等。
+
+抽象类和接口的对比如下：
+
+        abstract class  interface  
+继承    只能extends一个class    可以implements多个interface  
+字段    可以定义实例字段    不能定义实例字段  
+抽象方法    可以定义抽象方法    可以定义抽象方法  
+非抽象方法  可以定义非抽象方法  可以定义default方法
+
+#### 接口继承
+一个interface可以继承自另一个interface。interface继承自interface使用extends，它相当于扩展了接口的方法。例如：
+```java
+interface Hello {
+    void hello();
+}
+
+interface Person extends Hello {
+    void run();
+    String getName();
+}
+```
+此时，Person接口继承自Hello接口，因此，Person接口现在实际上有3个抽象方法签名，其中一个来自继承的Hello接口。
+
+#### 继承关系
+合理设计interface和abstract class的继承关系，可以充分复用代码。一般来说，公共逻辑适合放在abstract class中，具体逻辑放到各个子类，而接口层次代表抽象程度。可以参考Java的集合类定义的一组接口、抽象类以及具体子类的继承关系：  
+![](./relationship.png)
+在使用的时候，实例化的对象永远只能是某个具体的子类，但总是通过接口去引用它，因为接口比抽象类更抽象：
+```java
+List list = new ArrayList(); // 用List接口引用具体子类的实例 
+Collection coll = list; // 向上转型为Collection接口
+Iterable it = coll; // 向上转型为Iterable接口
+```
+
+#### default方法
+在接口中，可以定义default方法（jdk>=1.8）。例如，把Person接口的run()方法改为default方法：
+```java
+public class Main {
+    public static void main(String[] args) {
+        Person p = new Student("Xiao Ming");
+        p.run();
+    }
+}
+
+interface Person {
+    String getName();
+    default void run() {
+        System.out.println(getName() + " run");
+    }
+}
+
+class Student implements Person {
+    private String name;
+
+    public Student(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return this.name;
+    }
+}
+```
+实现类可以不必覆写default方法。default方法的目的是，当我们需要给接口新增一个方法时，会涉及到修改全部子类。如果新增的是default方法，那么子类就不必全部修改，只需要在需要覆写的地方去覆写新增方法。
+
+default方法和抽象类的普通方法是有所不同的。因为interface没有字段，default方法无法访问字段，而抽象类的普通方法可以访问实例字段。
+
+### 静态字段和静态方法static
+
+#### 静态字段
+在一个class中定义的字段，我们称之为实例字段。实例字段的特点是，每个实例都有独立的字段，各个实例的同名字段互不影响。
+
+还有一种字段，是用static修饰的字段，称为静态字段：static field。
+
+实例字段在每个实例中都有自己的一个独立“空间”，但是静态字段只有一个共享“空间”，所有实例都会共享该字段。举个例子：
+```java
+public class Main {
+    public static void main(String[] args) {
+        Person ming = new Person("Xiao Ming", 12);
+        Person hong = new Person("Xiao Hong", 15);
+        ming.number = 88;
+        System.out.println(hong.number);
+        hong.number = 99;
+        System.out.println(ming.number);
+    }
+}
+
+class Person {
+    public String name;
+    public int age;
+
+    public static int number;
+
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+}
+```
+对于静态字段，无论修改哪个实例的静态字段，效果都是一样的：所有实例的静态字段都被修改了，原因是静态字段并不属于实例：
+![](./static_filed.png)
+虽然实例可以访问静态字段，但是它们指向的其实都是Person class的静态字段。所以，所有实例共享一个静态字段。
+
+推荐用类名来访问静态字段。可以把静态字段理解为描述class本身的字段（非实例字段）。对于上面的代码，更好的写法是：
+```java
+Person.number = 99;
+System.out.println(Person.number);
+```
+
+#### 静态方法
+有静态字段，就有静态方法。用static修饰的方法称为静态方法。
+
+调用实例方法必须通过一个实例变量，而调用静态方法则不需要实例变量，通过类名就可以调用。静态方法类似其它编程语言的函数。例如：
+```java
+public class Main {
+    public static void main(String[] args) {
+        Person.setNumber(99);
+        System.out.println(Person.number);
+    }
+}
+
+class Person {
+    public static int number;
+
+    public static void setNumber(int value) {
+        number = value;
+    }
+}
+```
+因为静态方法属于class而不属于实例，因此，静态方法内部，无法访问this变量，也无法访问实例字段，它只能访问静态字段。
+
+通过实例变量也可以调用静态方法，但这只是编译器自动帮我们把实例改写成类名而已。
+
+通常情况下，通过实例变量访问静态字段和静态方法，会得到一个编译警告。
+
+静态方法经常用于工具类。例如：
+
+Arrays.sort()
+
+Math.random()
+
+静态方法也经常用于辅助方法。注意到Java程序的入口main()也是静态方法。
+
+#### 接口的静态字段
+因为interface是一个纯抽象类，所以它不能定义实例字段。但是，interface是可以有静态字段的，并且静态字段必须为final类型：
+```java
+public interface Person {
+    public static final int MALE = 1;
+    public static final int FEMALE = 2;
+}
+```
+实际上，因为interface的字段只能是public static final类型，所以我们可以把这些修饰符都去掉，上述代码可以简写为：
+```java
+public interface Person {
+    // 编译器会自动加上public statc final:
+    int MALE = 1;
+    int FEMALE = 2;
+}
+```
+编译器会自动把该字段变为public static final类型。
