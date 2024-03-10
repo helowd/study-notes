@@ -332,13 +332,13 @@ BEGIN   { OFS = ":"; ORS = "\n\n" }
 ```
 
 #### printf
-语法：
+语法：  
 ![](./awk_action_printf_syntax.png)
 
-格式控制字符：
+格式控制字符：  
 ![](./awk_action_printf_format.png)
 
-示例：
+示例：  
 ![](./awk_action_printf_examples.png)
 
 #### 输出到文件
