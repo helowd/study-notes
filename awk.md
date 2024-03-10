@@ -33,7 +33,7 @@
     * [输出](#输出)
         * [print语句](#print语句)
         * [输出分割符](#输出分割符)
-        * [printf](#printf)
+        * [printf语句](#printf语句)
         * [输出到文件](#输出到文件)
         * [输出到管道](#输出到管道)
         * [关闭文件与管道](#关闭文件与管道)
@@ -44,6 +44,16 @@
         * [命令行参数](#命令行参数)
     * [与其它程序交互](#与其它程序交互)
         * [system函数](#system函数)
+        * [用awk制作shell命令](#用awk制作shell命令)
+* [数据处理](#数据处理)
+    * [数据转换与归约](#数据转换与归约)
+        * [列求和](#列求和)
+        * [计算百分比与分位数todo](#计算百分比与分位数todo)
+        * [带逗号的数](#带逗号的数)
+        * [字段固定的输入](#字段固定的输入)
+* [性能](#性能)
+* [awk语言的限制](#awk语言的限制)
+* [初始化，比较和强制类型转换](#初始化比较和强制类型转换)
 * [案例](#案例)
     * [计算总额](#计算总额)
     * [统计url响应成功率](#统计url响应成功率)
@@ -331,8 +341,8 @@ BEGIN   { OFS = ":"; ORS = "\n\n" }
         { print $1, $2 }
 ```
 
-#### printf
-语法：  
+#### printf语句
+语法：    
 ![](./awk_action_printf_syntax.png)
 
 格式控制字符：  
@@ -426,6 +436,80 @@ BEGIN {
 $1 == "#include" { gsub(/"/, "", $2); system("cat " $2); next }
                  { print }
 ```
+
+#### 用awk制作shell命令
+示例：
+```bash
+#!/usr/bin/env bash
+# filed - print named fileds of each input line
+#   usage: filed n n n ... file file file
+
+awk '
+BEGIN {
+    for (i = 1; ARGV[i] ~ /^[0-9]+$/; i++) {
+        fld[++nf] = ARGV[i]
+        ARGV[i] = ""
+    }
+
+    if (i >= ARGC)
+        ARGV[ARGC++] = "-"
+}
+
+{   for (i = 1; i <= nf; i++)
+        printf("%s%s", $fld[i], i < nf ? " " : "\n")
+}
+' $*
+```
+
+## 数据处理
+
+### 数据转换与归约
+
+#### 列求和
+每一个输入行都含有若干个字段，每一个字段都包含数字，求每一列的和，而不管该行有多少列
+```
+{   for (i = 1; i <= NF; i++)   
+        sum[i] += $i
+    if (NF > maxfld)
+        maxfld = NF
+}
+
+END {   for (i = 1; i <= maxfld; i++) {
+            printf("%g", sum[i])
+            if (i < maxfld)
+                printf("\t")
+            else
+                printf("\n"
+        }
+}
+```
+
+#### 计算百分比与分位数todo
+
+#### 带逗号的数
+设想一张数据表，表中每个数据都有逗号和小数点，就像12,345.67，因为第一个逗号会终止awk对数的解析，所以不能直接相加，需要把逗号移除
+```awk
+    { gsub(/,/, ""); sum += $0 }
+END { print sum }
+```
+
+#### 字段固定的输入
+每行的前六个字符包含一个日期，日期形式是mmddyy，如果我们想让它们按照日期排序，最简单的办法是先把日期转换为yymmdd的形式
+```awk
+{ $1 = substrin($1, 5, 2) substr($1, 1, 2) substr($1, 3, 2); print }
+```
+
+## 性能
+当处理的数据规模越来越大时，awk程序就会越来越慢，解决建议：
+1. 用更好的算法
+2. 配合其它更快速的程序使用
+3. 换配置更好的机器
+
+## awk语言的限制
+![](./awk_limitation.png)
+
+## 初始化，比较和强制类型转换
+![](./awk_init_cmp_chg.png)
 
 ## 案例
 
