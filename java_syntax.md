@@ -6,6 +6,8 @@
 * [简介](#简介)
     * [helloworld](#helloworld)
     * [安装](#安装)
+        * [jdk：](#jdk)
+        * [jvm：](#jvm)
 * [基本概念](#基本概念)
 * [命名](#命名)
 * [注释](#注释)
@@ -38,12 +40,6 @@
     * [访问修饰符](#访问修饰符)
     * [非访问修饰符](#非访问修饰符)
 * [异常处理](#异常处理)
-* [包](#包)
-    * [包的作用域](#包的作用域)
-    * [import](#import)
-    * [java文件编译顺序](#java文件编译顺序)
-    * [最佳实践](#最佳实践)
-        * [编译和运行](#编译和运行)
 * [面向对象编程](#面向对象编程)
     * [方法](#方法)
         * [this变量](#this变量)
@@ -119,7 +115,7 @@ public class HelloWorld {
 2. 设置环境变量JAVA_HOME（指向jdk的安装目录）和PATH
 3. 如果java -version输出的不是指定版本，说明系统存在多个jdk，需要把当前安装jdk版本路径放到PATH之前
 
-jdk：
+#### jdk：
 ```
 Java Development Kit（JDK）是Sun微系统针对Java开发人员发布的免费软件开发工具包（SDK，Software development kit）。自从Java推出以来，JDK已经成为使用最广泛的Java SDK。由于JDK的一部分特性采用商业许可证，而非开源[2]。因此，2006年Sun微系统宣布将发布基于GPL的开源JDK，使JDK成为自由软件。在去掉了少量闭源特性之后，Sun微系统最终促成了GPL的OpenJDK的发布。sun已经被oracle收购
 
@@ -153,7 +149,7 @@ JDK中还包括完整的JRE（Java Runtime Environment），Java运行环境，�
 JDK中还包括各种样例程序，用以展示Java API中的各部分。
 ```
 
-jvm：
+#### jvm：
 ```
 Java虚拟机（英语：Java Virtual Machine，缩写：JVM），一种能够执行Java字节码的虚拟机，以堆栈结构机器来实现。最早由Sun微系统所研发并实现第一个实现版本，是Java平台的一部分，能够执行以Java语言写作的软件程序。
 
@@ -225,7 +221,7 @@ String[][] str = new String[3][4];  //　声明二维数组
 布尔类型：boolean  
 
 基础数据类型变量可以反复赋值。每次赋值都会新建或者覆盖之前的变量的内存空间  
-![](./basic_var.png)
+![](./basic_var.png)  
 
 ### 引用类型
 除了上述基本类型的变量，剩下的都是引用类型。例如，引用类型最常用的就是String字符串，引用类型的变量类似于C语言的指针，它内部存储一个“地址”，指向某个对象在内存的位置
@@ -256,7 +252,7 @@ String s = """
 ```
 
 字符串变量内容不可变，当对一个已经创建的字符串变量重新赋值时，会新开辟一个内存空间，并把这个字符串变量的指向改成这个新的内存空间，旧的内存空间依旧存在  
-![](./StringPoint.png)
+![](./StringPoint.png)  
 ```java
 public class Main {
     public static void main(String[] args) {
@@ -779,239 +775,6 @@ Exception thrown  :java.lang.ArrayIndexOutOfBoundsException: 3
 First element value: 6
 The finally statement is executed
 */
-```
-
-## 包
-在java中，使用package来解决名字冲突，Java定义了一种名字空间，称之为包：package。一个类总是属于某个包，类名（比如Person）只是一个简写，真正的完整类名是包名.类名
-
-在Java虚拟机执行的时候，JVM只看完整类名，因此，只要包名不同，类就不同
-
-要特别注意：包没有父子关系。java.util和java.util.zip是不同的包，两者没有任何继承关系。
-
-在定义class的时候，我们需要在第一行声明这个class属于哪个包
-```java
-// Person.java文件
-package ming; // 申明包名ming
-
-public class Person {
-}
-
-// Arrays.jva文件
-package mr.jun; // 申明包名mr.jun
-
-public class Arrays {
-}
-```
-
-没有定义包名的class，它使用的是默认包，非常容易引起名字冲突，因此，不推荐不写包名的做法。
-
-我们还需要按照包结构把上面的Java文件组织起来。假设以package_sample作为根目录，src作为源码目录，那么所有文件结构就是：
-```
-package_sample
-└─ src
-    ├─ hong
-    │  └─ Person.java
-    │  ming
-    │  └─ Person.java
-    └─ mr
-       └─ jun
-          └─ Arrays.java
-```
-
-即所有Java文件对应的目录层次要和包的层次一致。
-
-编译后的.class文件也需要按照包结构存放。如果使用IDE，把编译后的.class文件放到bin目录下，那么，编译的文件结构就是：
-```
-package_sample
-└─ bin
-   ├─ hong
-   │  └─ Person.class
-   │  ming
-   │  └─ Person.class
-   └─ mr
-      └─ jun
-         └─ Arrays.class
-```
-
-### 包的作用域
-位于同一个包的类，可以访问包作用域的字段和方法。不用public、protected、private修饰的字段和方法就是包作用域。例如，Person类定义在hello包下面：
-```java
-package hello;
-
-public class Person {
-    // 包作用域:
-    void hello() {
-        System.out.println("Hello!");
-    }
-}
-```
-Main类也定义在hello包下面：
-```java
-package hello;
-
-public class Main {
-    public static void main(String[] args) {
-        Person p = new Person();
-        p.hello(); // 可以调用，因为Main和Person在同一个包
-    }
-}
-```
-
-### import
-在一个class中，我们总会引用其他的class。例如，小明的ming.Person类，如果要引用小军的mr.jun.Arrays类，他有三种写法：
-
-1. 直接写出完整类名
-```java
-// Person.java
-package ming;
-
-public class Person {
-    public void run() {
-        mr.jun.Arrays arrays = new mr.jun.Arrays();
-    }
-}
-```
-
-2. 使用import语句，导入Arrays，然后写简单类名
-```java
-// Person.java
-package ming;
-
-// 导入完整类名:
-import mr.jun.Arrays;
-
-public class Person {
-    public void run() {
-        Arrays arrays = new Arrays();
-    }
-}
-```
-
-3. import static
-```java
-package main;
-
-// 导入System类的所有静态字段和静态方法:
-import static java.lang.System.*;
-
-public class Main {
-    public static void main(String[] args) {
-        // 相当于调用System.out.println(…)
-        out.println("Hello, world!");
-    }
-}
-```
-
-### java文件编译顺序
-java编译器最终编译出.class文件只使用完整类名，因此在代码中，当编译器遇到一个class名称时：
-
-如果是完整类名，就直接根据完整类名查找这个class；
-
-如果是简单类名，按下面的顺序依次查找：
-
-查找当前package是否存在这个class；
-
-查找import的包是否包含这个class；
-
-查找java.lang包是否包含这个class。
-
-如果按照上面的规则还无法确定类名，则编译报错。
-
-如果有两个class名称相同，例如，mr.jun.Arrays和java.util.Arrays，那么只能import其中一个，另一个必须写完整类名。
-
-示例：
-```java
-// Main.java
-package test;
-
-import java.text.Format;
-
-public class Main {
-    public static void main(String[] args) {
-        java.util.List list; // ok，使用完整类名 -> java.util.List
-        Format format = null; // ok，使用import的类 -> java.text.Format
-        String s = "hi"; // ok，使用java.lang包的String -> java.lang.String
-        System.out.println(s); // ok，使用java.lang包的System -> java.lang.System
-        MessageFormat mf = null; // 编译错误：无法找到MessageFormat: MessageFormat cannot be resolved to a type
-    }
-}
-
-// 在编译class的时候，编译器会自动帮我们做两个import动作：
-
-// 默认自动import当前package的其他class；
-// 默认自动import java.lang.*。
-
-//  注意：自动导入的是java.lang包，但类似java.lang.reflect这些包仍需要手动导入。
-```
-
-### 最佳实践
-为了避免名字冲突，我们需要确定唯一的包名。推荐的做法是使用倒置的域名来确保唯一性。例如：
-```
-org.apache
-org.apache.commons.log
-com.liaoxuefeng.sample
-```
-子包就可以根据功能自行命名。
-
-要注意不要和java.lang包的类重名，即自己的类不要使用这些名字：
-```
-String
-System
-Runtime
-...
-```
-要注意也不要和JDK常用类重名：
-```
-java.util.List
-java.text.Format
-java.math.BigInteger
-...
-```
-
-#### 编译和运行
-假设我们创建了如下的目录结构：
-```
-work
-├── bin
-└── src
-    └── com
-        └── itranswarp
-            ├── sample
-            │   └── Main.java
-            └── world
-                └── Person.java
-```
-其中，bin目录用于存放编译后的class文件，src目录按包结构存放Java源码，我们怎么一次性编译这些Java源码呢？
-
-首先，确保当前目录是work目录，即存放src和bin的父目录：
-```
-$ ls 
-bin src
-```
-
-然后，编译src目录下的所有Java文件：
-```
-$ javac -d ./bin src/**/*.java
-
-命令行-d指定输出的class文件存放bin目录，后面的参数src/**/*.java表示src目录下的所有.java文件，包括任意深度的子目录。
-```
-
-如果编译无误，则javac命令没有任何输出。可以在bin目录下看到如下class文件：
-```
-bin
-└── com
-    └── itranswarp
-        ├── sample
-        │   └── Main.class
-        └── world
-            └── Person.class
-```
-
-现在，我们就可以直接运行class文件了。根据当前目录的位置确定classpath，例如，当前目录仍为work，则classpath为bin或者./bin：
-```
--cp 等于 -classpath
-$ java -cp bin com.itranswarp.sample.Main  
-Hello, world!
 ```
 
 ## 面向对象编程
@@ -1591,7 +1354,7 @@ Override和Overload不同的是，如果方法签名不同，就是Overload，Ov
 
 注意：方法名相同，方法参数相同，但方法返回值不同，也是不同的方法。在Java程序中，出现这种情况，编译器会报错。
 
-加上@Override可以让编译器帮助检查是否进行了正确的覆写。但@Override不是必须的
+加上`@Override`可以让编译器帮助检查是否进行了正确的覆写。但`@Override`不是必须的
 
 #### 方法签名
 方法签名指的是方法的唯一标识，包括方法的名称、参数列表和返回类型。在 Java 中，方法签名用于区分不同的方法，并且决定了方法重载和方法重写的规则。
@@ -1687,6 +1450,7 @@ class Student extends Person {
     }
 }
 ```
+
 如果一个类不希望任何其他类继承自它，那么可以把这个类本身标记为final。用final修饰的类不能被继承：
 ```java
 final class Person {
@@ -1697,6 +1461,7 @@ final class Person {
 class Student extends Person {
 }
 ```
+
 对于一个类的实例字段，同样可以用final修饰。用final修饰的字段在初始化后不能被修改。例如：
 ```java
 class Person {
@@ -1715,6 +1480,7 @@ class Person {
     }
 }
 ```
+
 这种方法更为常用，因为可以保证实例一旦创建，其final字段就不可修改。
 
 ### 抽象类abstract
@@ -1841,7 +1607,7 @@ interface Person extends Hello {
 
 #### 继承关系
 合理设计interface和abstract class的继承关系，可以充分复用代码。一般来说，公共逻辑适合放在abstract class中，具体逻辑放到各个子类，而接口层次代表抽象程度。可以参考Java的集合类定义的一组接口、抽象类以及具体子类的继承关系：  
-![](./relationship.png)
+![](./relationship.png)  
 在使用的时候，实例化的对象永远只能是某个具体的子类，但总是通过接口去引用它，因为接口比抽象类更抽象：
 ```java
 List list = new ArrayList(); // 用List接口引用具体子类的实例 
@@ -1914,8 +1680,8 @@ class Person {
     }
 }
 ```
-对于静态字段，无论修改哪个实例的静态字段，效果都是一样的：所有实例的静态字段都被修改了，原因是静态字段并不属于实例：
-![](./static_filed.png)
+对于静态字段，无论修改哪个实例的静态字段，效果都是一样的：所有实例的静态字段都被修改了，原因是静态字段并不属于实例： 
+![](./static_filed.png)   
 虽然实例可以访问静态字段，但是它们指向的其实都是Person class的静态字段。所以，所有实例共享一个静态字段。
 
 推荐用类名来访问静态字段。可以把静态字段理解为描述class本身的字段（非实例字段）。对于上面的代码，更好的写法是：
@@ -1975,3 +1741,927 @@ public interface Person {
 }
 ```
 编译器会自动把该字段变为public static final类型。
+
+### 包
+在java中，使用package来解决名字冲突，Java定义了一种名字空间，称之为包：package。一个类总是属于某个包，类名（比如Person）只是一个简写，真正的完整类名是包名.类名
+
+在Java虚拟机执行的时候，JVM只看完整类名，因此，只要包名不同，类就不同
+
+要特别注意：包没有父子关系。java.util和java.util.zip是不同的包，两者没有任何继承关系。
+
+在定义class的时候，我们需要在第一行声明这个class属于哪个包
+```java
+// Person.java文件
+package ming; // 申明包名ming
+
+public class Person {
+}
+
+// Arrays.jva文件
+package mr.jun; // 申明包名mr.jun
+
+public class Arrays {
+}
+```
+
+没有定义包名的class，它使用的是默认包，非常容易引起名字冲突，因此，不推荐不写包名的做法。
+
+我们还需要按照包结构把上面的Java文件组织起来。假设以package_sample作为根目录，src作为源码目录，那么所有文件结构就是：
+```
+package_sample
+└─ src
+    ├─ hong
+    │  └─ Person.java
+    │  ming
+    │  └─ Person.java
+    └─ mr
+       └─ jun
+          └─ Arrays.java
+```
+
+即所有Java文件对应的目录层次要和包的层次一致。
+
+编译后的.class文件也需要按照包结构存放。如果使用IDE，把编译后的.class文件放到bin目录下，那么，编译的文件结构就是：
+```
+package_sample
+└─ bin
+   ├─ hong
+   │  └─ Person.class
+   │  ming
+   │  └─ Person.class
+   └─ mr
+      └─ jun
+         └─ Arrays.class
+```
+
+#### 包的作用域
+位于同一个包的类，可以访问包作用域的字段和方法。不用public、protected、private修饰的字段和方法就是包作用域。例如，Person类定义在hello包下面：
+```java
+package hello;
+
+public class Person {
+    // 包作用域:
+    void hello() {
+        System.out.println("Hello!");
+    }
+}
+```
+Main类也定义在hello包下面：
+```java
+package hello;
+
+public class Main {
+    public static void main(String[] args) {
+        Person p = new Person();
+        p.hello(); // 可以调用，因为Main和Person在同一个包
+    }
+}
+```
+
+#### import
+在一个class中，我们总会引用其他的class。例如，小明的ming.Person类，如果要引用小军的mr.jun.Arrays类，他有三种写法：
+
+1. 直接写出完整类名
+```java
+// Person.java
+package ming;
+
+public class Person {
+    public void run() {
+        mr.jun.Arrays arrays = new mr.jun.Arrays();
+    }
+}
+```
+
+2. 使用import语句，导入Arrays，然后写简单类名
+```java
+// Person.java
+package ming;
+
+// 导入完整类名:
+import mr.jun.Arrays;
+
+public class Person {
+    public void run() {
+        Arrays arrays = new Arrays();
+    }
+}
+```
+
+3. import static
+```java
+package main;
+
+// 导入System类的所有静态字段和静态方法:
+import static java.lang.System.*;
+
+public class Main {
+    public static void main(String[] args) {
+        // 相当于调用System.out.println(…)
+        out.println("Hello, world!");
+    }
+}
+```
+
+#### java文件编译顺序
+java编译器最终编译出.class文件只使用完整类名，因此在代码中，当编译器遇到一个class名称时：
+
+如果是完整类名，就直接根据完整类名查找这个class；
+
+如果是简单类名，按下面的顺序依次查找：
+
+查找当前package是否存在这个class；
+
+查找import的包是否包含这个class；
+
+查找java.lang包是否包含这个class。
+
+如果按照上面的规则还无法确定类名，则编译报错。
+
+如果有两个class名称相同，例如，mr.jun.Arrays和java.util.Arrays，那么只能import其中一个，另一个必须写完整类名。
+
+示例：
+```java
+// Main.java
+package test;
+
+import java.text.Format;
+
+public class Main {
+    public static void main(String[] args) {
+        java.util.List list; // ok，使用完整类名 -> java.util.List
+        Format format = null; // ok，使用import的类 -> java.text.Format
+        String s = "hi"; // ok，使用java.lang包的String -> java.lang.String
+        System.out.println(s); // ok，使用java.lang包的System -> java.lang.System
+        MessageFormat mf = null; // 编译错误：无法找到MessageFormat: MessageFormat cannot be resolved to a type
+    }
+}
+
+// 在编译class的时候，编译器会自动帮我们做两个import动作：
+
+// 默认自动import当前package的其他class；
+// 默认自动import java.lang.*。
+
+//  注意：自动导入的是java.lang包，但类似java.lang.reflect这些包仍需要手动导入。
+```
+
+#### 最佳实践
+为了避免名字冲突，我们需要确定唯一的包名。推荐的做法是使用倒置的域名来确保唯一性。例如：
+```
+org.apache
+org.apache.commons.log
+com.liaoxuefeng.sample
+```
+子包就可以根据功能自行命名。
+
+要注意不要和java.lang包的类重名，即自己的类不要使用这些名字：
+```
+String
+System
+Runtime
+...
+```
+要注意也不要和JDK常用类重名：
+```
+java.util.List
+java.text.Format
+java.math.BigInteger
+...
+```
+
+##### 编译和运行
+假设我们创建了如下的目录结构：
+```
+work
+├── bin
+└── src
+    └── com
+        └── itranswarp
+            ├── sample
+            │   └── Main.java
+            └── world
+                └── Person.java
+```
+其中，bin目录用于存放编译后的class文件，src目录按包结构存放Java源码，我们怎么一次性编译这些Java源码呢？
+
+首先，确保当前目录是work目录，即存放src和bin的父目录：
+```
+$ ls 
+bin src
+```
+
+然后，编译src目录下的所有Java文件：
+```
+$ javac -d ./bin src/**/*.java
+
+命令行-d指定输出的class文件存放bin目录，后面的参数src/**/*.java表示src目录下的所有.java文件，包括任意深度的子目录。
+```
+
+如果编译无误，则javac命令没有任何输出。可以在bin目录下看到如下class文件：
+```
+bin
+└── com
+    └── itranswarp
+        ├── sample
+        │   └── Main.class
+        └── world
+            └── Person.class
+```
+
+现在，我们就可以直接运行class文件了。根据当前目录的位置确定classpath，例如，当前目录仍为work，则classpath为bin或者./bin：
+```
+-cp 等于 -classpath
+$ java -cp bin com.itranswarp.sample.Main  
+Hello, world!
+```
+
+### 作用域
+在Java中，我们经常看到public、protected、private这些修饰符。在Java中，这些修饰符可以用来限定访问作用域。
+
+#### public
+定义为public的class、interface可以被其它任何类访问：
+```java
+package abc;
+
+public class Hello {
+    public void hi() {
+    }
+}
+```
+
+上面的Hello是public，因此，可以其它包的类访问：
+```java
+package xyz;
+
+class Main {
+    void foo() {
+        // Main可以访问Hello
+        Hello h = new Hello();
+    }
+}
+```
+
+定义为public的field、method可以被其他类访问，提前是首先有访问class的权限：
+```java
+package abc;
+
+public class Hello {
+    public void hi() {
+    }
+}
+```
+
+上面的hi()方法是public，可以被其它类调用，提前是首先要能访问Hello类：
+```java
+package xyz;
+
+class Main {
+    void foo() {
+        Hello h = new Hello();
+        h.hi();
+    }
+}
+```
+
+#### private
+定义为private的field、method无法被其他类访问：
+```java
+package abc;
+
+public class Hello {
+    // 不能被其它类调用；
+    private void hi() {
+    }
+    
+    public void hello() {
+        this.hi()
+    }
+}
+```
+
+实际上，private访问权限被限定在class的内部，而且与方法声明顺序无关。推荐把private方法放到后面，因为public方法定义了类对外提供的功能，阅读大妈的时候，应该先关注public方法：
+```java
+package abc;
+
+public class Hello {
+    public void hello() {
+        this.hi();
+    }
+
+    private void hi() {
+    }
+}
+```
+
+由于java支持嵌套类，如果一个类内部还定义了嵌套类，那么，嵌套类拥有访问private的权限：
+```java
+public class Main {
+    public static void main(String[] args) {
+        Inner i = new Inner();
+        i.hi();
+    }
+
+    // private方法：
+    private static void hello() {
+        System.out.println("private hello!");
+    }
+
+    // 静态内部类
+    static class Inner {
+        public void hi() {
+            Main.hello();
+        }
+    }
+}
+```
+
+定义在一个class内部的class称为嵌套类（nested class），java支持好几种嵌套类
+
+#### protected
+protected作用于继承关系。定义为protected的字段和方法可以被子类访问，以及子类的子类：
+```java
+package abc;
+
+public class Hello {
+    // protected 方法
+    protected void hi() {
+    }
+}
+```
+
+上面的protected方法可以被继承的类访问：
+```java
+package xyz;
+
+class Main extends Hello {
+    void foo() {
+        // 可以访问protected方法
+        hi();
+    }
+}
+```
+
+#### package
+最后，包作用域是指一个类允许访问同一个package的没有的public、private修饰的class，以及没有public、protecetd、private修饰的字段和方法。
+```java
+package abc;
+// package权限的类
+class Hello {
+    // package权限的方法：
+    void hi() {
+    }
+}
+```
+
+只要在同一个包，就可以访问package权限的class、field和method：
+```java
+package abc;
+
+class Main {
+    void foo() {
+        // 可以访问package权限的类：
+        Hello h = new Hello();
+        // 可以调用package权限的方法：
+        h.hi();
+    }
+}
+```
+
+注意，包名必须完全一致，包没有赋值关系，com.apache和com.apache.abc是不同的包。
+
+#### 局部变量
+在方法内部定义的变量称为局部变量，局部变量作用域从变量声明处开始到对应的块结束。方法参数也是局部变量。
+```java
+package abc;
+
+public class Hello {
+    void hi(String name) { // ①
+        String s = name.toLowerCase(); // ②
+        int len = s.length(); // ③
+        if (len < 10) { // ④
+            int p = 10 - len; // ⑤
+            for (int i=0; i<10; i++) { // ⑥
+                System.out.println(); // ⑦
+            } // ⑧
+        } // ⑨
+    } // ⑩
+}
+```
+我们观察上面的hi()方法代码：
+
+方法参数name是局部变量，它的作用域是整个方法，即①～⑩；
+
+变量s的作用域是定义处到方法结束，即②～⑩；
+
+变量len的作用域是定义处到方法结束，即③～⑩；
+
+变量p的作用域是定义处到if块结束，即⑤～⑨；
+
+变量i的作用域是for循环，即⑥～⑧。
+
+使用局部变量时，应该尽可能把局部变量的作用域缩小，尽可能延后声明局部变量。
+
+#### final
+Java还提供了一个final修饰符。final与访问权限不冲突，它有很多作用。
+
+用final修饰class可以阻止被继承：
+```java
+package abc;
+
+// 无法被继承:
+public final class Hello {
+    private int n = 0;
+    protected void hi(int t) {
+        long i = t;
+    }
+}
+```
+用final修饰method可以阻止被子类覆写：
+```java
+package abc;
+
+public class Hello {
+    // 无法被覆写:
+    protected final void hi() {
+    }
+}
+```
+用final修饰field可以阻止被重新赋值：
+```java
+package abc;
+
+public class Hello {
+    private final int n = 0;
+    protected void hi() {
+        this.n = 1; // error!
+    }
+}
+```
+用final修饰局部变量可以阻止被重新赋值：
+```java
+package abc;
+
+public class Hello {
+    protected void hi(final int t) {
+        t = 1; // error!
+    }
+}
+```
+
+#### 最佳实践
+如果不确定是否需要public，就不声明为public，即尽可能少地暴露对外的字段和方法。
+
+把方法定义为package权限有助于测试，因为测试类和被测试类只要位于同一个package，测试代码就可以访问被测试类的package权限方法。
+
+一个.java文件只能包含一个public类，但可以包含多个非public类。如果有public类，文件名必须和public类的名字相同。
+
+### 内部类
+在Java程序中，通常情况下，我们把不同的类组织在不同的包下面，对于一个包下面的类来说，它们是在同一层次，没有父子关系：
+```
+java.lang
+├── Math
+├── Runnable
+├── String
+└── ...
+```
+还有一种类，它被定义在另一个类的内部，所以称为内部类（Nested Class）。Java的内部类分为好几种，通常情况用得不多，但也需要了解它们是如何使用的。
+
+#### Inner Class
+如果一个类定义在另一个类的内部，这个类就是Inner Class：
+```java
+class Outer {
+    class Inner {
+        // 定义了一个Inner Class
+    }
+}
+```
+上述定义的Outer是一个普通类，而Inner是一个Inner Class，它与普通类有个最大的不同，就是Inner Class的实例不能单独存在，必须依附于一个Outer Class的实例。示例代码如下：
+```java
+public class Main {
+    public static void main(String[] args) {
+        Outer outer = new Outer("Nested"); // 实例化一个Outer
+        Outer.Inner inner = outer.new Inner(); // 实例化一个Inner
+        inner.hello();
+    }
+}
+
+class Outer {
+    private String name;
+
+    Outer(String name) {
+        this.name = name;
+    }
+
+    class Inner {
+        void hello() {
+            System.out.println("Hello, " + Outer.this.name);
+        }
+    }
+}
+```
+观察上述代码，要实例化一个Inner，我们必须首先创建一个Outer的实例，然后，调用Outer实例的new来创建Inner实例：
+```java
+Outer.Inner inner = outer.new Inner();
+```
+这是因为Inner Class除了有一个this指向它自己，还隐含地持有一个Outer Class实例，可以用Outer.this访问这个实例。所以，实例化一个Inner Class不能脱离Outer实例。
+
+Inner Class和普通Class相比，除了能引用Outer实例外，还有一个额外的“特权”，就是可以修改Outer Class的private字段，因为Inner Class的作用域在Outer Class内部，所以能访问Outer Class的private字段和方法。
+
+观察Java编译器编译后的.class文件可以发现，Outer类被编译为Outer.class，而Inner类被编译为Outer$Inner.class。
+
+#### Anonymous Class
+还有一种定义Inner Class的方法，它不需要在Outer Class中明确地定义这个Class，而是在方法内部，通过匿名类（Anonymous Class）来定义。示例代码如下：
+```java
+public class Main {
+    public static void main(String[] args) {
+        Outer outer = new Outer("Nested");
+        outer.asyncHello();
+    }
+}
+
+class Outer {
+    private String name;
+
+    Outer(String name) {
+        this.name = name;
+    }
+
+    void asyncHello() {
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("Hello, " + Outer.this.name);
+            }
+        };
+        new Thread(r).start();
+    }
+}
+```
+观察asyncHello()方法，我们在方法内部实例化了一个Runnable。Runnable本身是接口，接口是不能实例化的，所以这里实际上是定义了一个实现了Runnable接口的匿名类，并且通过new实例化该匿名类，然后转型为Runnable。在定义匿名类的时候就必须实例化它，定义匿名类的写法如下：
+```java
+Runnable r = new Runnable() {
+    // 实现必要的抽象方法...
+};
+```
+匿名类和Inner Class一样，可以访问Outer Class的private字段和方法。之所以我们要定义匿名类，是因为在这里我们通常不关心类名，比直接定义Inner Class可以少写很多代码。
+
+观察Java编译器编译后的.class文件可以发现，Outer类被编译为Outer.class，而匿名类被编译为Outer$1.class。如果有多个匿名类，Java编译器会将每个匿名类依次命名为Outer$1、Outer$2、Outer$3……
+
+除了接口外，匿名类也完全可以继承自普通类。观察以下代码：
+```java
+import java.util.HashMap;
+
+public class Main {
+    public static void main(String[] args) {
+        HashMap<String, String> map1 = new HashMap<>();
+        HashMap<String, String> map2 = new HashMap<>() {}; // 匿名类!
+        HashMap<String, String> map3 = new HashMap<>() {
+            {
+                put("A", "1");
+                put("B", "2");
+            }
+        };
+        System.out.println(map3.get("A"));
+    }
+}
+```
+map1是一个普通的HashMap实例，但map2是一个匿名类实例，只是该匿名类继承自HashMap。map3也是一个继承自HashMap的匿名类实例，并且添加了static代码块来初始化数据。观察编译输出可发现Main$1.class和Main$2.class两个匿名类文件。
+
+#### Static Nested Class
+最后一种内部类和Inner Class类似，但是使用static修饰，称为静态内部类（Static Nested Class）：
+```java
+public class Main {
+    public static void main(String[] args) {
+        Outer.StaticNested sn = new Outer.StaticNested();
+        sn.hello();
+    }
+}
+
+class Outer {
+    private static String NAME = "OUTER";
+
+    private String name;
+
+    Outer(String name) {
+        this.name = name;
+    }
+
+    static class StaticNested {
+        void hello() {
+            System.out.println("Hello, " + Outer.NAME);
+        }
+    }
+}
+```
+用static修饰的内部类和Inner Class有很大的不同，它不再依附于Outer的实例，而是一个完全独立的类，因此无法引用Outer.this，但它可以访问Outer的private静态字段和静态方法。如果把StaticNested移到Outer之外，就失去了访问private的权限。
+
+### classpath和jar
+
+#### classpath
+classpath是JVM用到的一个环境变量，它用来指示JVM如何搜索class。
+
+因为Java是编译型语言，源码文件是.java，而编译后的.class文件才是真正可以被JVM执行的字节码。因此，JVM需要知道，如果要加载一个abc.xyz.Hello的类，应该去哪搜索对应的Hello.class文件。
+
+所以，classpath就是一组目录的集合，它设置的搜索路径与操作系统相关。例如，在Windows系统上，用;分隔，带空格的目录用""括起来，可能长这样：
+```
+C:\work\project1\bin;C:\shared;"D:\My Documents\project1\bin"
+```
+在Linux系统上，用:分隔，可能长这样：
+```
+/usr/shared:/usr/local/bin:/home/liaoxuefeng/bin
+```
+
+现在我们假设classpath是.;C:\work\project1\bin;C:\shared，当JVM在加载abc.xyz.Hello这个类时，会依次查找：
+```
+<当前目录>\abc\xyz\Hello.class
+
+C:\work\project1\bin\abc\xyz\Hello.class
+
+C:\shared\abc\xyz\Hello.class
+```
+注意到.代表当前目录。如果JVM在某个路径下找到了对应的class文件，就不再往后继续搜索。如果所有路径下都没有找到，就报错。
+
+#### 两种设置方法：
+在系统环境变量中设置classpath环境变量，不推荐；
+
+在启动JVM时设置classpath变量，推荐。
+
+我们强烈不推荐在系统环境变量中设置classpath，那样会污染整个系统环境。在启动JVM时设置classpath才是推荐的做法。实际上就是给java命令传入-classpath或-cp参数：
+`java -classpath .;C:\work\project1\bin;C:\shared abc.xyz.Hello`
+
+或者使用-cp的简写：
+`java -cp .;C:\work\project1\bin;C:\shared abc.xyz.Hello`
+
+没有设置系统环境变量，也没有传入-cp参数，那么JVM默认的classpath为.，即当前目录：
+`java abc.xyz.Hello`
+上述命令告诉JVM只在当前目录搜索Hello.class。
+
+在IDE中运行Java程序，IDE自动传入的-cp参数是当前工程的bin目录和引入的jar包。
+
+通常，我们在自己编写的class中，会引用Java核心库的class，例如，String、ArrayList等。这些class应该上哪去找？
+
+有很多“如何设置classpath”的文章会告诉你把JVM自带的rt.jar放入classpath，但事实上，根本不需要告诉JVM如何去Java核心库查找class，JVM怎么可能笨到连自己的核心库在哪都不知道？ JVM会通过默认路径找到java核心库
+
+不要把任何Java核心库添加到classpath中！JVM根本不依赖classpath加载核心库！
+
+更好的做法是，不要设置classpath！默认的当前目录.对于绝大多数情况都够用了。
+
+假设我们有一个编译后的Hello.class，它的包名是com.example，当前目录是C:\work，那么，目录结构必须如下：
+```
+C:\work
+└─ com
+   └─ example
+      └─ Hello.class
+```
+
+运行这个Hello.class必须在当前目录下使用如下命令：
+`C:\work> java -cp . com.example.Hello`
+JVM根据classpath设置的.在当前目录下查找com.example.Hello，即实际搜索文件必须位于com/example/Hello.class。如果指定的.class文件不存在，或者目录结构和包名对不上，均会报错。
+
+#### jar包
+如果有很多.class文件，散落在各层目录中，肯定不便于管理。如果能把目录打一个包，变成一个文件，就方便多了。
+
+jar包就是用来干这个事的，它可以把package组织的目录层级，以及各个目录下的所有文件（包括.class文件和其他文件）都打成一个jar文件，这样一来，无论是备份，还是发给客户，就简单多了。
+
+jar包实际上就是一个zip格式的压缩文件，而jar包相当于目录。如果我们要执行一个jar包的class，就可以把jar包放到classpath中：
+`java -cp ./hello.jar abc.xyz.Hello`
+这样JVM会自动在hello.jar文件里去搜索某个类。
+
+#### 创建jar包
+因为jar包就是zip包，所以，直接在资源管理器中，找到正确的目录，点击右键，在弹出的快捷菜单中选择“发送到”，“压缩(zipped)文件夹”，就制作了一个zip文件。然后，把后缀从.zip改为.jar，一个jar包就创建成功。
+
+假设编译输出的目录结构是这样：
+```java
+package_sample
+└─ bin
+   ├─ hong
+   │  └─ Person.class
+   │  ming
+   │  └─ Person.class
+   └─ mr
+      └─ jun
+         └─ Arrays.class
+```
+这里需要特别注意的是，jar包里的第一层目录，不能是bin，而应该是hong、ming、mr
+
+jar包还可以包含一个特殊的/META-INF/MANIFEST.MF文件，MANIFEST.MF是纯文本，可以指定Main-Class和其它信息。JVM会自动读取这个MANIFEST.MF文件，如果存在Main-Class，我们就不必在命令行指定启动的类名，而是用更方便的命令：
+`java -jar hello.jar`
+在大型项目中，不可能手动编写MANIFEST.MF文件，再手动创建zip包。Java社区提供了大量的开源构建工具，例如Maven，可以非常方便地创建jar包。
+
+### class版本
+我们通常说的Java 8，Java 11，Java 17，是指JDK的版本，也就是JVM的版本，更确切地说，就是java.exe这个程序的版本：
+```java
+$ java -version
+java version "17" 2021-09-14 LTS
+```
+而每个版本的JVM，它能执行的class文件版本也不同。例如，Java 11对应的class文件版本是55，而Java 17对应的class文件版本是61。
+
+java11编译的java程序能在java17运行，因为java17最多可以支持到版本61，而java11输出的class文件版本为55。但java17默认编译的程序不能在java11上运行
+
+#### 设置编译输出的版本
+指定编译输出有两种方式，一种是在javac命令行中用参数--release设置：
+`$ javac --release 11 Main.java`
+参数--release 11表示源码兼容Java 11，编译的class输出版本为Java 11兼容，即class版本55。
+
+第二种方式是用参数--source指定源码版本，用参数--target指定输出class版本：
+`$ javac --source 9 --target 11 Main.java`
+上述命令如果使用Java 17的JDK编译，它会把源码视为Java 9兼容版本，并输出class为Java 11兼容版本。注意--release参数和--source --target参数只能二选一，不能同时设置。
+
+##### 潜在问题：  
+指定版本如果低于当前的JDK版本，会有一些潜在的问题。例如，我们用Java 17编译Hello.java，参数设置--source 9和--target 11：
+```java
+public class Hello {
+    public static void hello(String name) {
+        System.out.println("hello".indent(4));
+    }
+}
+```
+用低于Java 11的JVM运行Hello会得到一个LinkageError，因为无法加载Hello.class文件，而用Java 11运行Hello会得到一个NoSuchMethodError，因为String.indent()方法是从Java 12才添加进来的，Java 11的String版本根本没有indent()方法。
+
+注：如果使用--release 11则会在编译时检查该方法是否在Java 11中存在。
+
+因此，如果运行时的JVM版本是Java 11，则编译时也最好使用Java 11，而不是用高版本的JDK编译输出低版本的class。
+
+##### 设置多个jdk版本环境
+在开发阶段，多个版本的JDK可以同时安装，当前使用的JDK版本可由JAVA_HOME环境变量切换。
+
+查看class版本用javap -v
+
+#### 源码版本
+在编写源代码的时候，我们通常会预设一个源码的版本。在编译的时候，如果用--source或--release指定源码版本，则使用指定的源码版本检查语法。
+
+例如，使用了lambda表达式的源码版本至少要为8才能编译，使用了var关键字的源码版本至少要为10才能编译，使用switch表达式的源码版本至少要为12才能编译，且12和13版本需要启用--enable-preview参数。
+
+
+### 模块
+从java 9开始引入的模块（Module） 
+我们知道，.class文件是JVM看到的最小可执行文件，而一个大型程序需要编写很多Class，并生成一堆.class文件，很不便于管理，所以，jar文件就是class文件的容器。
+
+在Java 9之前，一个大型Java程序会生成自己的jar文件，同时引用依赖的第三方jar文件，而JVM自带的Java标准库，实际上也是以jar文件形式存放的，这个文件叫rt.jar，一共有60多M。
+
+如果是自己开发的程序，除了一个自己的app.jar以外，还需要一堆第三方的jar包，运行一个Java程序，一般来说，命令行写这样：
+`java -cp app.jar:a.jar:b.jar:c.jar com.liaoxuefeng.sample.Main`
+注意：JVM自带的标准库rt.jar不要写到classpath中，写了反而会干扰JVM的正常运行。
+
+如果漏写了某个运行时需要用到的jar，那么在运行期极有可能抛出ClassNotFoundException。
+
+所以，jar只是用于存放class的容器，它并不关心class之间的依赖。
+
+从Java 9开始引入的模块，主要是为了解决“依赖”这个问题。如果a.jar必须依赖另一个b.jar才能运行，那我们应该给a.jar加点说明啥的，让程序在编译和运行的时候能自动定位到b.jar，这种自带“依赖关系”的class容器就是模块。
+
+为了表明Java模块化的决心，从Java 9开始，原有的Java标准库已经由一个单一巨大的rt.jar分拆成了几十个模块，这些模块以.jmod扩展名标识，可以在$JAVA_HOME/jmods目录下找到它们：
+```
+java.base.jmod
+java.compiler.jmod
+java.datatransfer.jmod
+java.desktop.jmod
+...
+```
+这些.jmod文件每一个都是一个模块，模块名就是文件名。例如：模块java.base对应的文件就是java.base.jmod。模块之间的依赖关系已经被写入到模块内的module-info.class文件了。所有的模块都直接或间接地依赖java.base模块，只有java.base模块不依赖任何模块，它可以被看作是“根模块”，好比所有的类都是从Object直接或间接继承而来。
+
+把一堆class封装为jar仅仅是一个打包的过程，而把一堆class封装为模块则不但需要打包，还需要写入依赖关系，并且还可以包含二进制代码（通常是JNI扩展）。此外，模块支持多版本，即在同一个模块中可以为不同的JVM提供不同的版本。
+
+#### 编写模块
+首先，创建模块和原有的创建Java项目是完全一样的，以oop-module工程为例，它的目录结构如下：
+```
+oop-module
+├── bin
+├── build.sh
+└── src
+    ├── com
+    │   └── itranswarp
+    │       └── sample
+    │           ├── Greeting.java
+    │           └── Main.java
+    └── module-info.java
+```
+其中，bin目录存放编译后的class文件，src目录存放源码，按包名的目录结构存放，仅仅在src目录下多了一个module-info.java这个文件，这就是模块的描述文件。在这个模块中，它长这样：
+```java
+module hello.world {
+    requires java.base; // 可不写，任何模块都会自动引入java.base
+    requires java.xml;
+}
+```
+其中，module是关键字，后面的hello.world是模块的名称，它的命名规范与包一致。花括号的requires xxx;表示这个模块需要引用的其他模块名。除了java.base可以被自动引入外，这里我们引入了一个java.xml的模块。
+
+当我们使用模块声明了依赖关系后，才能使用引入的模块。例如，Main.java代码如下：
+```java
+package com.itranswarp.sample;
+
+// 必须引入java.xml模块后才能使用其中的类:
+import javax.xml.XMLConstants;
+
+public class Main {
+    public static void main(String[] args) {
+        Greeting g = new Greeting();
+        System.out.println(g.hello(XMLConstants.XML_NS_PREFIX));
+    }
+}
+```
+如果把requires java.xml;从module-info.java中去掉，编译将报错。可见，模块的重要作用就是声明依赖关系。
+
+##### 用jdk工具来编译并创建模块
+首先，我们把工作目录切换到oop-module，在当前目录下编译所有的.java文件，并存放到bin目录下，命令如下：
+
+`$ javac -d bin src/module-info.java src/com/itranswarp/sample/*.java`
+如果编译成功，现在项目结构如下：
+```
+oop-module
+├── bin
+│   ├── com
+│   │   └── itranswarp
+│   │       └── sample
+│   │           ├── Greeting.class
+│   │           └── Main.class
+│   └── module-info.class
+└── src
+    ├── com
+    │   └── itranswarp
+    │       └── sample
+    │           ├── Greeting.java
+    │           └── Main.java
+    └── module-info.java
+```
+注意到src目录下的module-info.java被编译到bin目录下的module-info.class。
+
+下一步，我们需要把bin目录下的所有class文件先打包成jar，在打包的时候，注意传入--main-class参数，让这个jar包能自己定位main方法所在的类：
+`$ jar --create --file hello.jar --main-class com.itranswarp.sample.Main -C bin .`
+这个命令的作用是创建一个 JAR 文件，并指定了 JAR 文件的名称为 hello.jar，主类为 com.itranswarp.sample.Main，并将 bin 目录下的所有文件（及其子目录）添加到 JAR 文件中。
+
+现在我们就在当前目录下得到了hello.jar这个jar包，它和普通jar包并无区别，可以直接使用命令java -jar hello.jar来运行它。但是我们的目标是创建模块，所以，继续使用JDK自带的jmod命令把一个jar包转换成模块：
+`$ jmod create --class-path hello.jar hello.jmod`
+
+于是，在当前目录下我们又得到了hello.jmod这个模块文件，这就是最后打包出来的传说中的模块！
+
+#### 运行模块
+要运行一个jar，我们使用java -jar xxx.jar命令。要运行一个模块，我们只需要指定模块名。试试：
+`$ java --module-path hello.jmod --module hello.world`
+
+结果是一个错误：
+```
+Error occurred during initialization of boot layer
+java.lang.module.FindException: JMOD format not supported at execution time: hello.jmod
+```
+
+原因是.jmod不能被放入--module-path中。换成.jar就没问题了：
+```
+$ java --module-path hello.jar --module hello.world
+Hello, xml!
+```
+那我们辛辛苦苦创建的hello.jmod有什么用？答案是我们可以用它来打包JRE。
+
+#### 打包JRE
+
+##### JRE介绍
+JRE 是 Java Runtime Environment（Java运行时环境）的缩写，是 Java 应用程序运行所需的最小环境。它包含了 Java 虚拟机（JVM）、Java 核心类库以及支持文件。
+
+具体来说，JRE 包括以下主要组件：
+
+1. **Java 虚拟机（JVM）**：JVM 是 Java 应用程序运行的核心组件，它负责解释和执行 Java 字节码，并提供了一种跨平台的执行环境，使得 Java 应用程序可以在不同的操作系统上运行。
+    
+2. **Java 核心类库**：Java 核心类库是一组 Java 标准库，包含了大量的基础类和工具类，提供了丰富的 API 用于开发各种类型的 Java 应用程序。这些类库包括了字符串处理、集合框架、输入输出、网络通信、多线程等功能。
+    
+3. **支持文件**：JRE 还包括了一些支持文件，如配置文件、资源文件等，用于配置和支持 Java 运行时环境的正常运行。
+    
+
+JRE 是开发人员和终端用户运行 Java 应用程序所必需的，它提供了一个完整的运行时环境，使得用户可以在不同的平台上执行 Java 应用程序。与之相对的是 JDK（Java Development Kit，Java开发工具包），JDK 包含了 JRE，同时还包含了开发 Java 应用程序所需的开发工具（如编译器、调试器等）。
+
+##### 打包JRE环境
+现在，JRE自身的标准库已经分拆成了模块，只需要带上程序用到的模块，其他的模块就可以被裁剪掉。怎么裁剪JRE呢？并不是说把系统安装的JRE给删掉部分模块，而是“复制”一份JRE，但只带上用到的模块。为此，JDK提供了jlink命令来干这件事。命令如下：
+`$ jlink --module-path hello.jmod --add-modules java.base,java.xml,hello.world --output jre/`
+
+我们在--module-path参数指定了我们自己的模块hello.jmod，然后，在--add-modules参数中指定了我们用到的3个模块java.base、java.xml和hello.world，用,分隔。最后，在--output参数指定输出目录。
+
+现在，在当前目录下，我们可以找到jre目录，这是一个完整的并且带有我们自己hello.jmod模块的JRE。试试直接运行这个JRE：
+```
+$ jre/bin/java --module hello.world
+Hello, xml!
+```
+
+要分发我们自己的Java应用程序，只需要把这个jre目录打个包给对方发过去，对方直接运行上述命令即可，既不用下载安装JDK，也不用知道如何配置我们自己的模块，极大地方便了分发和部署。
+
+#### 访问权限
+前面我们讲过，Java的class访问权限分为public、protected、private和默认的包访问权限。引入模块后，这些访问权限的规则就要稍微做些调整。
+
+确切地说，class的这些访问权限只在一个模块内有效，模块和模块之间，例如，a模块要访问b模块的某个class，必要条件是b模块明确地导出了可以访问的包。
+
+举个例子：我们编写的模块hello.world用到了模块java.xml的一个类javax.xml.XMLConstants，我们之所以能直接使用这个类，是因为模块java.xml的module-info.java中声明了若干导出：
+```java
+module java.xml {
+    exports java.xml;
+    exports javax.xml.catalog;
+    exports javax.xml.datatype;
+    ...
+}
+```
+
+只有它声明的导出的包，外部代码才被允许访问。换句话说，如果外部代码想要访问我们的hello.world模块中的com.itranswarp.sample.Greeting类，我们必须将其导出：
+```java
+module hello.world {
+    exports com.itranswarp.sample;
+
+    requires java.base;
+    requires java.xml;
+}
+```
+因此，模块进一步隔离了代码的访问权限。
