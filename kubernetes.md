@@ -33,6 +33,7 @@
     * [持久化过程](#持久化过程)
     * [StorageClass](#storageclass)
     * [本地持久化](#本地持久化)
+* [k8s中的dns](#k8s中的dns)
 * [service](#service)
     * [实现原理](#实现原理)
     * [ipvs模式工作原理](#ipvs模式工作原理)
@@ -50,6 +51,10 @@
     * [6. 配置kubeconfig文件](#6-配置kubeconfig文件)
     * [7. 安装网络插件flannel，使各节点各pod能相互通信](#7-安装网络插件flannel使各节点各pod能相互通信)
     * [注意事项：](#注意事项)
+* [debug](#debug)
+    * [k8s master机器重启后，coredns两个pod就绪探针失败](#k8s-master机器重启后coredns两个pod就绪探针失败)
+        * [原因](#原因)
+        * [解决](#解决)
 * [参考资料](#参考资料)
 
 <!-- vim-markdown-toc -->
@@ -347,8 +352,28 @@ sc对象的作用就是创建pv的模板，sc对象会定义以下两个部分�
 ### 本地持久化
 比较适用于高优先级的系统应用，需要在多个不同的节点上存储数据，并且对i/o较为敏感，相比于正常的pv，一旦这些节点宕机且不能恢复，本地数据就可能丢失，这就要求使用本地持久化的应用必须具备数据备份和恢复的能力，允许把这些数据定时备份在其他位置
 
+## k8s中的dns
+Kubernetes 为 Service 和 Pod 创建 DNS 记录。 你可以使用一致的 DNS 名称而非 IP 地址访问 Service。
+
+ DNS 服务器（例如 CoreDNS）会监视 Kubernetes API 中的新 Service， 并为每个 Service 创建一组 DNS 记录。如果在整个集群中都启用了 DNS，则所有 Pod 都应该能够通过 DNS 名称自动解析 Service。
+
+例如，如果你在 Kubernetes 命名空间 my-ns 中有一个名为 my-service 的 Service， 则控制平面和 DNS 服务共同为 my-service.my-ns 生成 DNS 记录。 名字空间 my-ns 中的 Pod 应该能够通过按名检索 my-service 来找到服务 （my-service.my-ns 也可以）。
+
+其他名字空间中的 Pod 必须将名称限定为 my-service.my-ns。 这些名称将解析为分配给 Service 的集群 IP。
+
+Kubernetes 还支持命名端口的 DNS SRV（Service）记录。 如果 Service my-service.my-ns 具有名为 http　的端口，且协议设置为 TCP， 则可以用 `_http._tcp.my-service.my-ns` 执行 DNS SRV 查询以发现 http 的端口号以及 IP 地址。
+
+Kubernetes DNS 服务器是唯一的一种能够访问 ExternalName 类型的 Service 的方式。
+
+DNS 查询可以使用 Pod 中的 /etc/resolv.conf 展开。 Kubelet 为每个 Pod 配置此文件。 例如，对 data 的查询可能被展开为 data.test.svc.cluster.local。 search 选项的取值会被用来展开查询。
+```
+nameserver 10.32.0.10
+search <namespace>.svc.cluster.local svc.cluster.local cluster.local
+options ndots:5
+```
+
 ## service
-暴露集群内的服务，并对服务提供负载均衡功能
+暴露集群内的服务，并对服务提供负载均衡功能，默认使用TCP协议
 
 ### 实现原理
 由kube-proxy组件加上iptables（默认）来共同实现的
@@ -396,7 +421,7 @@ sc对象的作用就是创建pv的模板，sc对象会定义以下两个部分�
 ```
 可以看到，这三条链，其实是三条 DNAT 规则。但在 DNAT 规则之前，iptables 对流入的 IP 包还设置了一个“标志”（–set-xmark）。而 DNAT 规则的作用，就是在 PREROUTING 检查点之前，也就是在路由之前，将流入 IP 包的目的地址和端口，改成–to-destination 所指定的新的目的地址和端口。可以看到，这个目的地址和端口，正是被代理 Pod 的 IP 地址和端口。
 
-总结：这些 Endpoints 对应的 iptables 规则，正是 kube-proxy 通过监听 Pod 的变化事件，在宿主机上生成并维护的。
+总结：这些 Endpoints 对应的 iptables 规则，正是 kube-proxy 通过监听 Pod 的变化事件，在宿主机上生成并维护的。当流量通过nodrport或者负载均衡器进入，也会执行相同的基本流程，只是在这些情况下，客户端ip地址会被更改
 
 ### ipvs模式工作原理
 当你的宿主机上有大量 Pod 的时候，成百上千条 iptables 规则不断地被刷新，会大量占用该宿主机的 CPU 资源，甚至会让宿主机“卡”在这个过程中。所以说，一直以来，基于 iptables 的 Service 实现，都是制约 Kubernetes 项目承载更多量级的 Pod 的主要障碍。
@@ -428,12 +453,13 @@ IPVS 模式的工作原理，其实跟 iptables 模式类似。当我们创建�
 
 这时候，任何发往 10.102.128.4:80 的请求，就都会被 IPVS 模块转发到某一个后端 Pod 上了。
 
-而相比于 iptables，IPVS 在内核中的实现其实也是基于 Netfilter 的 NAT 模式，所以在转发这一层上，理论上 IPVS 并没有显著的性能提升。但是，IPVS 并不需要在宿主机上为每个 Pod 设置 iptables 规则（netlink创建ipvs规则，采用了hash table），而是把对这些“规则”的处理放到了内核态，从而极大地降低了维护这些规则的代价。这也正印证了我在前面提到过的，“将重要操作放入内核态”是提高性能的重要手段。
+而相比于 iptables，IPVS 在内核中的实现其实也是基于 Netfilter 的 NAT 模式，所以在转发这一层上，理论上 IPVS 并没有显著的性能提升。但是，IPVS 并不需要在宿主机上为每个 Pod 设置 iptables 规则（netlink创建ipvs规则，底层数据结构采用了hash table），而是把对这些“规则”的处理放到了内核态，从而极大地降低了维护这些规则的代价。这也正印证了我在前面提到过的，“将重要操作放入内核态”是提高性能的重要手段。
+
+ipvs模式还为负载均衡提供了更多的选择：rr、wrr、lc、wlc等等
 
 不过需要注意的是，IPVS 模块只负责上述的负载均衡和代理功能。而一个完整的 Service 流程正常工作所需要的包过滤、SNAT 等操作，还是要靠 iptables 来实现。只不过，这些辅助性的 iptables 规则数量有限，也不会随着 Pod 数量的增加而增加。
 
 所以，在大规模集群里，我非常建议你为 kube-proxy 设置–proxy-mode=ipvs 来开启这个功能。它为 Kubernetes 集群规模带来的提升，还是非常巨大的。
-
 
 ## ingress
 工作在七层，是service的“service”，ingress就是kubernetes中的反向代理。  
@@ -838,6 +864,512 @@ kubeadm init最后一步是安装默认插件，默认会安装kube-proxy和dns�
 kubeadm join
 ```
 此时kubeadm至少需要发起一次“不安全模式”的访问到kube-apiserver，从而拿到保存在configmap中cluster-info信息，而bootstrap token扮演就是这个过程中安全验证的角色
+```
+
+## debug
+
+### k8s master机器重启后，coredns两个pod就绪探针失败
+环境：centos 7、k8s 1.29、docker25.0、kube-proxy使用iptables模式
+
+现象：
+
+kubectl get ...
+```
+[zj@centos-7-01 create_k8s]$ kubectl get pod,svc,endpoints  -A -o wide
+NAMESPACE       NAME                                                   READY   STATUS             RESTARTS        AGE     IP            NODE        NOMINATED NODE   READINESS GATES
+ingress-nginx   pod/ingress-nginx-controller-75dbc5d7f7-qhlml          0/1     CrashLoopBackOff   426 (27s ago)   4d14h   10.1.0.53     master-01   <none>           <none>
+jenkins         pod/jenkins-0                                          0/2     Completed          0               3d13h   10.1.0.52     master-01   <none>           <none>
+kube-flannel    pod/kube-flannel-ds-rjrtw                              1/1     Running            7 (23h ago)     4d21h   192.168.1.5   master-01   <none>           <none>
+kube-system     pod/coredns-5b8bf7b657-5gjrq                           0/1     Running            7 (23h ago)     4d22h   10.1.0.55     master-01   <none>           <none>
+kube-system     pod/coredns-5b8bf7b657-rqndm                           0/1     Running            7 (23h ago)     4d22h   10.1.0.54     master-01   <none>           <none>
+kube-system     pod/etcd-master-01                                     1/1     Running            13 (23h ago)    7d20h   192.168.1.5   master-01   <none>           <none>
+kube-system     pod/kube-apiserver-master-01                           1/1     Running            13 (23h ago)    7d20h   192.168.1.5   master-01   <none>           <none>
+kube-system     pod/kube-controller-manager-master-01                  1/1     Running            7 (23h ago)     7d20h   192.168.1.5   master-01   <none>           <none>
+kube-system     pod/kube-proxy-s5x84                                   1/1     Running            7 (23h ago)     7d20h   192.168.1.5   master-01   <none>           <none>
+kube-system     pod/kube-scheduler-master-01                           1/1     Running            7 (23h ago)     7d20h   192.168.1.5   master-01   <none>           <none>
+kube-system     pod/nfs-subdir-external-provisioner-6676cf59d8-j9grt   0/1     CrashLoopBackOff   298 (97s ago)   4d21h   10.1.0.56     master-01   <none>           <none>
+
+NAMESPACE       NAME                                         TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)                      AGE     SELECTOR
+default         service/kubernetes                           ClusterIP      10.2.0.1       <none>        443/TCP                      7d20h   <none>
+ingress-nginx   service/ingress-nginx-controller             LoadBalancer   10.2.73.220    <pending>     80:31674/TCP,443:31306/TCP   4d14h   app.kubernetes.io/component=controller,app.kubernetes.io/instance=ingress-nginx,app.kubernetes.io/name=ingress-nginx
+ingress-nginx   service/ingress-nginx-controller-admission   ClusterIP      10.2.142.214   <none>        443/TCP                      4d14h   app.kubernetes.io/component=controller,app.kubernetes.io/instance=ingress-nginx,app.kubernetes.io/name=ingress-nginx
+jenkins         service/jenkins                              NodePort       10.2.226.53    <none>        8080:32117/TCP               4d14h   app.kubernetes.io/component=jenkins-controller,app.kubernetes.io/instance=jenkins
+jenkins         service/jenkins-agent                        ClusterIP      10.2.237.8     <none>        50000/TCP                    4d14h   app.kubernetes.io/component=jenkins-controller,app.kubernetes.io/instance=jenkins
+kube-system     service/kube-dns                             ClusterIP      10.2.0.10      <none>        53/UDP,53/TCP,9153/TCP       7d20h   k8s-app=kube-dns
+
+NAMESPACE       NAME                                                      ENDPOINTS          AGE
+default         endpoints/kubernetes                                      192.168.1.5:6443   7d20h
+ingress-nginx   endpoints/ingress-nginx-controller                                           4d14h
+ingress-nginx   endpoints/ingress-nginx-controller-admission                                 4d14h
+jenkins         endpoints/jenkins                                                            4d14h
+jenkins         endpoints/jenkins-agent                                                      4d14h
+kube-system     endpoints/cluster.local-nfs-subdir-external-provisioner   <none>             4d21h
+kube-system     endpoints/kube-dns                                                           7d20h
+```
+
+kubectl describe pod ...
+```
+[zj@centos-7-01 create_k8s]$ kubectl describe pod  coredns-5b8bf7b657-5gjrq -n kube-system
+Name:                 coredns-5b8bf7b657-5gjrq
+Namespace:            kube-system
+Priority:             2000000000
+Priority Class Name:  system-cluster-critical
+Service Account:      coredns
+Node:                 master-01/192.168.1.5
+Start Time:           Wed, 06 Mar 2024 17:09:42 +0800
+Labels:               k8s-app=kube-dns
+                      pod-template-hash=5b8bf7b657
+Annotations:          kubectl.kubernetes.io/restartedAt: 2024-03-06T17:09:42+08:00
+Status:               Running
+IP:                   10.1.0.55
+IPs:
+  IP:           10.1.0.55
+Controlled By:  ReplicaSet/coredns-5b8bf7b657
+Containers:
+  coredns:
+    Container ID:  docker://cff11b157ef5154f52897338e2fbb398059cd3516a5f5268bc313458fc4bf686
+    Image:         registry.aliyuncs.com/google_containers/coredns:v1.11.1
+    Image ID:      docker-pullable://registry.aliyuncs.com/google_containers/coredns@sha256:a6b67bdb2a6750b591e6b07fac29653fc82ee964e5fc53baf4c1ad3f944b655a
+    Ports:         53/UDP, 53/TCP, 9153/TCP
+    Host Ports:    0/UDP, 0/TCP, 0/TCP
+    Args:
+      -conf
+      /etc/coredns/Corefile
+    State:          Running
+      Started:      Sun, 10 Mar 2024 20:33:09 +0800
+    Last State:     Terminated
+      Reason:       Completed
+      Exit Code:    0
+      Started:      Fri, 08 Mar 2024 13:47:52 +0800
+      Finished:     Sun, 10 Mar 2024 15:37:01 +0800
+    Ready:          False
+    Restart Count:  7
+    Limits:
+      memory:  170Mi
+    Requests:
+      cpu:        100m
+      memory:     70Mi
+    Liveness:     http-get http://:8080/health delay=60s timeout=5s period=10s #success=1 #failure=5
+    Readiness:    http-get http://:8181/ready delay=0s timeout=1s period=10s #success=1 #failure=3
+    Environment:  <none>
+    Mounts:
+      /etc/coredns from config-volume (ro)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-pkzsg (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True
+  Initialized                 True
+  Ready                       False
+  ContainersReady             False
+  PodScheduled                True
+Volumes:
+  config-volume:
+    Type:      ConfigMap (a volume populated by a ConfigMap)
+    Name:      coredns
+    Optional:  false
+  kube-api-access-pkzsg:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              kubernetes.io/os=linux
+Tolerations:                 CriticalAddonsOnly op=Exists
+                             node-role.kubernetes.io/control-plane:NoSchedule
+                             node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason     Age                  From     Message
+  ----     ------     ----                 ----     -------
+  Warning  Unhealthy  4m (x2755 over 19h)  kubelet  Readiness probe failed: HTTP probe failed with statuscode: 503
+```
+
+kubectl logs pod ...
+```
+[INFO] plugin/ready: Still waiting on: "kubernetes"
+[INFO] plugin/ready: Still waiting on: "kubernetes"
+[INFO] plugin/ready: Still waiting on: "kubernetes"
+[INFO] plugin/ready: Still waiting on: "kubernetes"
+[INFO] plugin/ready: Still waiting on: "kubernetes"
+[INFO] plugin/kubernetes: pkg/mod/k8s.io/client-go@v0.27.4/tools/cache/reflector.go:231: failed to list *v1.Namespace: Get "https://10.2.0.1:443/api/v1/namespaces?limit=500&resourceVersion=0": dial tcp 10.2.0.1:443: i/o timeout
+[INFO] plugin/kubernetes: Trace[1924150888]: "Reflector ListAndWatch" name:pkg/mod/k8s.io/client-go@v0.27.4/tools/cache/reflector.go:231 (11-Mar-2024 07:34:16.841) (total time: 30012ms):
+Trace[1924150888]: ---"Objects listed" error:Get "https://10.2.0.1:443/api/v1/namespaces?limit=500&resourceVersion=0": dial tcp 10.2.0.1:443: i/o timeout 30012ms (07:34:46.853)
+Trace[1924150888]: [30.012054617s] [30.012054617s] END
+[ERROR] plugin/kubernetes: pkg/mod/k8s.io/client-go@v0.27.4/tools/cache/reflector.go:231: Failed to watch *v1.Namespace: failed to list *v1.Namespace: Get "https://10.2.0.1:443/api/v1/namespaces?limit=500&resourceVersion=0": dial tcp 10.2.0.1:443: i/o timeout
+[INFO] plugin/kubernetes: pkg/mod/k8s.io/client-go@v0.27.4/tools/cache/reflector.go:231: failed to list *v1.EndpointSlice: Get "https://10.2.0.1:443/apis/discovery.k8s.io/v1/endpointslices?limit=500&resourceVersion=0": dial tcp 10.2.0.1:443: connect: no route to host
+[ERROR] plugin/kubernetes: pkg/mod/k8s.io/client-go@v0.27.4/tools/cache/reflector.go:231: Failed to watch *v1.EndpointSlice: failed to list *v1.EndpointSlice: Get "https://10.2.0.1:443/apis/discovery.k8s.io/v1/endpointslices?limit=500&resourceVersion=0": dial tcp 10.2.0.1:443: connect: no route to host
+[INFO] plugin/ready: Still waiting on: "kubernetes"
+```
+
+iptables-save ...
+```
+# Generated by iptables-save v1.4.21 on Mon Mar 11 16:35:18 2024
+*mangle
+:PREROUTING ACCEPT [4644794:3553279999]
+:INPUT ACCEPT [4534307:3548307044]
+:FORWARD ACCEPT [110487:4972955]
+:OUTPUT ACCEPT [4566644:3552829610]
+:POSTROUTING ACCEPT [4566663:3552832906]
+:KUBE-IPTABLES-HINT - [0:0]
+:KUBE-KUBELET-CANARY - [0:0]
+:KUBE-PROXY-CANARY - [0:0]
+-A POSTROUTING -o virbr0 -p udp -m udp --dport 68 -j CHECKSUM --checksum-fill
+COMMIT
+# Completed on Mon Mar 11 16:35:18 2024
+# Generated by iptables-save v1.4.21 on Mon Mar 11 16:35:18 2024
+*nat
+:PREROUTING ACCEPT [11756:534806]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [6632:402707]
+:POSTROUTING ACCEPT [6632:402707]
+:DOCKER - [0:0]
+:FLANNEL-POSTRTG - [0:0]
+:KUBE-KUBELET-CANARY - [0:0]
+:KUBE-MARK-MASQ - [0:0]
+:KUBE-NODEPORTS - [0:0]
+:KUBE-POSTROUTING - [0:0]
+:KUBE-PROXY-CANARY - [0:0]
+:KUBE-SEP-54IUPJM2TTG4TKF2 - [0:0]
+:KUBE-SERVICES - [0:0]
+:KUBE-SVC-NPX46M4PTMTKRN6Y - [0:0]
+-A PREROUTING -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
+-A PREROUTING -m addrtype --dst-type LOCAL -j DOCKER
+-A OUTPUT -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
+-A OUTPUT ! -d 127.0.0.0/8 -m addrtype --dst-type LOCAL -j DOCKER
+-A POSTROUTING -m comment --comment "kubernetes postrouting rules" -j KUBE-POSTROUTING
+-A POSTROUTING -s 172.17.0.0/16 ! -o docker0 -j MASQUERADE
+-A POSTROUTING -s 192.168.122.0/24 -d 224.0.0.0/24 -j RETURN
+-A POSTROUTING -s 192.168.122.0/24 -d 255.255.255.255/32 -j RETURN
+-A POSTROUTING -s 192.168.122.0/24 ! -d 192.168.122.0/24 -p tcp -j MASQUERADE --to-ports 1024-65535
+-A POSTROUTING -s 192.168.122.0/24 ! -d 192.168.122.0/24 -p udp -j MASQUERADE --to-ports 1024-65535
+-A POSTROUTING -s 192.168.122.0/24 ! -d 192.168.122.0/24 -j MASQUERADE
+-A POSTROUTING -m comment --comment "flanneld masq" -j FLANNEL-POSTRTG
+-A DOCKER -i docker0 -j RETURN
+-A FLANNEL-POSTRTG -m mark --mark 0x4000/0x4000 -m comment --comment "flanneld masq" -j RETURN
+-A FLANNEL-POSTRTG -s 10.1.0.0/25 -d 10.1.0.0/16 -m comment --comment "flanneld masq" -j RETURN
+-A FLANNEL-POSTRTG -s 10.1.0.0/16 -d 10.1.0.0/25 -m comment --comment "flanneld masq" -j RETURN
+-A FLANNEL-POSTRTG ! -s 10.1.0.0/16 -d 10.1.0.0/25 -m comment --comment "flanneld masq" -j RETURN
+-A FLANNEL-POSTRTG -s 10.1.0.0/16 ! -d 224.0.0.0/4 -m comment --comment "flanneld masq" -j MASQUERADE
+-A FLANNEL-POSTRTG ! -s 10.1.0.0/16 -d 10.1.0.0/16 -m comment --comment "flanneld masq" -j MASQUERADE
+-A KUBE-MARK-MASQ -j MARK --set-xmark 0x4000/0x4000
+-A KUBE-POSTROUTING -m mark ! --mark 0x4000/0x4000 -j RETURN
+-A KUBE-POSTROUTING -j MARK --set-xmark 0x4000/0x0
+-A KUBE-POSTROUTING -m comment --comment "kubernetes service traffic requiring SNAT" -j MASQUERADE
+-A KUBE-SEP-54IUPJM2TTG4TKF2 -s 192.168.1.5/32 -m comment --comment "default/kubernetes:https" -j KUBE-MARK-MASQ
+-A KUBE-SEP-54IUPJM2TTG4TKF2 -p tcp -m comment --comment "default/kubernetes:https" -m tcp -j DNAT --to-destination 192.168.1.5:6443
+-A KUBE-SERVICES -d 10.2.0.1/32 -p tcp -m comment --comment "default/kubernetes:https cluster IP" -m tcp --dport 443 -j KUBE-SVC-NPX46M4PTMTKRN6Y
+-A KUBE-SERVICES -m comment --comment "kubernetes service nodeports; NOTE: this must be the last rule in this chain" -m addrtype --dst-type LOCAL -j KUBE-NODEPORTS
+-A KUBE-SVC-NPX46M4PTMTKRN6Y ! -s 10.1.0.0/16 -d 10.2.0.1/32 -p tcp -m comment --comment "default/kubernetes:https cluster IP" -m tcp --dport 443 -j KUBE-MARK-MASQ
+-A KUBE-SVC-NPX46M4PTMTKRN6Y -m comment --comment "default/kubernetes:https -> 192.168.1.5:6443" -j KUBE-SEP-54IUPJM2TTG4TKF2
+COMMIT
+# Completed on Mon Mar 11 16:35:18 2024
+# Generated by iptables-save v1.4.21 on Mon Mar 11 16:35:18 2024
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [488143:376292718]
+:DOCKER - [0:0]
+:DOCKER-ISOLATION-STAGE-1 - [0:0]
+:DOCKER-ISOLATION-STAGE-2 - [0:0]
+:DOCKER-USER - [0:0]
+:FLANNEL-FWD - [0:0]
+:KUBE-EXTERNAL-SERVICES - [0:0]
+:KUBE-FIREWALL - [0:0]
+:KUBE-FORWARD - [0:0]
+:KUBE-KUBELET-CANARY - [0:0]
+:KUBE-NODEPORTS - [0:0]
+:KUBE-PROXY-CANARY - [0:0]
+:KUBE-PROXY-FIREWALL - [0:0]
+:KUBE-SERVICES - [0:0]
+-A INPUT -m conntrack --ctstate NEW -m comment --comment "kubernetes load balancer firewall" -j KUBE-PROXY-FIREWALL
+-A INPUT -m comment --comment "kubernetes health check service ports" -j KUBE-NODEPORTS
+-A INPUT -m conntrack --ctstate NEW -m comment --comment "kubernetes externally-visible service portals" -j KUBE-EXTERNAL-SERVICES
+-A INPUT -j KUBE-FIREWALL
+-A INPUT -i virbr0 -p udp -m udp --dport 53 -j ACCEPT
+-A INPUT -i virbr0 -p tcp -m tcp --dport 53 -j ACCEPT
+-A INPUT -i virbr0 -p udp -m udp --dport 67 -j ACCEPT
+-A INPUT -i virbr0 -p tcp -m tcp --dport 67 -j ACCEPT
+-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+-A INPUT -p icmp -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT
+-A INPUT -j REJECT --reject-with icmp-host-prohibited
+-A FORWARD -m conntrack --ctstate NEW -m comment --comment "kubernetes load balancer firewall" -j KUBE-PROXY-FIREWALL
+-A FORWARD -m comment --comment "kubernetes forwarding rules" -j KUBE-FORWARD
+-A FORWARD -m conntrack --ctstate NEW -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
+-A FORWARD -m conntrack --ctstate NEW -m comment --comment "kubernetes externally-visible service portals" -j KUBE-EXTERNAL-SERVICES
+-A FORWARD -j DOCKER-USER
+-A FORWARD -j DOCKER-ISOLATION-STAGE-1
+-A FORWARD -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -o docker0 -j DOCKER
+-A FORWARD -i docker0 ! -o docker0 -j ACCEPT
+-A FORWARD -i docker0 -o docker0 -j ACCEPT
+-A FORWARD -d 192.168.122.0/24 -o virbr0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -s 192.168.122.0/24 -i virbr0 -j ACCEPT
+-A FORWARD -i virbr0 -o virbr0 -j ACCEPT
+-A FORWARD -o virbr0 -j REJECT --reject-with icmp-port-unreachable
+-A FORWARD -i virbr0 -j REJECT --reject-with icmp-port-unreachable
+-A FORWARD -j REJECT --reject-with icmp-host-prohibited
+-A FORWARD -m comment --comment "flanneld forward" -j FLANNEL-FWD
+-A OUTPUT -m conntrack --ctstate NEW -m comment --comment "kubernetes load balancer firewall" -j KUBE-PROXY-FIREWALL
+-A OUTPUT -m conntrack --ctstate NEW -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
+-A OUTPUT -j KUBE-FIREWALL
+-A OUTPUT -o virbr0 -p udp -m udp --dport 68 -j ACCEPT
+-A DOCKER-ISOLATION-STAGE-1 -i docker0 ! -o docker0 -j DOCKER-ISOLATION-STAGE-2
+-A DOCKER-ISOLATION-STAGE-1 -j RETURN
+-A DOCKER-ISOLATION-STAGE-2 -o docker0 -j DROP
+-A DOCKER-ISOLATION-STAGE-2 -j RETURN
+-A DOCKER-USER -j RETURN
+-A FLANNEL-FWD -s 10.1.0.0/16 -m comment --comment "flanneld forward" -j ACCEPT
+-A FLANNEL-FWD -d 10.1.0.0/16 -m comment --comment "flanneld forward" -j ACCEPT
+-A KUBE-EXTERNAL-SERVICES -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller:https has no endpoints" -m addrtype --dst-type LOCAL -m tcp --dport 31306 -j REJECT --reject-with icmp-port-unreachable
+-A KUBE-EXTERNAL-SERVICES -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller:http has no endpoints" -m addrtype --dst-type LOCAL -m tcp --dport 31674 -j REJECT --reject-with icmp-port-unreachable
+-A KUBE-EXTERNAL-SERVICES -p tcp -m comment --comment "jenkins/jenkins:http has no endpoints" -m addrtype --dst-type LOCAL -m tcp --dport 32117 -j REJECT --reject-with icmp-port-unreachable
+-A KUBE-FIREWALL ! -s 127.0.0.0/8 -d 127.0.0.0/8 -m comment --comment "block incoming localnet connections" -m conntrack ! --ctstate RELATED,ESTABLISHED,DNAT -j DROP
+-A KUBE-FORWARD -m conntrack --ctstate INVALID -j DROP
+-A KUBE-FORWARD -m comment --comment "kubernetes forwarding rules" -m mark --mark 0x4000/0x4000 -j ACCEPT
+-A KUBE-FORWARD -m comment --comment "kubernetes forwarding conntrack rule" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A KUBE-SERVICES -d 10.2.73.220/32 -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller:https has no endpoints" -m tcp --dport 443 -j REJECT --reject-with icmp-port-unreachable
+-A KUBE-SERVICES -d 10.2.73.220/32 -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller:http has no endpoints" -m tcp --dport 80 -j REJECT --reject-with icmp-port-unreachable
+-A KUBE-SERVICES -d 10.2.142.214/32 -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller-admission:https-webhook has no endpoints" -m tcp --dport 443 -j REJECT --reject-with icmp-port-unreachable
+-A KUBE-SERVICES -d 10.2.226.53/32 -p tcp -m comment --comment "jenkins/jenkins:http has no endpoints" -m tcp --dport 8080 -j REJECT --reject-with icmp-port-unreachable
+-A KUBE-SERVICES -d 10.2.0.10/32 -p udp -m comment --comment "kube-system/kube-dns:dns has no endpoints" -m udp --dport 53 -j REJECT --reject-with icmp-port-unreachable
+-A KUBE-SERVICES -d 10.2.0.10/32 -p tcp -m comment --comment "kube-system/kube-dns:dns-tcp has no endpoints" -m tcp --dport 53 -j REJECT --reject-with icmp-port-unreachable
+-A KUBE-SERVICES -d 10.2.0.10/32 -p tcp -m comment --comment "kube-system/kube-dns:metrics has no endpoints" -m tcp --dport 9153 -j REJECT --reject-with icmp-port-unreachable
+-A KUBE-SERVICES -d 10.2.237.8/32 -p tcp -m comment --comment "jenkins/jenkins-agent:agent-listener has no endpoints" -m tcp --dport 50000 -j REJECT --reject-with icmp-port-unreachable
+COMMIT
+# Completed on Mon Mar 11 16:35:18 2024
+```
+
+#### 原因
+重启过程中iptables规则丢失了
+
+#### 解决 
+```bash
+systemctl stop kubelet
+systemctl stop docker
+iptables --flush
+iptables -tnat --flush
+systemctl start kubelet
+systemctl start docker
+
+# 尝试在集群正常状态下，自动保存当前的iptables规则，使得下次机器重启后iptables不被丢失
+```
+
+结果：
+
+kubectl get ...
+```
+[zj@centos-7-01 create_k8s]$ kubectl get pod,svc,endpoints -A -o wide
+NAMESPACE       NAME                                                   READY   STATUS    RESTARTS          AGE     IP            NODE        NOMINATED NODE   READINESS GATES
+ingress-nginx   pod/ingress-nginx-controller-75dbc5d7f7-qhlml          1/1     Running   467 (8m57s ago)   4d16h   10.1.0.66     master-01   <none>           <none>
+jenkins         pod/jenkins-0                                          2/2     Running   2 (3d4h ago)      3d15h   10.1.0.63     master-01   <none>           <none>
+kube-flannel    pod/kube-flannel-ds-rjrtw                              1/1     Running   8 (8m57s ago)     4d23h   192.168.1.5   master-01   <none>           <none>
+kube-system     pod/coredns-857d9ff4c9-7m27z                           1/1     Running   1 (8m52s ago)     31m     10.1.0.67     master-01   <none>           <none>
+kube-system     pod/coredns-857d9ff4c9-wwczd                           1/1     Running   1 (8m52s ago)     31m     10.1.0.64     master-01   <none>           <none>
+kube-system     pod/etcd-master-01                                     1/1     Running   14 (8m57s ago)    7d22h   192.168.1.5   master-01   <none>           <none>
+kube-system     pod/kube-apiserver-master-01                           1/1     Running   14 (8m47s ago)    7d22h   192.168.1.5   master-01   <none>           <none>
+kube-system     pod/kube-controller-manager-master-01                  1/1     Running   8 (8m57s ago)     7d22h   192.168.1.5   master-01   <none>           <none>
+kube-system     pod/kube-proxy-s5x84                                   1/1     Running   8 (8m57s ago)     7d22h   192.168.1.5   master-01   <none>           <none>
+kube-system     pod/kube-scheduler-master-01                           1/1     Running   8 (8m57s ago)     7d22h   192.168.1.5   master-01   <none>           <none>
+kube-system     pod/nfs-subdir-external-provisioner-6676cf59d8-j9grt   1/1     Running   325 (13m ago)     4d23h   10.1.0.65     master-01   <none>           <none>
+
+NAMESPACE       NAME                                         TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)                      AGE     SELECTOR
+default         service/kubernetes                           ClusterIP      10.2.0.1       <none>        443/TCP                      7d22h   <none>
+ingress-nginx   service/ingress-nginx-controller             LoadBalancer   10.2.73.220    <pending>     80:31674/TCP,443:31306/TCP   4d16h   app.kubernetes.io/component=controller,app.kubernetes.io/instance=ingress-nginx,app.kubernetes.io/name=ingress-nginx
+ingress-nginx   service/ingress-nginx-controller-admission   ClusterIP      10.2.142.214   <none>        443/TCP                      4d16h   app.kubernetes.io/component=controller,app.kubernetes.io/instance=ingress-nginx,app.kubernetes.io/name=ingress-nginx
+jenkins         service/jenkins                              NodePort       10.2.226.53    <none>        8080:32117/TCP               4d16h   app.kubernetes.io/component=jenkins-controller,app.kubernetes.io/instance=jenkins
+jenkins         service/jenkins-agent                        ClusterIP      10.2.237.8     <none>        50000/TCP                    4d16h   app.kubernetes.io/component=jenkins-controller,app.kubernetes.io/instance=jenkins
+kube-system     service/kube-dns                             ClusterIP      10.2.0.10      <none>        53/UDP,53/TCP,9153/TCP       7d22h   k8s-app=kube-dns
+
+NAMESPACE       NAME                                                      ENDPOINTS                                            AGE
+default         endpoints/kubernetes                                      192.168.1.5:6443                                     7d22h
+ingress-nginx   endpoints/ingress-nginx-controller                        10.1.0.66:443,10.1.0.66:80                           4d16h
+ingress-nginx   endpoints/ingress-nginx-controller-admission              10.1.0.66:8443                                       4d16h
+jenkins         endpoints/jenkins                                         10.1.0.63:8080                                       4d16h
+jenkins         endpoints/jenkins-agent                                   10.1.0.63:50000                                      4d16h
+kube-system     endpoints/cluster.local-nfs-subdir-external-provisioner   <none>                                               4d23h
+kube-system     endpoints/kube-dns                                        10.1.0.64:53,10.1.0.67:53,10.1.0.64:53 + 3 more...   7d22h
+[zj@centos-7-01 create_k8s]$ kubectl logs  coredns-857d9ff4c9-7m27z -n kube-system
+.:53
+[INFO] plugin/reload: Running configuration SHA512 = 591cf328cccc12bc490481273e738df59329c62c0b729d94e8b61db9961c2fa5f046dd37f1cf888b953814040d180f52594972691cd6ff41be96639138a43908
+CoreDNS-1.11.1
+linux/amd64, go1.20.7, ae2bbc2
+```
+
+iptabls-save ...
+```
+[zj@centos-7-01 create_k8s]$ sudo iptables-save
+# Generated by iptables-save v1.4.21 on Mon Mar 11 17:55:00 2024
+*mangle
+:PREROUTING ACCEPT [5479891:4217540884]
+:INPUT ACCEPT [5353488:4211849117]
+:FORWARD ACCEPT [126403:5691767]
+:OUTPUT ACCEPT [5383124:4217373218]
+:POSTROUTING ACCEPT [5383171:4217378810]
+:KUBE-IPTABLES-HINT - [0:0]
+:KUBE-KUBELET-CANARY - [0:0]
+:KUBE-PROXY-CANARY - [0:0]
+-A POSTROUTING -o virbr0 -p udp -m udp --dport 68 -j CHECKSUM --checksum-fill
+COMMIT
+# Completed on Mon Mar 11 17:55:00 2024
+# Generated by iptables-save v1.4.21 on Mon Mar 11 17:55:00 2024
+*nat
+:PREROUTING ACCEPT [6:638]
+:INPUT ACCEPT [16:1238]
+:OUTPUT ACCEPT [1455:88016]
+:POSTROUTING ACCEPT [1455:88016]
+:DOCKER - [0:0]
+:FLANNEL-POSTRTG - [0:0]
+:KUBE-EXT-CG5I4G2RS3ZVWGLK - [0:0]
+:KUBE-EXT-EDNDUDH2C75GIR6O - [0:0]
+:KUBE-EXT-KLKESZFIHQ5XX6FZ - [0:0]
+:KUBE-KUBELET-CANARY - [0:0]
+:KUBE-MARK-MASQ - [0:0]
+:KUBE-NODEPORTS - [0:0]
+:KUBE-POSTROUTING - [0:0]
+:KUBE-PROXY-CANARY - [0:0]
+:KUBE-SEP-24CQDNH5YB2GOAMH - [0:0]
+:KUBE-SEP-54IUPJM2TTG4TKF2 - [0:0]
+:KUBE-SEP-H3DHMFYS7S42CFSN - [0:0]
+:KUBE-SEP-IV6EKVYQS77JP6M7 - [0:0]
+:KUBE-SEP-O2YBC32BIIPN4DGD - [0:0]
+:KUBE-SEP-O5LSP4IVD436RT3J - [0:0]
+:KUBE-SEP-PM7R7IIC56RV32VC - [0:0]
+:KUBE-SEP-TT4D5P4LY4YRBPNS - [0:0]
+:KUBE-SEP-V4YRN7CFGU5XUNXJ - [0:0]
+:KUBE-SEP-VZGDTBTQB7EQ6ERQ - [0:0]
+:KUBE-SEP-X4HAJPVNMCYDHGMV - [0:0]
+:KUBE-SEP-XQCFPAQSGQ46R77P - [0:0]
+:KUBE-SERVICES - [0:0]
+:KUBE-SVC-CG5I4G2RS3ZVWGLK - [0:0]
+:KUBE-SVC-EDNDUDH2C75GIR6O - [0:0]
+:KUBE-SVC-ERIFXISQEP7F7OF4 - [0:0]
+:KUBE-SVC-EZYNCFY2F7N6OQA2 - [0:0]
+:KUBE-SVC-JD5MR3NA4I4DYORP - [0:0]
+:KUBE-SVC-KLKESZFIHQ5XX6FZ - [0:0]
+:KUBE-SVC-NDI7DJ6D7ATLKECA - [0:0]
+:KUBE-SVC-NPX46M4PTMTKRN6Y - [0:0]
+:KUBE-SVC-TCOU7JCQXEZGVUNU - [0:0]
+-A PREROUTING -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
+-A OUTPUT -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
+-A POSTROUTING -m comment --comment "kubernetes postrouting rules" -j KUBE-POSTROUTING
+-A POSTROUTING -m comment --comment "flanneld masq" -j FLANNEL-POSTRTG
+-A FLANNEL-POSTRTG -m mark --mark 0x4000/0x4000 -m comment --comment "flanneld masq" -j RETURN
+-A FLANNEL-POSTRTG -s 10.1.0.0/25 -d 10.1.0.0/16 -m comment --comment "flanneld masq" -j RETURN
+-A FLANNEL-POSTRTG -s 10.1.0.0/16 -d 10.1.0.0/25 -m comment --comment "flanneld masq" -j RETURN
+-A FLANNEL-POSTRTG ! -s 10.1.0.0/16 -d 10.1.0.0/25 -m comment --comment "flanneld masq" -j RETURN
+-A FLANNEL-POSTRTG -s 10.1.0.0/16 ! -d 224.0.0.0/4 -m comment --comment "flanneld masq" -j MASQUERADE
+-A FLANNEL-POSTRTG ! -s 10.1.0.0/16 -d 10.1.0.0/16 -m comment --comment "flanneld masq" -j MASQUERADE
+-A KUBE-EXT-CG5I4G2RS3ZVWGLK -m comment --comment "masquerade traffic for ingress-nginx/ingress-nginx-controller:http external destinations" -j KUBE-MARK-MASQ
+-A KUBE-EXT-CG5I4G2RS3ZVWGLK -j KUBE-SVC-CG5I4G2RS3ZVWGLK
+-A KUBE-EXT-EDNDUDH2C75GIR6O -m comment --comment "masquerade traffic for ingress-nginx/ingress-nginx-controller:https external destinations" -j KUBE-MARK-MASQ
+-A KUBE-EXT-EDNDUDH2C75GIR6O -j KUBE-SVC-EDNDUDH2C75GIR6O
+-A KUBE-EXT-KLKESZFIHQ5XX6FZ -m comment --comment "masquerade traffic for jenkins/jenkins:http external destinations" -j KUBE-MARK-MASQ
+-A KUBE-EXT-KLKESZFIHQ5XX6FZ -j KUBE-SVC-KLKESZFIHQ5XX6FZ
+-A KUBE-MARK-MASQ -j MARK --set-xmark 0x4000/0x4000
+-A KUBE-NODEPORTS -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller:http" -m tcp --dport 31674 -j KUBE-EXT-CG5I4G2RS3ZVWGLK
+-A KUBE-NODEPORTS -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller:https" -m tcp --dport 31306 -j KUBE-EXT-EDNDUDH2C75GIR6O
+-A KUBE-NODEPORTS -p tcp -m comment --comment "jenkins/jenkins:http" -m tcp --dport 32117 -j KUBE-EXT-KLKESZFIHQ5XX6FZ
+-A KUBE-POSTROUTING -m mark ! --mark 0x4000/0x4000 -j RETURN
+-A KUBE-POSTROUTING -j MARK --set-xmark 0x4000/0x0
+-A KUBE-POSTROUTING -m comment --comment "kubernetes service traffic requiring SNAT" -j MASQUERADE
+-A KUBE-SEP-24CQDNH5YB2GOAMH -s 10.1.0.64/32 -m comment --comment "kube-system/kube-dns:metrics" -j KUBE-MARK-MASQ
+-A KUBE-SEP-24CQDNH5YB2GOAMH -p tcp -m comment --comment "kube-system/kube-dns:metrics" -m tcp -j DNAT --to-destination 10.1.0.64:9153
+-A KUBE-SEP-54IUPJM2TTG4TKF2 -s 192.168.1.5/32 -m comment --comment "default/kubernetes:https" -j KUBE-MARK-MASQ
+-A KUBE-SEP-54IUPJM2TTG4TKF2 -p tcp -m comment --comment "default/kubernetes:https" -m tcp -j DNAT --to-destination 192.168.1.5:6443
+-A KUBE-SEP-H3DHMFYS7S42CFSN -s 10.1.0.66/32 -m comment --comment "ingress-nginx/ingress-nginx-controller:http" -j KUBE-MARK-MASQ
+-A KUBE-SEP-H3DHMFYS7S42CFSN -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller:http" -m tcp -j DNAT --to-destination 10.1.0.66:80
+-A KUBE-SEP-IV6EKVYQS77JP6M7 -s 10.1.0.66/32 -m comment --comment "ingress-nginx/ingress-nginx-controller-admission:https-webhook" -j KUBE-MARK-MASQ
+-A KUBE-SEP-IV6EKVYQS77JP6M7 -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller-admission:https-webhook" -m tcp -j DNAT --to-destination 10.1.0.66:8443
+-A KUBE-SEP-O2YBC32BIIPN4DGD -s 10.1.0.67/32 -m comment --comment "kube-system/kube-dns:metrics" -j KUBE-MARK-MASQ
+-A KUBE-SEP-O2YBC32BIIPN4DGD -p tcp -m comment --comment "kube-system/kube-dns:metrics" -m tcp -j DNAT --to-destination 10.1.0.67:9153
+-A KUBE-SEP-O5LSP4IVD436RT3J -s 10.1.0.67/32 -m comment --comment "kube-system/kube-dns:dns" -j KUBE-MARK-MASQ
+-A KUBE-SEP-O5LSP4IVD436RT3J -p udp -m comment --comment "kube-system/kube-dns:dns" -m udp -j DNAT --to-destination 10.1.0.67:53
+-A KUBE-SEP-PM7R7IIC56RV32VC -s 10.1.0.63/32 -m comment --comment "jenkins/jenkins:http" -j KUBE-MARK-MASQ
+-A KUBE-SEP-PM7R7IIC56RV32VC -p tcp -m comment --comment "jenkins/jenkins:http" -m tcp -j DNAT --to-destination 10.1.0.63:8080
+-A KUBE-SEP-TT4D5P4LY4YRBPNS -s 10.1.0.64/32 -m comment --comment "kube-system/kube-dns:dns" -j KUBE-MARK-MASQ
+-A KUBE-SEP-TT4D5P4LY4YRBPNS -p udp -m comment --comment "kube-system/kube-dns:dns" -m udp -j DNAT --to-destination 10.1.0.64:53
+-A KUBE-SEP-V4YRN7CFGU5XUNXJ -s 10.1.0.64/32 -m comment --comment "kube-system/kube-dns:dns-tcp" -j KUBE-MARK-MASQ
+-A KUBE-SEP-V4YRN7CFGU5XUNXJ -p tcp -m comment --comment "kube-system/kube-dns:dns-tcp" -m tcp -j DNAT --to-destination 10.1.0.64:53
+-A KUBE-SEP-VZGDTBTQB7EQ6ERQ -s 10.1.0.66/32 -m comment --comment "ingress-nginx/ingress-nginx-controller:https" -j KUBE-MARK-MASQ
+-A KUBE-SEP-VZGDTBTQB7EQ6ERQ -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller:https" -m tcp -j DNAT --to-destination 10.1.0.66:443
+-A KUBE-SEP-X4HAJPVNMCYDHGMV -s 10.1.0.63/32 -m comment --comment "jenkins/jenkins-agent:agent-listener" -j KUBE-MARK-MASQ
+-A KUBE-SEP-X4HAJPVNMCYDHGMV -p tcp -m comment --comment "jenkins/jenkins-agent:agent-listener" -m tcp -j DNAT --to-destination 10.1.0.63:50000
+-A KUBE-SEP-XQCFPAQSGQ46R77P -s 10.1.0.67/32 -m comment --comment "kube-system/kube-dns:dns-tcp" -j KUBE-MARK-MASQ
+-A KUBE-SEP-XQCFPAQSGQ46R77P -p tcp -m comment --comment "kube-system/kube-dns:dns-tcp" -m tcp -j DNAT --to-destination 10.1.0.67:53
+-A KUBE-SERVICES -d 10.2.237.8/32 -p tcp -m comment --comment "jenkins/jenkins-agent:agent-listener cluster IP" -m tcp --dport 50000 -j KUBE-SVC-NDI7DJ6D7ATLKECA
+-A KUBE-SERVICES -d 10.2.0.10/32 -p tcp -m comment --comment "kube-system/kube-dns:dns-tcp cluster IP" -m tcp --dport 53 -j KUBE-SVC-ERIFXISQEP7F7OF4
+-A KUBE-SERVICES -d 10.2.73.220/32 -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller:http cluster IP" -m tcp --dport 80 -j KUBE-SVC-CG5I4G2RS3ZVWGLK
+-A KUBE-SERVICES -d 10.2.73.220/32 -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller:https cluster IP" -m tcp --dport 443 -j KUBE-SVC-EDNDUDH2C75GIR6O
+-A KUBE-SERVICES -d 10.2.226.53/32 -p tcp -m comment --comment "jenkins/jenkins:http cluster IP" -m tcp --dport 8080 -j KUBE-SVC-KLKESZFIHQ5XX6FZ
+-A KUBE-SERVICES -d 10.2.0.10/32 -p tcp -m comment --comment "kube-system/kube-dns:metrics cluster IP" -m tcp --dport 9153 -j KUBE-SVC-JD5MR3NA4I4DYORP
+-A KUBE-SERVICES -d 10.2.0.1/32 -p tcp -m comment --comment "default/kubernetes:https cluster IP" -m tcp --dport 443 -j KUBE-SVC-NPX46M4PTMTKRN6Y
+-A KUBE-SERVICES -d 10.2.142.214/32 -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller-admission:https-webhook cluster IP" -m tcp --dport 443 -j KUBE-SVC-EZYNCFY2F7N6OQA2
+-A KUBE-SERVICES -d 10.2.0.10/32 -p udp -m comment --comment "kube-system/kube-dns:dns cluster IP" -m udp --dport 53 -j KUBE-SVC-TCOU7JCQXEZGVUNU
+-A KUBE-SERVICES -m comment --comment "kubernetes service nodeports; NOTE: this must be the last rule in this chain" -m addrtype --dst-type LOCAL -j KUBE-NODEPORTS
+-A KUBE-SVC-CG5I4G2RS3ZVWGLK ! -s 10.1.0.0/16 -d 10.2.73.220/32 -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller:http cluster IP" -m tcp --dport 80 -j KUBE-MARK-MASQ
+-A KUBE-SVC-CG5I4G2RS3ZVWGLK -m comment --comment "ingress-nginx/ingress-nginx-controller:http -> 10.1.0.66:80" -j KUBE-SEP-H3DHMFYS7S42CFSN
+-A KUBE-SVC-EDNDUDH2C75GIR6O ! -s 10.1.0.0/16 -d 10.2.73.220/32 -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller:https cluster IP" -m tcp --dport 443 -j KUBE-MARK-MASQ
+-A KUBE-SVC-EDNDUDH2C75GIR6O -m comment --comment "ingress-nginx/ingress-nginx-controller:https -> 10.1.0.66:443" -j KUBE-SEP-VZGDTBTQB7EQ6ERQ
+-A KUBE-SVC-ERIFXISQEP7F7OF4 ! -s 10.1.0.0/16 -d 10.2.0.10/32 -p tcp -m comment --comment "kube-system/kube-dns:dns-tcp cluster IP" -m tcp --dport 53 -j KUBE-MARK-MASQ
+-A KUBE-SVC-ERIFXISQEP7F7OF4 -m comment --comment "kube-system/kube-dns:dns-tcp -> 10.1.0.64:53" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-V4YRN7CFGU5XUNXJ
+-A KUBE-SVC-ERIFXISQEP7F7OF4 -m comment --comment "kube-system/kube-dns:dns-tcp -> 10.1.0.67:53" -j KUBE-SEP-XQCFPAQSGQ46R77P
+-A KUBE-SVC-EZYNCFY2F7N6OQA2 ! -s 10.1.0.0/16 -d 10.2.142.214/32 -p tcp -m comment --comment "ingress-nginx/ingress-nginx-controller-admission:https-webhook cluster IP" -m tcp --dport 443 -j KUBE-MARK-MASQ
+-A KUBE-SVC-EZYNCFY2F7N6OQA2 -m comment --comment "ingress-nginx/ingress-nginx-controller-admission:https-webhook -> 10.1.0.66:8443" -j KUBE-SEP-IV6EKVYQS77JP6M7
+-A KUBE-SVC-JD5MR3NA4I4DYORP ! -s 10.1.0.0/16 -d 10.2.0.10/32 -p tcp -m comment --comment "kube-system/kube-dns:metrics cluster IP" -m tcp --dport 9153 -j KUBE-MARK-MASQ
+-A KUBE-SVC-JD5MR3NA4I4DYORP -m comment --comment "kube-system/kube-dns:metrics -> 10.1.0.64:9153" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-24CQDNH5YB2GOAMH
+-A KUBE-SVC-JD5MR3NA4I4DYORP -m comment --comment "kube-system/kube-dns:metrics -> 10.1.0.67:9153" -j KUBE-SEP-O2YBC32BIIPN4DGD
+-A KUBE-SVC-KLKESZFIHQ5XX6FZ ! -s 10.1.0.0/16 -d 10.2.226.53/32 -p tcp -m comment --comment "jenkins/jenkins:http cluster IP" -m tcp --dport 8080 -j KUBE-MARK-MASQ
+-A KUBE-SVC-KLKESZFIHQ5XX6FZ -m comment --comment "jenkins/jenkins:http -> 10.1.0.63:8080" -j KUBE-SEP-PM7R7IIC56RV32VC
+-A KUBE-SVC-NDI7DJ6D7ATLKECA ! -s 10.1.0.0/16 -d 10.2.237.8/32 -p tcp -m comment --comment "jenkins/jenkins-agent:agent-listener cluster IP" -m tcp --dport 50000 -j KUBE-MARK-MASQ
+-A KUBE-SVC-NDI7DJ6D7ATLKECA -m comment --comment "jenkins/jenkins-agent:agent-listener -> 10.1.0.63:50000" -j KUBE-SEP-X4HAJPVNMCYDHGMV
+-A KUBE-SVC-NPX46M4PTMTKRN6Y ! -s 10.1.0.0/16 -d 10.2.0.1/32 -p tcp -m comment --comment "default/kubernetes:https cluster IP" -m tcp --dport 443 -j KUBE-MARK-MASQ
+-A KUBE-SVC-NPX46M4PTMTKRN6Y -m comment --comment "default/kubernetes:https -> 192.168.1.5:6443" -j KUBE-SEP-54IUPJM2TTG4TKF2
+-A KUBE-SVC-TCOU7JCQXEZGVUNU ! -s 10.1.0.0/16 -d 10.2.0.10/32 -p udp -m comment --comment "kube-system/kube-dns:dns cluster IP" -m udp --dport 53 -j KUBE-MARK-MASQ
+-A KUBE-SVC-TCOU7JCQXEZGVUNU -m comment --comment "kube-system/kube-dns:dns -> 10.1.0.64:53" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-TT4D5P4LY4YRBPNS
+-A KUBE-SVC-TCOU7JCQXEZGVUNU -m comment --comment "kube-system/kube-dns:dns -> 10.1.0.67:53" -j KUBE-SEP-O5LSP4IVD436RT3J
+COMMIT
+# Completed on Mon Mar 11 17:55:00 2024
+# Generated by iptables-save v1.4.21 on Mon Mar 11 17:55:00 2024
+*filter
+:INPUT ACCEPT [105976:75984836]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [104769:76233827]
+:DOCKER - [0:0]
+:DOCKER-ISOLATION-STAGE-1 - [0:0]
+:DOCKER-ISOLATION-STAGE-2 - [0:0]
+:DOCKER-USER - [0:0]
+:FLANNEL-FWD - [0:0]
+:KUBE-EXTERNAL-SERVICES - [0:0]
+:KUBE-FIREWALL - [0:0]
+:KUBE-FORWARD - [0:0]
+:KUBE-KUBELET-CANARY - [0:0]
+:KUBE-NODEPORTS - [0:0]
+:KUBE-PROXY-CANARY - [0:0]
+:KUBE-PROXY-FIREWALL - [0:0]
+:KUBE-SERVICES - [0:0]
+-A INPUT -m conntrack --ctstate NEW -m comment --comment "kubernetes load balancer firewall" -j KUBE-PROXY-FIREWALL
+-A INPUT -m comment --comment "kubernetes health check service ports" -j KUBE-NODEPORTS
+-A INPUT -m conntrack --ctstate NEW -m comment --comment "kubernetes externally-visible service portals" -j KUBE-EXTERNAL-SERVICES
+-A INPUT -j KUBE-FIREWALL
+-A FORWARD -m conntrack --ctstate NEW -m comment --comment "kubernetes load balancer firewall" -j KUBE-PROXY-FIREWALL
+-A FORWARD -m comment --comment "kubernetes forwarding rules" -j KUBE-FORWARD
+-A FORWARD -m conntrack --ctstate NEW -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
+-A FORWARD -m conntrack --ctstate NEW -m comment --comment "kubernetes externally-visible service portals" -j KUBE-EXTERNAL-SERVICES
+-A FORWARD -m comment --comment "flanneld forward" -j FLANNEL-FWD
+-A OUTPUT -m conntrack --ctstate NEW -m comment --comment "kubernetes load balancer firewall" -j KUBE-PROXY-FIREWALL
+-A OUTPUT -m conntrack --ctstate NEW -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
+-A OUTPUT -j KUBE-FIREWALL
+-A FLANNEL-FWD -s 10.1.0.0/16 -m comment --comment "flanneld forward" -j ACCEPT
+-A FLANNEL-FWD -d 10.1.0.0/16 -m comment --comment "flanneld forward" -j ACCEPT
+-A KUBE-FIREWALL ! -s 127.0.0.0/8 -d 127.0.0.0/8 -m comment --comment "block incoming localnet connections" -m conntrack ! --ctstate RELATED,ESTABLISHED,DNAT -j DROP
+-A KUBE-FORWARD -m conntrack --ctstate INVALID -j DROP
+-A KUBE-FORWARD -m comment --comment "kubernetes forwarding rules" -m mark --mark 0x4000/0x4000 -j ACCEPT
+-A KUBE-FORWARD -m comment --comment "kubernetes forwarding conntrack rule" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+COMMIT
+# Completed on Mon Mar 11 17:55:00 2024
 ```
 
 ## 参考资料

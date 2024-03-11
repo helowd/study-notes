@@ -1,5 +1,5 @@
 # 服务器架设
-连接服务器流程图
+连接服务器流程图  
 ![](./file_permission.gif)
 
 ## 目录
@@ -46,19 +46,19 @@
 ### iptables
 基于Netfilter，根据封包的分析资料"比对" 你预先定义的规则内容， 若封包资料与规则内容相同则进行动作，否则就继续下一条规则的比对。
 
-相关软件：
-iptables-service，此软件包含了iptables 服务和 ip6tables 服务，实现开机自动加载规则  
-iptables-persistent，ubuntu中实现开机自动加载iptables规则
+相关软件：  
+iptables-service，此软件包含了iptables 服务和 ip6tables 服务，实现开机自动加载规则   
+iptables-persistent，ubuntu中实现开机自动加载iptables规则  
 
 iptables是传统的防火墙管理工具，centos7中firewalld和ubuntu中ufw都是新出的linux防火墙工具，不过这些都基于内核中的netfilter，三个防火墙管理工具之间会互相影响，所以一般建议只用其中一种
 
 主要的表有三个：
 ```
-(defualt)控制本机的封包filter：INPUT OUTPUT FORWARD
+控制本机的封包filter(defualt)：INPUT OUTPUT FORWARD
 控制路由nat：PREROUTING POSTROUTING OUTPUT
 主要与特殊封包的flag相关mangle：PREROUTING OUTPUT INPUT FORWARD
 ```
-表和链的关系：一个表可以包含多个链（包括自定义链）
+表和链的关系：一个表可以包含多个链（包括自定义链）  
 ![](./iptables_03.gif)
 
 iptables-save  将防火墙规则打印到标准输出
