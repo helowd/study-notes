@@ -7,6 +7,8 @@
     * [特性](#特性)
     * [helloworld](#helloworld)
 * [与java的不同](#与java的不同)
+* [列表](#列表)
+* [映射](#映射)
 * [坑](#坑)
 
 <!-- vim-markdown-toc -->
@@ -100,6 +102,26 @@ class Example {
    } 
 }
 ```
+
+6. def定义方法时不需要指定返回值，Groovy 是一种动态类型语言，它会根据函数体中的逻辑推断函数的返回值类型，因此不需要显式指定返回值类型。
+
+## 列表
+在 Groovy 中，List 保存了一系列对象引用。List 中的对象引用占据序列中的位置，并通过整数索引来区分。groovy中的一个列表中的数据可以是任何类型，与java下集合列表有些不同，java下的列表是同种类型。groovy列表可以嵌套列表，如[1, 2, [3, 4, 5], "aaa"]
+```groovy
+def list1 = []  
+def list2 = [1,2,3,4]  
+list2.add(12)  
+list2.add(12)  
+println(list1.size())
+```
+
+## 映射
+映射（也称为关联数组，字典，表和散列）是对象引用的无序集合。Map集合中的元素由键值访问。 Map中使用的键可以是任何类。当我们插入到Map集合中时，需要两个值：键和值。
+
+['TopicName': 'Lists'，'TopicName': 'Maps'] - 具有TopicName作为键的键值对的集合及其相应的值。
+
+[:] - 空映射。
+
 
 ## 坑
 在jenkins共享库的groovy脚本中，sh包裹的多行语句块里，groovy不能正常解析sh中$符号和groovy中的$符号，例如以下代码会报错

@@ -1,69 +1,119 @@
 # java语法
 
 ## 目录
-<!-- vim-markdown-toc GFM -->
-
-* [简介](#简介)
-    * [helloworld](#helloworld)
-    * [安装](#安装)
-        * [jdk：](#jdk)
-        * [jvm：](#jvm)
-* [基本概念](#基本概念)
-* [命名](#命名)
-* [注释](#注释)
-* [变量和数据类型](#变量和数据类型)
-    * [变量声明示例](#变量声明示例)
-    * [基本数据类型](#基本数据类型)
-    * [引用类型](#引用类型)
-        * [字符串](#字符串)
-        * [空值null](#空值null)
-        * [数组](#数组)
-            * [命令行参数](#命令行参数)
-    * [var关键字](#var关键字)
-    * [其他类型](#其他类型)
-    * [强类型弱类型，动态语言静态语言](#强类型弱类型动态语言静态语言)
-* [运算](#运算)
-    * [算数运算符](#算数运算符)
-    * [关系运算符](#关系运算符)
-    * [逻辑运算符](#逻辑运算符)
-    * [位运算](#位运算)
-* [输入和输出](#输入和输出)
-    * [输出](#输出)
-        * [格式化输出](#格式化输出)
-    * [输入](#输入)
-* [if else](#if-else)
-* [switch case](#switch-case)
-* [循环](#循环)
-    * [while](#while)
-    * [do...while](#dowhile)
-* [修饰符](#修饰符)
-    * [访问修饰符](#访问修饰符)
-    * [非访问修饰符](#非访问修饰符)
-* [异常处理](#异常处理)
-* [面向对象编程](#面向对象编程)
-    * [方法](#方法)
-        * [this变量](#this变量)
-        * [方法参数](#方法参数)
-        * [可变参数](#可变参数)
-        * [参数绑定](#参数绑定)
-    * [构造方法](#构造方法)
-        * [默认构造方法](#默认构造方法)
-        * [多构造方法](#多构造方法)
-    * [方法重载](#方法重载)
-    * [继承](#继承)
-        * [protected](#protected)
-        * [super](#super)
-        * [阻止继承](#阻止继承)
-        * [向上转型](#向上转型)
-        * [向下转型](#向下转型)
-        * [instanceof操作符](#instanceof操作符)
-        * [区分继承和组合](#区分继承和组合)
-    * [多态Override](#多态override)
-        * [方法签名](#方法签名)
-        * [复写Object方法](#复写object方法)
-        * [final](#final)
-
-<!-- vim-markdown-toc -->
+- [java语法](#java语法)
+  - [目录](#目录)
+  - [简介](#简介)
+    - [helloworld](#helloworld)
+    - [安装](#安装)
+      - [jdk：](#jdk)
+      - [jvm：](#jvm)
+  - [基本概念](#基本概念)
+  - [命名](#命名)
+  - [注释](#注释)
+  - [变量和数据类型](#变量和数据类型)
+    - [变量声明示例](#变量声明示例)
+    - [基本数据类型](#基本数据类型)
+    - [引用类型](#引用类型)
+      - [字符串](#字符串)
+        - [字符串插值](#字符串插值)
+      - [空值null](#空值null)
+      - [数组](#数组)
+        - [命令行参数](#命令行参数)
+    - [var关键字](#var关键字)
+    - [其他类型](#其他类型)
+    - [强类型弱类型，动态语言静态语言](#强类型弱类型动态语言静态语言)
+  - [运算](#运算)
+    - [算数运算符](#算数运算符)
+    - [关系运算符](#关系运算符)
+    - [逻辑运算符](#逻辑运算符)
+    - [位运算](#位运算)
+  - [输入和输出](#输入和输出)
+    - [输出](#输出)
+      - [格式化输出](#格式化输出)
+    - [输入](#输入)
+  - [if else](#if-else)
+  - [switch case](#switch-case)
+  - [循环](#循环)
+    - [while](#while)
+    - [do...while](#dowhile)
+  - [修饰符](#修饰符)
+    - [访问修饰符](#访问修饰符)
+    - [非访问修饰符](#非访问修饰符)
+  - [异常处理](#异常处理)
+  - [面向对象编程](#面向对象编程)
+    - [方法](#方法)
+      - [this变量](#this变量)
+      - [方法参数](#方法参数)
+      - [可变参数](#可变参数)
+      - [参数绑定](#参数绑定)
+    - [构造方法](#构造方法)
+      - [默认构造方法](#默认构造方法)
+      - [多构造方法](#多构造方法)
+    - [方法重载](#方法重载)
+    - [继承](#继承)
+      - [protected](#protected)
+      - [super](#super)
+      - [阻止继承](#阻止继承)
+      - [向上转型](#向上转型)
+      - [向下转型](#向下转型)
+      - [instanceof操作符](#instanceof操作符)
+      - [区分继承和组合](#区分继承和组合)
+    - [多态Override](#多态override)
+      - [方法签名](#方法签名)
+      - [复写Object方法](#复写object方法)
+      - [final](#final)
+    - [抽象类abstract](#抽象类abstract)
+      - [面向抽象编程](#面向抽象编程)
+    - [接口interface](#接口interface)
+      - [术语](#术语)
+      - [接口继承](#接口继承)
+      - [继承关系](#继承关系)
+      - [default方法](#default方法)
+    - [静态字段和静态方法static](#静态字段和静态方法static)
+      - [静态字段](#静态字段)
+      - [静态方法](#静态方法)
+      - [接口的静态字段](#接口的静态字段)
+    - [包](#包)
+      - [包的作用域](#包的作用域)
+      - [import](#import)
+      - [java文件编译顺序](#java文件编译顺序)
+      - [最佳实践](#最佳实践)
+        - [编译和运行](#编译和运行)
+    - [作用域](#作用域)
+      - [public](#public)
+      - [private](#private)
+      - [protected](#protected-1)
+      - [package](#package)
+      - [局部变量](#局部变量)
+      - [final](#final-1)
+      - [最佳实践](#最佳实践-1)
+    - [内部类](#内部类)
+      - [Inner Class](#inner-class)
+      - [Anonymous Class](#anonymous-class)
+      - [Static Nested Class](#static-nested-class)
+    - [classpath和jar](#classpath和jar)
+      - [classpath](#classpath)
+      - [两种设置方法：](#两种设置方法)
+      - [jar包](#jar包)
+      - [创建jar包](#创建jar包)
+    - [class版本](#class版本)
+      - [设置编译输出的版本](#设置编译输出的版本)
+        - [潜在问题：](#潜在问题)
+        - [设置多个jdk版本环境](#设置多个jdk版本环境)
+      - [源码版本](#源码版本)
+    - [模块](#模块)
+      - [编写模块](#编写模块)
+        - [用jdk工具来编译并创建模块](#用jdk工具来编译并创建模块)
+      - [运行模块](#运行模块)
+      - [打包JRE](#打包jre)
+        - [JRE介绍](#jre介绍)
+        - [打包JRE环境](#打包jre环境)
+      - [访问权限](#访问权限)
+  - [集合collection](#集合collection)
+    - [map](#map)
+      - [遍历map](#遍历map)
+      - [与List的区别](#与list的区别)
 
 ## 简介
 Java 是由 Sun Microsystems 公司于 1995 年 5 月推出的高级程序设计语言。常用来开发android app。javac用来编译源码生成字节码，java用来运行字节码文件，解释型的强类型静态语言，语句用分号结束
@@ -251,6 +301,18 @@ String s = """
 ...........""";
 ```
 
+##### 字符串插值
+字符串插值是 Java 15 中引入的新功能，允许在文本块中直接使用 ${} 语法来插入变量值或表达式的结果。这种方法简化了字符串模板的书写，并提高了代码的可读性。
+```java
+String name = "John";
+int age = 30;
+String message = """
+                 Hello, ${name}.
+                 You are ${age} years old.
+                 """;
+```
+
+
 字符串变量内容不可变，当对一个已经创建的字符串变量重新赋值时，会新开辟一个内存空间，并把这个字符串变量的指向改成这个新的内存空间，旧的内存空间依旧存在  
 ![](./StringPoint.png)  
 ```java
@@ -310,7 +372,7 @@ public class Main {
 ```
 
 ### var关键字
-var关键字只能用于局部变量的声明，不能用于成员变量、方法参数、方法返回类型等其它地方
+Java10开始引入，var关键字只能用于局部变量的声明，不能用于成员变量、方法参数、方法返回类型等其它地方
 ```
 有些时候，类型的名字太长，写起来比较麻烦。例如:
 StringBuilder sb = new StringBuilder();
@@ -2665,3 +2727,94 @@ module hello.world {
 }
 ```
 因此，模块进一步隔离了代码的访问权限。
+
+
+## 集合collection
+Java标准库自带的java.util包提供了集合类：Collection，它是除Map外所有其他集合类的根接口。Java的java.util包主要提供了以下三种类型的集合：
+
+List：一种有序列表的集合，例如，按索引排列的Student的List；  
+Set：一种保证没有重复元素的集合，例如，所有无重复名称的Student的Set；  
+Map：一种通过键值（key-value）查找的映射表集合，例如，根据Student的name查找对应Student的Map。  
+Java集合的设计有几个特点：一是实现了接口和实现类相分离，例如，有序表的接口是List，具体的实现类有ArrayList，LinkedList等，二是支持泛型，我们可以限制在一个集合中只能放入同一种数据类型的元素，例如：
+```java
+List<String> list = new ArrayList<>(); // 只能放入String类型
+```
+最后，Java访问集合总是通过统一的方式——迭代器（Iterator）来实现，它最明显的好处在于无需知道集合内部元素是按什么方式存储的。
+
+### map
+`Map<K, V>`是一种键-值映射表，当我们调用put(K key, V value)方法时，就把key和value做了映射并放入Map。当我们调用V get(K key)时，就可以通过key获取到对应的value。如果key不存在，则返回null。和List类似，Map也是一个接口，最常用的实现类是HashMap。
+
+如果只是想查询某个key是否存在，可以调用boolean containsKey(K key)方法。
+
+示例：用Map来实现根据name查询某个Student的代码
+```java
+import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Student s = new Student("Xiao Ming", 99);
+        Map<String, Student> map = new HashMap<>();
+        map.put("Xiao Ming", s); // 将"Xiao Ming"和Student实例映射并关联
+        Student target = map.get("Xiao Ming"); // 通过key查找并返回映射的Student实例
+        System.out.println(target == s); // true，同一个实例
+        System.out.println(target.score); // 99
+        Student another = map.get("Bob"); // 通过另一个key查找
+        System.out.println(another); // 未找到返回null
+    }
+}
+
+class Student {
+    public String name;
+    public int score;
+    public Student(String name, int score) {
+        this.name = name;
+        this.score = score;
+    }
+}
+```
+
+#### 遍历map
+对Map来说，要遍历key可以使用for each循环遍历Map实例的keySet()方法返回的Set集合，它包含不重复的key的集合：
+```java
+import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Map<String, Integer> map = new HashMap<>();
+        map.put("apple", 123);
+        map.put("pear", 456);
+        map.put("banana", 789);
+        for (String key : map.keySet()) {
+            Integer value = map.get(key);
+            System.out.println(key + " = " + value);
+        }
+    }
+}
+```
+
+同时遍历key和value可以使用for each循环遍历Map对象的entrySet()集合，它包含每一个key-value映射：
+```java
+import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Map<String, Integer> map = new HashMap<>();
+        map.put("apple", 123);
+        map.put("pear", 456);
+        map.put("banana", 789);
+        for (Map.Entry<String, Integer> entry : map.entrySet()) {
+            String key = entry.getKey();
+            Integer value = entry.getValue();
+            System.out.println(key + " = " + value);
+        }
+    }
+}
+```
+
+#### 与List的区别
+Map和List不同的是，Map存储的是key-value的映射关系，并且，它不保证顺序。在遍历的时候，遍历的顺序既不一定是put()时放入的key的顺序，也不一定是key的排序顺序。使用Map时，任何依赖顺序的逻辑都是不可靠的。以HashMap为例，假设我们放入"A"，"B"，"C"这3个key，遍历的时候，每个key会保证被遍历一次且仅遍历一次，但顺序完全没有保证，甚至对于不同的JDK版本，相同的代码遍历的输出顺序都是不同的！
+
+遍历Map时，不可假设输出的key是有序的！

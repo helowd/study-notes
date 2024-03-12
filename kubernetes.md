@@ -35,8 +35,11 @@
     * [本地持久化](#本地持久化)
 * [k8s中的dns](#k8s中的dns)
 * [service](#service)
-    * [实现原理](#实现原理)
+    * [实现原理（cluster）](#实现原理cluster)
+        * [k8s中的informer](#k8s中的informer)
     * [ipvs模式工作原理](#ipvs模式工作原理)
+    * [nodeport类型实现原理](#nodeport类型实现原理)
+    * [service相关排错思路](#service相关排错思路)
 * [ingress](#ingress)
 * [cni](#cni)
     * [flannel](#flannel)
@@ -376,7 +379,7 @@ options ndots:5
 ## service
 暴露集群内的服务，并对服务提供负载均衡功能，默认使用TCP协议
 
-### 实现原理
+### 实现原理（cluster）
 由kube-proxy组件加上iptables（默认）来共同实现的
 
 比如现在有一个service vip是10.0.1.175/32的80端口代理着三个pod10.244.0.5:9376,10.244.0.6:9376,10.244.0.7:9376
@@ -424,6 +427,17 @@ options ndots:5
 
 总结：这些 Endpoints 对应的 iptables 规则，正是 kube-proxy 通过监听 Pod 的变化事件，在宿主机上生成并维护的。当流量通过nodrport或者负载均衡器进入，也会执行相同的基本流程，只是在这些情况下，客户端ip地址会被更改
 
+#### k8s中的informer
+在 Kubernetes 中，Informer 是一种用于监视 Kubernetes 资源对象变化的机制。它是 Kubernetes 中客户端库的一部分，用于跟踪集群中特定类型资源对象的状态变化。
+
+Informer 的主要作用是从 Kubernetes API Server 中获取资源对象的信息，并在这些资源对象发生变化时通知注册的监听器或回调函数。这些变化可以包括创建、更新、删除等操作，因此 Informer 是一种非常强大的工具，用于实现对 Kubernetes 资源对象的实时监控和响应。
+
+在 Kubernetes 的开发中，开发者可以使用 Informer 来编写自定义的控制器、操作器或其他应用程序，以实现更高级的自动化管理功能。通过注册适当的回调函数，开发者可以在资源对象发生变化时执行一些逻辑操作，例如更新缓存、发送通知、触发其他操作等。
+
+通常情况下，使用 Informer 时，开发者需要指定要监视的资源类型（如 Pod、Service、Deployment 等）、筛选条件（可选）、以及注册相应的事件处理函数。Informer 会负责与 Kubernetes API Server 进行通信，并在资源对象发生变化时将相应的事件通知传递给注册的处理函数。
+
+在 Kubernetes 中，常见的 Informer 实现包括 client-go 库中的 Informer，它是 Kubernetes 官方提供的 Go 语言客户端库之一，用于与 Kubernetes API 进行交互和操作。此外，还有其他基于不同语言的客户端库也提供了类似的 Informer 机制。
+
 ### ipvs模式工作原理
 当你的宿主机上有大量 Pod 的时候，成百上千条 iptables 规则不断地被刷新，会大量占用该宿主机的 CPU 资源，甚至会让宿主机“卡”在这个过程中。所以说，一直以来，基于 iptables 的 Service 实现，都是制约 Kubernetes 项目承载更多量级的 Pod 的主要障碍。
 
@@ -461,6 +475,87 @@ ipvs模式还为负载均衡提供了更多的选择：rr、wrr、lc、wlc等等
 不过需要注意的是，IPVS 模块只负责上述的负载均衡和代理功能。而一个完整的 Service 流程正常工作所需要的包过滤、SNAT 等操作，还是要靠 iptables 来实现。只不过，这些辅助性的 iptables 规则数量有限，也不会随着 Pod 数量的增加而增加。
 
 所以，在大规模集群里，我非常建议你为 kube-proxy 设置–proxy-mode=ipvs 来开启这个功能。它为 Kubernetes 集群规模带来的提升，还是非常巨大的。
+
+### nodeport类型实现原理
+当以nodeport类型，service的8080端口代理pod80端口，service的443端口代理pod的443端口。此时kube-proxy会在每台宿主机上生成这样一条iptables规则：
+```
+-A KUBE-NODEPORTS -p tcp -m comment --comment "default/my-nginx: nodePort" -m tcp --dport 8080 -j KUBE-SVC-67RL4FN6JRUPOJYM
+```
+KUBE-SVC-67RL4FN6JRUPOJYM 其实就是一组随机模式的 iptables 规则。所以接下来的流程，就跟 ClusterIP 模式完全一样了。
+
+需要注意的是，在 NodePort 方式下，Kubernetes 会在 IP 包离开宿主机发往目的 Pod 时，对这个 IP 包做一次 SNAT 操作，如下所示：
+```
+-A KUBE-POSTROUTING -m comment --comment "kubernetes service traffic requiring SNAT" -m mark --mark 0x4000/0x4000 -j MASQUERADE
+```
+可以看到，这条规则设置在 POSTROUTING 检查点，也就是说，它给即将离开这台主机的 IP 包，进行了一次 SNAT 操作，将这个 IP 包的源地址替换成了这台宿主机上的 CNI 网桥地址，或者宿主机本身的 IP 地址（如果 CNI 网桥不存在的话）。
+
+当然，这个 SNAT 操作只需要对 Service 转发出来的 IP 包进行（否则普通的 IP 包就被影响了）。而 iptables 做这个判断的依据，就是查看该 IP 包是否有一个“0x4000”的“标志”。你应该还记得，这个标志正是在 IP 包被执行 DNAT 操作之前被打上去的。
+
+对流出包做SNAT的原因：
+```
+           client
+             \ ^
+              \ \
+               v \
+   node 1 <--- node 2
+    | ^   SNAT
+    | |   --->
+    v |
+ endpoint
+```
+当一个外部的 client 通过 node 2 的地址访问一个 Service 的时候，node 2 上的负载均衡规则，就可能把这个 IP 包转发给一个在 node 1 上的 Pod。这里没有任何问题。
+
+而当 node 1 上的这个 Pod 处理完请求之后，它就会按照这个 IP 包的源地址发出回复。
+
+可是，如果没有做 SNAT 操作的话，这时候，被转发来的 IP 包的源地址就是 client 的 IP 地址。所以此时，Pod 就会直接将回复发给client。对于 client 来说，它的请求明明发给了 node 2，收到的回复却来自 node 1，这个 client 很可能会报错。
+
+所以，在上图中，当 IP 包离开 node 2 之后，它的源 IP 地址就会被 SNAT 改成 node 2 的 CNI 网桥地址或者 node 2 自己的地址。这样，Pod 在处理完成之后就会先回复给 node 2（而不是 client），然后再由 node 2 发送给 client。
+
+当然，这也就意味着这个 Pod 只知道该 IP 包来自于 node 2，而不是外部的 client。对于 Pod 需要明确知道所有请求来源的场景来说，这是不可以的。
+
+所以这时候，你就可以将 Service 的 spec.externalTrafficPolicy 字段设置为 local，这就保证了所有 Pod 通过 Service 收到请求之后，一定可以看到真正的、外部 client 的源地址。
+
+而这个机制的实现原理也非常简单：这时候，一台宿主机上的 iptables 规则，会设置为只将 IP 包转发给运行在这台宿主机上的 Pod。所以这时候，Pod 就可以直接使用源地址将回复包发出，不需要事先进行 SNAT 了。这个流程，如下所示：
+```
+       client
+       ^ /   \
+      / /     \
+     / v       X
+   node 1     node 2
+    ^ |
+    | |
+    | v
+ endpoint
+```
+当然，这也就意味着如果在一台宿主机上，没有任何一个被代理的 Pod 存在，比如上图中的 node 2，那么你使用 node 2 的 IP 地址访问这个 Service，就是无效的。此时，你的请求会直接被 DROP 掉。
+
+### service相关排错思路
+1. 区分是service本身的配置文件还是k8s集群的dns服务出了问题
+在一个pod中执行命令nslookup + dns服务器vip地址（或者域名），观察dns是否正常返回，如果返回值有问题，就需要检查kube—dns的运行状态和日志；否则去检查自己的service定义是不是有问题
+
+2. 如果你的 Service 没办法通过 ClusterIP 访问到的时候，你首先应该检查的是这个 Service 是否有 Endpoints：
+```
+$ kubectl get endpoints hostnames
+NAME        ENDPOINTS
+hostnames   10.244.0.5:9376,10.244.0.6:9376,10.244.0.7:9376
+```
+
+3. 如果endpoints正常，那么就需要确认kube-proxy是否正在正确运行
+
+4. 如果kube-proxy也正常，那么就需要仔细检查宿主机上的iptables
+```
+KUBE-SERVICES 或者 KUBE-NODEPORTS 规则对应的 Service 的入口链，这个规则应该与 VIP 和 Service 端口一一对应；
+
+KUBE-SEP-(hash) 规则对应的 DNAT 链，这些规则应该与 Endpoints 一一对应；
+
+KUBE-SVC-(hash) 规则对应的负载均衡链，这些规则的数目应该与 Endpoints 数目一致；
+
+如果是 NodePort 模式的话，还有 POSTROUTING 处的 SNAT 链。
+
+通过查看这些链的数量、转发目的地址、端口、过滤条件等信息，你就能很容易发现一些异常的蛛丝马迹。
+```
+
+5. 还有一种典型问题，就是 Pod 没办法通过 Service 访问到自己。这往往就是因为 kubelet 的 hairpin-mode 没有被正确设置。关于 Hairpin 的原理我在前面已经介绍过，这里就不再赘述了。你只需要确保将 kubelet 的 hairpin-mode 设置为 hairpin-veth 或者 promiscuous-bridge 即可。
 
 ## ingress
 工作在七层，是service的“service”，ingress就是kubernetes中的反向代理。  
