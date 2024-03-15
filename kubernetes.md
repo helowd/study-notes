@@ -42,7 +42,16 @@
     * [service相关排错思路](#service相关排错思路)
 * [ingress](#ingress)
 * [cni](#cni)
-    * [flannel](#flannel)
+    * [cni原理](#cni原理)
+* [flannel](#flannel)
+    * [udp模式](#udp模式)
+        * [udp模式下ip包用户态与内核态之间的数据拷贝](#udp模式下ip包用户态与内核态之间的数据拷贝)
+    * [vxlan模式](#vxlan模式)
+    * [host-gw模式](#host-gw模式)
+* [calico](#calico)
+    * [calico的架构](#calico的架构)
+    * [calico模式](#calico模式)
+    * [calico ipip模式](#calico-ipip模式)
 * [集群内核调优参考](#集群内核调优参考)
 * [k8s集群所支持的规格](#k8s集群所支持的规格)
 * [高可用集群部署流程（kubeadm）](#高可用集群部署流程kubeadm)
@@ -565,17 +574,264 @@ KUBE-SVC-(hash) 规则对应的负载均衡链，这些规则的数目应该与 
 为了让用户能够用到这个nginx，我们需要创建一个service来把ingress-controller管理的nginx服务暴露出去，
 
 ## cni
+Kubernetes 是通过一个叫作 CNI 的接口，维护了一个单独的网桥来代替 docker0。这个网桥的名字就叫作：CNI 网桥，它在宿主机上的设备名称默认是：cni0。
 
-### flannel
+flannel的vxlan模式中，在kubernetes环境里，docker0网桥会替换成cni网桥：
+
+![](./flanel_vxlan_k8s.png)
+
+在这里，Kubernetes 为 Flannel 分配的子网范围是 10.244.0.0/16
+
+1. 当infra-container-1访问infra-container-2，源地址10.244.0.2，目的地址10.244.1.3，这个包会经过cni0出现在宿主机上
+
+2. 匹配的宿主机上的路由，会将包交给flannel.1设备处理，接下来就跟flannel vxlan模式完全一样了。
+
+cni网桥只是接管所有的cni插件负责的、即kubernetes创建的容器（pod），不管理由docker单独创建的容器
+
+### cni原理
+1. 在kubernetes部署的时候，有一个步骤是安装kubernetes-cni包，他的目的就是在宿主机上安装cni插件所需的基础可执行文件，可在宿主机/opt/cni/bin目录下看到
 ```
-实现容器跨主机通信，其后端实现是要vxlan、host-gw、udp
-
-安装flannel会在主机生成一个flannel0的设备，他是一个工作在三层网络的tunnel设备，作用：在操作系统内核和用户应用程序之间传递ip包
-
-udp性能不好的原因：用户态内核态之间数据拷贝过多，容器发出ip包就要经过三次数据拷贝，我们在进行系统级编程的时候，有一个非常重要的优化原则，就是要减少用户态到内核态的切换次数，并且把核心的处理逻辑都放在内核态进行
-
-vxlan优点在于：是 Linux 内核本身就支持的一种网络虚似化技术。所以说，VXLAN 可以完全在内核态实现上述封装和解封装的工作
+$ ls -al /opt/cni/bin/
+total 73088
+-rwxr-xr-x 1 root root  3890407 Aug 17  2017 bridge
+-rwxr-xr-x 1 root root  9921982 Aug 17  2017 dhcp
+-rwxr-xr-x 1 root root  2814104 Aug 17  2017 flannel
+-rwxr-xr-x 1 root root  2991965 Aug 17  2017 host-local
+-rwxr-xr-x 1 root root  3475802 Aug 17  2017 ipvlan
+-rwxr-xr-x 1 root root  3026388 Aug 17  2017 loopback
+-rwxr-xr-x 1 root root  3520724 Aug 17  2017 macvlan
+-rwxr-xr-x 1 root root  3470464 Aug 17  2017 portmap
+-rwxr-xr-x 1 root root  3877986 Aug 17  2017 ptp
+-rwxr-xr-x 1 root root  2605279 Aug 17  2017 sample
+-rwxr-xr-x 1 root root  2808402 Aug 17  2017 tuning
+-rwxr-xr-x 1 root root  3475750 Aug 17  2017 vlan
 ```
+
+2. 这些cni的基础可执行文件，按功能可分为三类：  
+第一类，叫作 Main 插件，它是用来创建具体网络设备的二进制文件。比如，bridge（网桥设备）、ipvlan、loopback（lo 设备）、macvlan、ptp（Veth Pair 设备），以及 vlan。
+
+我在前面提到过的 Flannel、Weave 等项目，都属于“网桥”类型的 CNI 插件。所以在具体的实现中，它们往往会调用 bridge 这个二进制文件。这个流程，我马上就会详细介绍到。
+
+第二类，叫作 IPAM（IP Address Management）插件，它是负责分配 IP 地址的二进制文件。比如，dhcp，这个文件会向 DHCP 服务器发起请求；host-local，则会使用预先配置的 IP 地址段来进行分配。
+
+第三类，是由 CNI 社区维护的内置 CNI 插件。比如：flannel，就是专门为 Flannel 项目提供的 CNI 插件；tuning，是一个通过 sysctl 调整网络设备参数的二进制文件；portmap，是一个通过 iptables 配置端口映射的二进制文件；bandwidth，是一个使用 Token Bucket Filter (TBF) 来进行限流的二进制文件。
+
+3. 实现给kubernetes用的容器网络方案，需要两部分工作：  
+首先，实现这个网络方案本身。这一部分需要编写的，其实就是 flanneld 进程里的主要逻辑。比如，创建和配置 flannel.1 设备、配置宿主机路由、配置 ARP 和 FDB 表里的信息等等。
+
+然后，实现该网络方案对应的 CNI 插件。这一部分主要需要做的，就是配置 Infra 容器里面的网络栈，并把它连接在 CNI 网桥上。
+
+4. 接下来就需要在宿主机上安装flanneld（网络方案本身），flanneld启动后会在每台宿主机上生成它对应的CNI配置文件（一个config），从而告诉kuberntes这个集群使用flannel作为容器网络方案
+```
+$ cat /etc/cni/net.d/10-flannel.conflist 
+{
+  "name": "cbr0",
+  "plugins": [
+    {
+      "type": "flannel",
+      "delegate": {
+        "hairpinMode": true,
+        "isDefaultGateway": true
+      }
+    },
+    {
+      "type": "portmap",
+      "capabilities": {
+        "portMappings": true
+      }
+    }
+  ]
+}
+```
+
+5. 接下来dockershim会加载上述的cni配置文件，并把列表中的第一个插件，也就是flannel设置为默认插件，而在后面的执行过程中，flannel和portmap插件会按照定义顺序被调用，从而完成配置容器网络和配置端口映射
+
+6. 当 kubelet 组件需要创建 Pod 的时候，它第一个创建的一定是 Infra 容器。所以在这一步，dockershim 就会先调用 Docker API 创建并启动 Infra 容器，紧接着执行一个叫作 SetUpPod 的方法。这个方法的作用就是：为 CNI 插件准备参数，然后调用 CNI 插件为 Infra 容器配置网络。
+
+第一部分，是由 dockershim 设置的一组 CNI 环境变量。最重要的环境变量为CNI_COMMAND取值为ADD和DEL，这个ADD和DEL操作就是CNI插件唯一需要实现的两个方法。对于网桥类型cni插件来说，这两个操作意味着把容器以veth pair的方法插到cni网桥上或者从网桥上拔掉
+
+第二部分，则是 dockershim 从 CNI 配置文件里加载到的、默认插件的配置信息。这个配置信息在 CNI 中被叫作 Network Configuration。dockershim 会把 Network Configuration 以 JSON 数据的格式，通过标准输入（stdin）的方式传递给 Flannel CNI 插件。
+
+7. 在执行完上述操作之后，CNI 插件会把容器的 IP 地址等信息返回给 dockershim，然后被 kubelet 添加到 Pod 的 Status 字段。
+
+## flannel
+实现容器跨主机通信，其后端实现主要有vxlan、host-gw、udp
+
+宿主机 Node 1 上有一个容器 container-1，它的 IP 地址是 100.96.1.2，对应的 docker0 网桥的地址是：100.96.1.1/24。 
+宿主机 Node 2 上有一个容器 container-2，它的 IP 地址是 100.96.2.3，对应的 docker0 网桥的地址是：100.96.2.1/24。
+
+container-1访问container-2
+
+安装flannel后会在宿主机创建出一系列路由规则，以Node1为例，如下：
+```
+# 在 Node 1 上
+$ ip route
+default via 10.168.0.1 dev eth0
+100.96.0.0/16 dev flannel0  proto kernel  scope link  src 100.96.1.0
+100.96.1.0/24 dev docker0  proto kernel  scope link  src 100.96.1.1
+10.168.0.0/24 dev eth0  proto kernel  scope link  src 10.168.0.2
+
+# 在 Node 2 上
+$ ip route
+default via 10.168.0.1 dev eth0
+100.96.0.0/16 dev flannel0  proto kernel  scope link  src 100.96.2.0
+100.96.2.0/24 dev docker0  proto kernel  scope link  src 100.96.2.1
+10.168.0.0/24 dev eth0  proto kernel  scope link  src 10.168.0.3
+```
+
+### udp模式
+![](./flannel_udp.png)
+
+1. 首先ip包会通过docker0出现在宿主机上，接着会匹配宿主机上的第二条路由，从而把包交给虚拟网卡flannel0处理，然后这个包由内核态（网卡设备）流向用户态（宿主机上的flanneld进程）
+
+2. flanneld收到这个包后，由于Flannel管理的容器网络里，一台宿主机上的所有容器都属于该宿主机分配的一个子网，在我们的例子中，Node 1 的子网是 100.96.1.0/24，container-1 的 IP 地址是 100.96.1.2。Node 2 的子网是 100.96.2.0/24，container-2 的 IP 地址是 100.96.2.3。而这些子网与宿主机的对应关系，正式保存在了etcd当中，即etcd保存子网对应的宿主机ip地址，对flanneld来说只要Node 1和Node 2是互通的，那么flanneld作为Node 1 上的一个普通进程，就一定能把这个ip包封装在udp中发给Node 2。
+
+3. 这个udp包的源地址就是flanneld所在的node1的地址，而目的地址则是container-2所在的宿主机node2的地址，每台宿主机上的flanneld都监听着一个8285端口，所以flanneld只要把udp包发往node2的8285端口即可
+
+4. node2上的flanneld收到这个ip包后会发给它所管理的TUN设备，即flannel0设备处理，这时是一个从用户态向内核态流动的方向，将udp包解封装后发现他的目的ip地址是100.96.2.3，就会匹配node2上第三条路由，从而把这个ip包转发给docker0网桥
+
+5. 接着docker0 网桥会扮演二层交换机的角色，将数据包发送给正确的端口，进而通过 Veth Pair 设备进入到 container-2 的 Network Namespace 里。
+
+注意：所有宿主机上的docker0网桥地址范围必须是flannel为宿主机分配的子网
+```
+$ FLANNEL_SUBNET=100.96.1.1/24
+$ dockerd --bip=$FLANNEL_SUBNET ...
+```
+
+#### udp模式下ip包用户态与内核态之间的数据拷贝
+![](./flannel_udp_tun.png)
+
+第一次：用户态的容器进程发出的 IP 包经过 docker0 网桥进入内核态；
+
+第二次：IP 包根据路由表进入 TUN（flannel0）设备，从而回到用户态的 flanneld 进程；
+
+第三次：flanneld 进行 UDP 封包之后重新进入内核态，将 UDP 包通过宿主机的 eth0 发出去。
+
+此外，我们还可以看到，Flannel 进行 UDP 封装（Encapsulation）和解封装（Decapsulation）的过程，也都是在用户态完成的。在 Linux 操作系统中，上述这些上下文切换和用户态操作的代价其实是比较高的，这也正是造成 Flannel UDP 模式性能不好的主要原因。
+
+所以说，我们在进行系统级编程的时候，有一个非常重要的优化原则，就是要减少用户态到内核态的切换次数，并且把核心的处理逻辑都放在内核态进行。这也是为什么，Flannel 后来支持的VXLAN 模式，逐渐成为了主流的容器网络方案的原因。
+
+### vxlan模式 
+vxlan，即virtual extensible lan（虚拟可扩展网），是linux内核本身就支持的一种网络，所以vxlan可以完全在内核态上实现上述的封装和解封装的工作
+
+![](./flannel_vxlan.png)
+
+1. 每台宿主机上叫flannel.1的设备就是vxlan所需的vtep（VXLAN Tunnel End Point 虚拟隧道端点）设备，它既有ip地址也有mac地址。 container-1 的 IP 地址是 10.1.15.2，要访问的 container-2 的 IP 地址是 10.1.16.3。
+
+2. 当container-1发出请求后，这个ip包会先出现在docker0网桥，然后被路由到本机flannel.1设备进行处理
+
+3. 每台宿主机上的flanneld进程负责维护，比如，当 Node 2 启动并加入 Flannel 网络之后，在 Node 1（以及所有其他节点）上，flanneld 就会添加一条如下所示的路由规则：
+```
+$ route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+...
+10.1.16.0       10.1.16.0       255.255.255.0   UG    0      0        0 flannel.1
+```
+这条规则告诉了通向目的vtep设备的包应该交给flannel.1来处理
+
+4. 此时根据上面的路由记录会知道目的vtep设备的ip地址，然后会通过arp表知道目的vtep设备的mac地址。arp信息会在当flanneld进程在node2节点启动时，会自动添加node1上的：
+```
+# 在 Node 1 上
+$ ip neigh show dev flannel.1
+10.1.16.0 lladdr 5e:f8:4f:00:e3:37 PERMANENT
+```
+
+5. 得到mac地址后，linux内核会进行封包（目的vtep设备mac地址+目的容器地址），并加上VNI标志，值为1，用来表示这是一个vxlan要使用的数据帧
+
+6. 接下来会进一步封装成一个宿主机上普通包通过eth0网卡进行传输，Linux 内核会把这个数据帧封装进一个 UDP 包里发出去。
+
+7. 同时flanneld还维护着一个叫FDB（forwarding database）的转发数据库，记录着目的vtep设备mac地址对应的宿主机地址：
+```
+# 在 Node 1 上，使用“目的 VTEP 设备”的 MAC 地址进行查询
+$ bridge fdb show flannel.1 | grep 5e:f8:4f:00:e3:37
+5e:f8:4f:00:e3:37 dev flannel.1 dst 10.168.0.3 self permanent
+```
+发往我们前面提到的“目的 VTEP 设备”（MAC 地址是 5e:f8:4f:00:e3:37）的二层数据帧，应该通过 flannel.1 设备，发往 IP 地址为 10.168.0.3 的主机。显然，这台主机正是 Node 2，UDP 包要发往的目的地就找到了。
+
+最终的帧结构：  
+![](./flannel_vxlan_frame.png)
+
+8. 接下来，node1上的flannel.1设备就可以把这个数据帧从node1的eth0网卡发送到node2的eth0网卡，node2的内核网络栈发现这个数据帧中有vxlan header，并且VNI=1，所以linux内核会对他进行解包，拿到内部数据帧把它交给node2上的flannel.1设备。而flannel.1会进一步解包，取出原始ip包，最终会进入到container-2的network namespace
+
+### host-gw模式
+![](./flannel_host-gw.png)
+
+1. 当node1上infra-container-1访问node2上的infra-container2时，当设置flannel使用host-gw模式后，flanneld会在宿主机上创建一条规则，以node1为例：
+```
+$ ip route
+...
+10.244.1.0/24 via 10.168.0.3 dev eth0
+```
+
+2. 这个下一跳10.168.0.3的地址正是node2的地址，所以infra-container-1发出的ip包通过宿主机二层网络到达node2上
+
+3. node2解包后看到这个目的地址为10.244.1.3，则会根据node2上的路由表，进入到cni0网桥，从而到infra-container-2中
+
+host-gw模式的工作原理，就是将每个flanne子网的下一跳设置成了子网对应的宿主机地址，flannel子网和主机的信息都是保存在etcd当中的。
+
+基于以上，所以说，Flannel host-gw 模式必须要求集群宿主机之间是二层连通的。
+
+## calico
+Calico 项目提供的网络解决方案，与 Flannel 的 host-gw 模式，几乎是完全一样的。Calico 也会在每台宿主机上，添加一个格式如下所示的路由规则：
+`< 目的容器 IP 地址段 > via < 网关的 IP 地址 > dev eth0`
+其中，网关的 IP 地址，正是目的容器所在宿主机的 IP 地址。
+
+不过，不同于 Flannel 通过 Etcd 和宿主机上的 flanneld 来维护路由信息的做法，Calico 项目使用了一个“重型武器”来自动地在整个集群中分发路由信息。
+
+这个“重型武器”，就是 BGP。
+
+BGP 的全称是 Border Gateway Protocol，即：边界网关协议。它是一个 Linux 内核原生就支持的、专门用在大规模数据中心里维护不同的“自治系统”之间路由信息的、无中心的路由协议。
+
+![](./calico_bgp.png)
+
+在这个图中，我们有两个自治系统（Autonomous System，简称为 AS）：AS 1 和 AS 2。而所谓的一个自治系统，指的是一个组织管辖下的所有 IP 网络和路由器的全体。但是，如果这样两个自治系统里的主机，要通过 IP 地址直接进行通信，我们就必须使用路由器把这两个自治系统连接起来。
+
+边界网关会负责维护不同网络的路由，使得每个网络下主机访问另一个网络主机时，它所在网络的路由器有对应的路由规则告诉应该把这个网络包发往哪个网关。
+
+在使用了 BGP 之后，你可以认为，在每个边界网关上都会运行着一个小程序，它们会将各自的路由表信息，通过 TCP 传输给其他的边界网关。而其他边界网关上的这个小程序，则会对收到的这些数据进行分析，然后将需要的信息添加到自己的路由表里。
+
+这样，图中 Router 2 的路由表里，就会自动出现 10.10.0.2 和 10.10.0.3 对应的路由规则了。
+
+所以说，所谓 BGP，就是在大规模网络中实现节点路由信息共享的一种协议。
+
+### calico的架构
+1. Calico 的 CNI 插件。这是 Calico 与 Kubernetes 对接的部分。我已经在上一篇文章中，和你详细分享了 CNI 插件的工作原理，这里就不再赘述了。
+
+2. Felix。它是一个 DaemonSet，负责在宿主机上插入路由规则（即：写入 Linux 内核的 FIB 转发信息库），以及维护 Calico 所需的网络设备等工作。
+
+3. BIRD。它就是 BGP 的客户端，专门负责在集群里分发路由规则信息。
+
+除了对路由信息的维护方式之外，Calico 项目与 Flannel 的 host-gw 模式的另一个不同之处，就是它不会在宿主机上创建任何网桥设备。
+
+![](./calico_working_principle.png)
+
+由于 Calico 没有使用 CNI 的网桥模式，Calico 的 CNI 插件还需要在宿主机上为每个容器的 Veth Pair 设备配置一条路由规则，用于接收传入的 IP 包。比如，宿主机 Node 2 上的 Container 4 对应的路由规则，如下所示：
+`10.233.2.3 dev cali5863f3 scope link`
+即：发往 10.233.2.3 的 IP 包，应该进入 cali5863f3 设备。
+
+### calico模式
+默认为 node to node mesh模式，推荐用于少于100个节点的集群中，因为随着节点数量 N 的增加，这些连接的数量就会以 N²的规模快速增长，从而给集群本身的网络带来巨大的压力。更大规模的集群需要用route reflector模式
+
+在这种模式下，Calico 会指定一个或者几个专门的节点，来负责跟所有节点建立 BGP 连接从而学习到全局的路由规则。而其他节点，只需要跟这几个专门的节点交换路由信息，就可以获得整个集群的路由规则信息了。
+
+### calico ipip模式
+当出现两台宿主机不在同一个网络,没办法通过二层网络把 IP 包发送到下一跳地址时需要开启ipip模式
+
+![](./calico_ipip.png)
+
+1. 在 Calico 的 IPIP 模式下，Felix 进程在 Node 1 上添加的路由规则，会稍微不同，如下所示：
+`10.233.2.0/24 via 192.168.2.2 tunl0` 包会交给tunl0设备处理
+
+2. ip包进入tunl0后，linux内核的ipip驱动会将这个ip包直接封装在一个宿主机网络的ip包中
+
+3. 这样，原先从容器到 Node 2 的 IP 包，就被伪装成了一个从 Node 1 到 Node 2 的 IP 包。
+
+4. 由于宿主机之间已经使用路由器配置了三层转发，也就是设置了宿主机之间的“下一跳”。所以这个 IP 包在离开 Node 1 之后，就可以经过路由器，最终“跳”到 Node 2 上。
+
+5. 这时，Node 2 的网络内核栈会使用 IPIP 驱动进行解包，从而拿到原始的 IP 包。然后，原始 IP 包就会经过路由规则和 Veth Pair 设备到达目的容器内部。
+
+不难看到，当 Calico 使用 IPIP 模式的时候，集群的网络性能会因为额外的封包和解包工作而下降。在实际测试中，Calico IPIP 模式与 Flannel VXLAN 模式的性能大致相当。所以，在实际使用时，如非硬性需求，我建议你将所有宿主机节点放在一个子网里，避免使用 IPIP。
 
 ## 集群内核调优参考
 ```bash
