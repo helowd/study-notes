@@ -33,14 +33,6 @@
     * [持久化过程](#持久化过程)
     * [StorageClass](#storageclass)
     * [本地持久化](#本地持久化)
-* [k8s中的dns](#k8s中的dns)
-* [service](#service)
-    * [实现原理（cluster）](#实现原理cluster)
-        * [k8s中的informer](#k8s中的informer)
-    * [ipvs模式工作原理](#ipvs模式工作原理)
-    * [nodeport类型实现原理](#nodeport类型实现原理)
-    * [service相关排错思路](#service相关排错思路)
-* [ingress](#ingress)
 * [cni](#cni)
     * [cni原理](#cni原理)
 * [flannel](#flannel)
@@ -52,6 +44,14 @@
     * [calico的架构](#calico的架构)
     * [calico模式](#calico模式)
     * [calico ipip模式](#calico-ipip模式)
+* [k8s中的dns](#k8s中的dns)
+* [service](#service)
+    * [实现原理（cluster）](#实现原理cluster)
+        * [k8s中的informer](#k8s中的informer)
+    * [ipvs模式工作原理](#ipvs模式工作原理)
+    * [nodeport类型实现原理](#nodeport类型实现原理)
+    * [service相关排错思路](#service相关排错思路)
+* [ingress](#ingress)
 * [集群内核调优参考](#集群内核调优参考)
 * [k8s集群所支持的规格](#k8s集群所支持的规格)
 * [高可用集群部署流程（kubeadm）](#高可用集群部署流程kubeadm)
@@ -365,220 +365,12 @@ sc对象的作用就是创建pv的模板，sc对象会定义以下两个部分�
 ### 本地持久化
 比较适用于高优先级的系统应用，需要在多个不同的节点上存储数据，并且对i/o较为敏感，相比于正常的pv，一旦这些节点宕机且不能恢复，本地数据就可能丢失，这就要求使用本地持久化的应用必须具备数据备份和恢复的能力，允许把这些数据定时备份在其他位置
 
-## k8s中的dns
-Kubernetes 为 Service 和 Pod 创建 DNS 记录。 你可以使用一致的 DNS 名称而非 IP 地址访问 Service。
-
- DNS 服务器（例如 CoreDNS）会监视 Kubernetes API 中的新 Service， 并为每个 Service 创建一组 DNS 记录。如果在整个集群中都启用了 DNS，则所有 Pod 都应该能够通过 DNS 名称自动解析 Service。
-
-例如，如果你在 Kubernetes 命名空间 my-ns 中有一个名为 my-service 的 Service， 则控制平面和 DNS 服务共同为 my-service.my-ns 生成 DNS 记录。 名字空间 my-ns 中的 Pod 应该能够通过按名检索 my-service 来找到服务 （my-service.my-ns 也可以）。
-
-其他名字空间中的 Pod 必须将名称限定为 my-service.my-ns。 这些名称将解析为分配给 Service 的集群 IP。
-
-Kubernetes 还支持命名端口的 DNS SRV（Service）记录。 如果 Service my-service.my-ns 具有名为 http　的端口，且协议设置为 TCP， 则可以用 `_http._tcp.my-service.my-ns` 执行 DNS SRV 查询以发现 http 的端口号以及 IP 地址。
-
-Kubernetes DNS 服务器是唯一的一种能够访问 ExternalName 类型的 Service 的方式。
-
-DNS 查询可以使用 Pod 中的 /etc/resolv.conf 展开。 Kubelet 为每个 Pod 配置此文件。 例如，对 data 的查询可能被展开为 data.test.svc.cluster.local。 search 选项的取值会被用来展开查询。
-```
-nameserver 10.32.0.10
-search <namespace>.svc.cluster.local svc.cluster.local cluster.local
-options ndots:5
-```
-
-## service
-暴露集群内的服务，并对服务提供负载均衡功能，默认使用TCP协议
-
-### 实现原理（cluster）
-由kube-proxy组件加上iptables（默认）来共同实现的
-
-比如现在有一个service vip是10.0.1.175/32的80端口代理着三个pod10.244.0.5:9376,10.244.0.6:9376,10.244.0.7:9376
-
-当创建这个service的时候，kube-proxy就可以通过service的informer感知到这样一个service对象的添加，然后kube-proxy就会在宿主机上创建一条iptables规则：
-```
--A KUBE-SERVICES -d 10.0.1.175/32 -p tcp -m comment --comment "default/hostnames: cluster IP" -m tcp --dport 80 -j KUBE-SVC-NWV5X2332I4OT4T3
-```
-* `-A KUBE-SERVICES`：这表示将规则添加到名为 `KUBE-SERVICES` 的iptables链中。`-A` 选项用于添加规则到链的末尾。
-    
-* `-d 10.0.1.175/32`：这指定了目标地址为 `10.0.1.175`，后面的 `/32` 表示这是一个CIDR表示法，表示单个IP地址。
-    
-* `-p tcp`：这表示匹配传输层协议为TCP的数据包。
-    
-* `-m comment --comment "default/hostnames: cluster IP"`：这是一个注释，提供了关于规则目的的信息，这对于管理规则集合时非常有用。
-    
-* `-m tcp --dport 80`：这表示匹配目标端口为80的TCP数据包。 `-m tcp` 表示使用TCP模块来匹配数据包。
-    
-* `-j KUBE-SVC-NWV5X2332I4OT4T3`：这表示如果数据包符合以上条件，将跳转到名为 `KUBE-SVC-NWV5X2332I4OT4T3` 的目标。 `-j` 表示跳转到目标。
-
-这条规则就为这个service设置了一个固定入口地址，接着跳转到KUBE-SVC-NWV5X2332I4OT4T3：
-```
--A KUBE-SVC-NWV5X2332I4OT4T3 -m comment --comment "default/hostnames:" -m statistic --mode random --probability 0.33332999982 -j KUBE-SEP-WNBA2IHDGP2BOBGZ
--A KUBE-SVC-NWV5X2332I4OT4T3 -m comment --comment "default/hostnames:" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-X3P2623AGDH6CDF3
--A KUBE-SVC-NWV5X2332I4OT4T3 -m comment --comment "default/hostnames:" -j KUBE-SEP-57KPRZ3JQVENLNBR
-```
-用-mode random的模式，随机转发到目的地，分别是 KUBE-SEP-WNBA2IHDGP2BOBGZ、KUBE-SEP-X3P2623AGDH6CDF3 和 KUBE-SEP-57KPRZ3JQVENLNBR。而这三条链指向的最终目的地，其实就是这个 Service 代理的三个 Pod。
-
-由于iptables规则是从上到下逐条进行的，所以为了保证上述三条规则每条被选中的概率都相同，我们应该将它们的 probability 字段的值分别设置为 1/3（0.333…）、1/2 和 1。
-
-这么设置的原理很简单：第一条规则被选中的概率就是 1/3；而如果第一条规则没有被选中，那么这时候就只剩下两条规则了，所以第二条规则的 probability 就必须设置为 1/2；类似地，最后一条就必须设置为 1。
-
-上述三条链的明细：
-```
--A KUBE-SEP-57KPRZ3JQVENLNBR -s 10.244.3.6/32 -m comment --comment "default/hostnames:" -j MARK --set-xmark 0x00004000/0x00004000
--A KUBE-SEP-57KPRZ3JQVENLNBR -p tcp -m comment --comment "default/hostnames:" -m tcp -j DNAT --to-destination 10.244.3.6:9376
-
--A KUBE-SEP-WNBA2IHDGP2BOBGZ -s 10.244.1.7/32 -m comment --comment "default/hostnames:" -j MARK --set-xmark 0x00004000/0x00004000
--A KUBE-SEP-WNBA2IHDGP2BOBGZ -p tcp -m comment --comment "default/hostnames:" -m tcp -j DNAT --to-destination 10.244.1.7:9376
-
--A KUBE-SEP-X3P2623AGDH6CDF3 -s 10.244.2.3/32 -m comment --comment "default/hostnames:" -j MARK --set-xmark 0x00004000/0x00004000
--A KUBE-SEP-X3P2623AGDH6CDF3 -p tcp -m comment --comment "default/hostnames:" -m tcp -j DNAT --to-destination 10.244.2.3:9376
-```
-可以看到，这三条链，其实是三条 DNAT 规则。但在 DNAT 规则之前，iptables 对流入的 IP 包还设置了一个“标志”（–set-xmark）。而 DNAT 规则的作用，就是在 PREROUTING 检查点之前，也就是在路由之前，将流入 IP 包的目的地址和端口，改成–to-destination 所指定的新的目的地址和端口。可以看到，这个目的地址和端口，正是被代理 Pod 的 IP 地址和端口。
-
-总结：这些 Endpoints 对应的 iptables 规则，正是 kube-proxy 通过监听 Pod 的变化事件，在宿主机上生成并维护的。当流量通过nodrport或者负载均衡器进入，也会执行相同的基本流程，只是在这些情况下，客户端ip地址会被更改
-
-#### k8s中的informer
-在 Kubernetes 中，Informer 是一种用于监视 Kubernetes 资源对象变化的机制。它是 Kubernetes 中客户端库的一部分，用于跟踪集群中特定类型资源对象的状态变化。
-
-Informer 的主要作用是从 Kubernetes API Server 中获取资源对象的信息，并在这些资源对象发生变化时通知注册的监听器或回调函数。这些变化可以包括创建、更新、删除等操作，因此 Informer 是一种非常强大的工具，用于实现对 Kubernetes 资源对象的实时监控和响应。
-
-在 Kubernetes 的开发中，开发者可以使用 Informer 来编写自定义的控制器、操作器或其他应用程序，以实现更高级的自动化管理功能。通过注册适当的回调函数，开发者可以在资源对象发生变化时执行一些逻辑操作，例如更新缓存、发送通知、触发其他操作等。
-
-通常情况下，使用 Informer 时，开发者需要指定要监视的资源类型（如 Pod、Service、Deployment 等）、筛选条件（可选）、以及注册相应的事件处理函数。Informer 会负责与 Kubernetes API Server 进行通信，并在资源对象发生变化时将相应的事件通知传递给注册的处理函数。
-
-在 Kubernetes 中，常见的 Informer 实现包括 client-go 库中的 Informer，它是 Kubernetes 官方提供的 Go 语言客户端库之一，用于与 Kubernetes API 进行交互和操作。此外，还有其他基于不同语言的客户端库也提供了类似的 Informer 机制。
-
-### ipvs模式工作原理
-当你的宿主机上有大量 Pod 的时候，成百上千条 iptables 规则不断地被刷新，会大量占用该宿主机的 CPU 资源，甚至会让宿主机“卡”在这个过程中。所以说，一直以来，基于 iptables 的 Service 实现，都是制约 Kubernetes 项目承载更多量级的 Pod 的主要障碍。
-
-而 IPVS 模式的 Service，就是解决这个问题的一个行之有效的方法。
-
-IPVS 模式的工作原理，其实跟 iptables 模式类似。当我们创建了前面的 Service 之后，kube-proxy 首先会在宿主机上创建一个虚拟网卡（叫作：kube-ipvs0），并为它分配 Service VIP 作为 IP 地址，如下所示：
-```
-# ip addr
-  ...
-  73：kube-ipvs0：<BROADCAST,NOARP>  mtu 1500 qdisc noop state DOWN qlen 1000
-  link/ether  1a:ce:f5:5f:c1:4d brd ff:ff:ff:ff:ff:ff
-  inet 10.0.1.175/32  scope global kube-ipvs0
-  valid_lft forever  preferred_lft forever
-```
-
-而接下来，kube-proxy 就会通过 Linux 的 IPVS 模块，为这个 IP 地址设置三个 IPVS 虚拟主机，并设置这三个虚拟主机之间使用轮询模式 (rr) 来作为负载均衡策略。我们可以通过 ipvsadm 查看到这个设置，如下所示：
-```
-# ipvsadm -ln
- IP Virtual Server version 1.2.1 (size=4096)
-  Prot LocalAddress:Port Scheduler Flags
-    ->  RemoteAddress:Port           Forward  Weight ActiveConn InActConn     
-  TCP  10.102.128.4:80 rr
-    ->  10.244.3.6:9376    Masq    1       0          0         
-    ->  10.244.1.7:9376    Masq    1       0          0
-    ->  10.244.2.3:9376    Masq    1       0          0
-```
-可以看到，这三个 IPVS 虚拟主机的 IP 地址和端口，对应的正是三个被代理的 Pod。
-
-这时候，任何发往 10.102.128.4:80 的请求，就都会被 IPVS 模块转发到某一个后端 Pod 上了。
-
-而相比于 iptables，IPVS 在内核中的实现其实也是基于 Netfilter 的 NAT 模式，所以在转发这一层上，理论上 IPVS 并没有显著的性能提升。但是，IPVS 并不需要在宿主机上为每个 Pod 设置 iptables 规则（netlink创建ipvs规则，底层数据结构采用了hash table），而是把对这些“规则”的处理放到了内核态，从而极大地降低了维护这些规则的代价。这也正印证了我在前面提到过的，“将重要操作放入内核态”是提高性能的重要手段。
-
-ipvs模式还为负载均衡提供了更多的选择：rr、wrr、lc、wlc等等
-
-不过需要注意的是，IPVS 模块只负责上述的负载均衡和代理功能。而一个完整的 Service 流程正常工作所需要的包过滤、SNAT 等操作，还是要靠 iptables 来实现。只不过，这些辅助性的 iptables 规则数量有限，也不会随着 Pod 数量的增加而增加。
-
-所以，在大规模集群里，我非常建议你为 kube-proxy 设置–proxy-mode=ipvs 来开启这个功能。它为 Kubernetes 集群规模带来的提升，还是非常巨大的。
-
-### nodeport类型实现原理
-当以nodeport类型，service的8080端口代理pod80端口，service的443端口代理pod的443端口。此时kube-proxy会在每台宿主机上生成这样一条iptables规则：
-```
--A KUBE-NODEPORTS -p tcp -m comment --comment "default/my-nginx: nodePort" -m tcp --dport 8080 -j KUBE-SVC-67RL4FN6JRUPOJYM
-```
-KUBE-SVC-67RL4FN6JRUPOJYM 其实就是一组随机模式的 iptables 规则。所以接下来的流程，就跟 ClusterIP 模式完全一样了。
-
-需要注意的是，在 NodePort 方式下，Kubernetes 会在 IP 包离开宿主机发往目的 Pod 时，对这个 IP 包做一次 SNAT 操作，如下所示：
-```
--A KUBE-POSTROUTING -m comment --comment "kubernetes service traffic requiring SNAT" -m mark --mark 0x4000/0x4000 -j MASQUERADE
-```
-可以看到，这条规则设置在 POSTROUTING 检查点，也就是说，它给即将离开这台主机的 IP 包，进行了一次 SNAT 操作，将这个 IP 包的源地址替换成了这台宿主机上的 CNI 网桥地址，或者宿主机本身的 IP 地址（如果 CNI 网桥不存在的话）。
-
-当然，这个 SNAT 操作只需要对 Service 转发出来的 IP 包进行（否则普通的 IP 包就被影响了）。而 iptables 做这个判断的依据，就是查看该 IP 包是否有一个“0x4000”的“标志”。你应该还记得，这个标志正是在 IP 包被执行 DNAT 操作之前被打上去的。
-
-对流出包做SNAT的原因：
-```
-           client
-             \ ^
-              \ \
-               v \
-   node 1 <--- node 2
-    | ^   SNAT
-    | |   --->
-    v |
- endpoint
-```
-当一个外部的 client 通过 node 2 的地址访问一个 Service 的时候，node 2 上的负载均衡规则，就可能把这个 IP 包转发给一个在 node 1 上的 Pod。这里没有任何问题。
-
-而当 node 1 上的这个 Pod 处理完请求之后，它就会按照这个 IP 包的源地址发出回复。
-
-可是，如果没有做 SNAT 操作的话，这时候，被转发来的 IP 包的源地址就是 client 的 IP 地址。所以此时，Pod 就会直接将回复发给client。对于 client 来说，它的请求明明发给了 node 2，收到的回复却来自 node 1，这个 client 很可能会报错。
-
-所以，在上图中，当 IP 包离开 node 2 之后，它的源 IP 地址就会被 SNAT 改成 node 2 的 CNI 网桥地址或者 node 2 自己的地址。这样，Pod 在处理完成之后就会先回复给 node 2（而不是 client），然后再由 node 2 发送给 client。
-
-当然，这也就意味着这个 Pod 只知道该 IP 包来自于 node 2，而不是外部的 client。对于 Pod 需要明确知道所有请求来源的场景来说，这是不可以的。
-
-所以这时候，你就可以将 Service 的 spec.externalTrafficPolicy 字段设置为 local，这就保证了所有 Pod 通过 Service 收到请求之后，一定可以看到真正的、外部 client 的源地址。
-
-而这个机制的实现原理也非常简单：这时候，一台宿主机上的 iptables 规则，会设置为只将 IP 包转发给运行在这台宿主机上的 Pod。所以这时候，Pod 就可以直接使用源地址将回复包发出，不需要事先进行 SNAT 了。这个流程，如下所示：
-```
-       client
-       ^ /   \
-      / /     \
-     / v       X
-   node 1     node 2
-    ^ |
-    | |
-    | v
- endpoint
-```
-当然，这也就意味着如果在一台宿主机上，没有任何一个被代理的 Pod 存在，比如上图中的 node 2，那么你使用 node 2 的 IP 地址访问这个 Service，就是无效的。此时，你的请求会直接被 DROP 掉。
-
-### service相关排错思路
-1. 区分是service本身的配置文件还是k8s集群的dns服务出了问题
-在一个pod中执行命令nslookup + dns服务器vip地址（或者域名），观察dns是否正常返回，如果返回值有问题，就需要检查kube—dns的运行状态和日志；否则去检查自己的service定义是不是有问题
-
-2. 如果你的 Service 没办法通过 ClusterIP 访问到的时候，你首先应该检查的是这个 Service 是否有 Endpoints：
-```
-$ kubectl get endpoints hostnames
-NAME        ENDPOINTS
-hostnames   10.244.0.5:9376,10.244.0.6:9376,10.244.0.7:9376
-```
-
-3. 如果endpoints正常，那么就需要确认kube-proxy是否正在正确运行
-
-4. 如果kube-proxy也正常，那么就需要仔细检查宿主机上的iptables
-```
-KUBE-SERVICES 或者 KUBE-NODEPORTS 规则对应的 Service 的入口链，这个规则应该与 VIP 和 Service 端口一一对应；
-
-KUBE-SEP-(hash) 规则对应的 DNAT 链，这些规则应该与 Endpoints 一一对应；
-
-KUBE-SVC-(hash) 规则对应的负载均衡链，这些规则的数目应该与 Endpoints 数目一致；
-
-如果是 NodePort 模式的话，还有 POSTROUTING 处的 SNAT 链。
-
-通过查看这些链的数量、转发目的地址、端口、过滤条件等信息，你就能很容易发现一些异常的蛛丝马迹。
-```
-
-5. 还有一种典型问题，就是 Pod 没办法通过 Service 访问到自己。这往往就是因为 kubelet 的 hairpin-mode 没有被正确设置。关于 Hairpin 的原理我在前面已经介绍过，这里就不再赘述了。你只需要确保将 kubelet 的 hairpin-mode 设置为 hairpin-veth 或者 promiscuous-bridge 即可。
-
-## ingress
-工作在七层，是service的“service”，ingress就是kubernetes中的反向代理。  
-
-首先需要在集群中安装ingress-controller，然后这个pod会监听ingress对象以及它所代理的后端service变化的控制器，当一个新的ingress对象创建后，ingress-controller会根据ingress对象里定义的内容生成一份对应的nginx配置文件（/etc/nginx/nginx.conf），并使用这个配置文件启动一个nginx服务，而一旦ingress对象被更新，ingress-controller就会更新这个配置文件，如果只是被代理的service对象被更新，ingress-controller所管理的nginx是不需要reload的，此外ingress-controller还允许通过configmap对象来对上述的nginx配置文件进行定制。
-
-为了让用户能够用到这个nginx，我们需要创建一个service来把ingress-controller管理的nginx服务暴露出去，
-
 ## cni
 Kubernetes 是通过一个叫作 CNI 的接口，维护了一个单独的网桥来代替 docker0。这个网桥的名字就叫作：CNI 网桥，它在宿主机上的设备名称默认是：cni0。
 
 flannel的vxlan模式中，在kubernetes环境里，docker0网桥会替换成cni网桥：
 
-![](./flanel_vxlan_k8s.png)
+![](./flannel_vxlan_k8s.png)
 
 在这里，Kubernetes 为 Flannel 分配的子网范围是 10.244.0.0/16
 
@@ -832,6 +624,214 @@ BGP 的全称是 Border Gateway Protocol，即：边界网关协议。它是一�
 5. 这时，Node 2 的网络内核栈会使用 IPIP 驱动进行解包，从而拿到原始的 IP 包。然后，原始 IP 包就会经过路由规则和 Veth Pair 设备到达目的容器内部。
 
 不难看到，当 Calico 使用 IPIP 模式的时候，集群的网络性能会因为额外的封包和解包工作而下降。在实际测试中，Calico IPIP 模式与 Flannel VXLAN 模式的性能大致相当。所以，在实际使用时，如非硬性需求，我建议你将所有宿主机节点放在一个子网里，避免使用 IPIP。
+
+## k8s中的dns
+Kubernetes 为 Service 和 Pod 创建 DNS 记录。 你可以使用一致的 DNS 名称而非 IP 地址访问 Service。
+
+ DNS 服务器（例如 CoreDNS）会监视 Kubernetes API 中的新 Service， 并为每个 Service 创建一组 DNS 记录。如果在整个集群中都启用了 DNS，则所有 Pod 都应该能够通过 DNS 名称自动解析 Service。
+
+例如，如果你在 Kubernetes 命名空间 my-ns 中有一个名为 my-service 的 Service， 则控制平面和 DNS 服务共同为 my-service.my-ns 生成 DNS 记录。 名字空间 my-ns 中的 Pod 应该能够通过按名检索 my-service 来找到服务 （my-service.my-ns 也可以）。
+
+其他名字空间中的 Pod 必须将名称限定为 my-service.my-ns。 这些名称将解析为分配给 Service 的集群 IP。
+
+Kubernetes 还支持命名端口的 DNS SRV（Service）记录。 如果 Service my-service.my-ns 具有名为 http　的端口，且协议设置为 TCP， 则可以用 `_http._tcp.my-service.my-ns` 执行 DNS SRV 查询以发现 http 的端口号以及 IP 地址。
+
+Kubernetes DNS 服务器是唯一的一种能够访问 ExternalName 类型的 Service 的方式。
+
+DNS 查询可以使用 Pod 中的 /etc/resolv.conf 展开。 Kubelet 为每个 Pod 配置此文件。 例如，对 data 的查询可能被展开为 data.test.svc.cluster.local。 search 选项的取值会被用来展开查询。
+```
+nameserver 10.32.0.10
+search <namespace>.svc.cluster.local svc.cluster.local cluster.local
+options ndots:5
+```
+
+## service
+暴露集群内的服务，并对服务提供负载均衡功能，默认使用TCP协议
+
+### 实现原理（cluster）
+由kube-proxy组件加上iptables（默认）来共同实现的
+
+比如现在有一个service vip是10.0.1.175/32的80端口代理着三个pod10.244.0.5:9376,10.244.0.6:9376,10.244.0.7:9376
+
+当创建这个service的时候，kube-proxy就可以通过service的informer感知到这样一个service对象的添加，然后kube-proxy就会在宿主机上创建一条iptables规则：
+```
+-A KUBE-SERVICES -d 10.0.1.175/32 -p tcp -m comment --comment "default/hostnames: cluster IP" -m tcp --dport 80 -j KUBE-SVC-NWV5X2332I4OT4T3
+```
+* `-A KUBE-SERVICES`：这表示将规则添加到名为 `KUBE-SERVICES` 的iptables链中。`-A` 选项用于添加规则到链的末尾。
+    
+* `-d 10.0.1.175/32`：这指定了目标地址为 `10.0.1.175`，后面的 `/32` 表示这是一个CIDR表示法，表示单个IP地址。
+    
+* `-p tcp`：这表示匹配传输层协议为TCP的数据包。
+    
+* `-m comment --comment "default/hostnames: cluster IP"`：这是一个注释，提供了关于规则目的的信息，这对于管理规则集合时非常有用。
+    
+* `-m tcp --dport 80`：这表示匹配目标端口为80的TCP数据包。 `-m tcp` 表示使用TCP模块来匹配数据包。
+    
+* `-j KUBE-SVC-NWV5X2332I4OT4T3`：这表示如果数据包符合以上条件，将跳转到名为 `KUBE-SVC-NWV5X2332I4OT4T3` 的目标。 `-j` 表示跳转到目标。
+
+这条规则就为这个service设置了一个固定入口地址，接着跳转到KUBE-SVC-NWV5X2332I4OT4T3：
+```
+-A KUBE-SVC-NWV5X2332I4OT4T3 -m comment --comment "default/hostnames:" -m statistic --mode random --probability 0.33332999982 -j KUBE-SEP-WNBA2IHDGP2BOBGZ
+-A KUBE-SVC-NWV5X2332I4OT4T3 -m comment --comment "default/hostnames:" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-X3P2623AGDH6CDF3
+-A KUBE-SVC-NWV5X2332I4OT4T3 -m comment --comment "default/hostnames:" -j KUBE-SEP-57KPRZ3JQVENLNBR
+```
+用-mode random的模式，随机转发到目的地，分别是 KUBE-SEP-WNBA2IHDGP2BOBGZ、KUBE-SEP-X3P2623AGDH6CDF3 和 KUBE-SEP-57KPRZ3JQVENLNBR。而这三条链指向的最终目的地，其实就是这个 Service 代理的三个 Pod。
+
+由于iptables规则是从上到下逐条进行的，所以为了保证上述三条规则每条被选中的概率都相同，我们应该将它们的 probability 字段的值分别设置为 1/3（0.333…）、1/2 和 1。
+
+这么设置的原理很简单：第一条规则被选中的概率就是 1/3；而如果第一条规则没有被选中，那么这时候就只剩下两条规则了，所以第二条规则的 probability 就必须设置为 1/2；类似地，最后一条就必须设置为 1。
+
+上述三条链的明细：
+```
+-A KUBE-SEP-57KPRZ3JQVENLNBR -s 10.244.3.6/32 -m comment --comment "default/hostnames:" -j MARK --set-xmark 0x00004000/0x00004000
+-A KUBE-SEP-57KPRZ3JQVENLNBR -p tcp -m comment --comment "default/hostnames:" -m tcp -j DNAT --to-destination 10.244.3.6:9376
+
+-A KUBE-SEP-WNBA2IHDGP2BOBGZ -s 10.244.1.7/32 -m comment --comment "default/hostnames:" -j MARK --set-xmark 0x00004000/0x00004000
+-A KUBE-SEP-WNBA2IHDGP2BOBGZ -p tcp -m comment --comment "default/hostnames:" -m tcp -j DNAT --to-destination 10.244.1.7:9376
+
+-A KUBE-SEP-X3P2623AGDH6CDF3 -s 10.244.2.3/32 -m comment --comment "default/hostnames:" -j MARK --set-xmark 0x00004000/0x00004000
+-A KUBE-SEP-X3P2623AGDH6CDF3 -p tcp -m comment --comment "default/hostnames:" -m tcp -j DNAT --to-destination 10.244.2.3:9376
+```
+可以看到，这三条链，其实是三条 DNAT 规则。但在 DNAT 规则之前，iptables 对流入的 IP 包还设置了一个“标志”（–set-xmark）。而 DNAT 规则的作用，就是在 PREROUTING 检查点之前，也就是在路由之前，将流入 IP 包的目的地址和端口，改成–to-destination 所指定的新的目的地址和端口。可以看到，这个目的地址和端口，正是被代理 Pod 的 IP 地址和端口。
+
+总结：这些 Endpoints 对应的 iptables 规则，正是 kube-proxy 通过监听 Pod 的变化事件，在宿主机上生成并维护的。当流量通过nodrport或者负载均衡器进入，也会执行相同的基本流程，只是在这些情况下，客户端ip地址会被更改
+
+#### k8s中的informer
+在 Kubernetes 中，Informer 是一种用于监视 Kubernetes 资源对象变化的机制。它是 Kubernetes 中客户端库的一部分，用于跟踪集群中特定类型资源对象的状态变化。
+
+Informer 的主要作用是从 Kubernetes API Server 中获取资源对象的信息，并在这些资源对象发生变化时通知注册的监听器或回调函数。这些变化可以包括创建、更新、删除等操作，因此 Informer 是一种非常强大的工具，用于实现对 Kubernetes 资源对象的实时监控和响应。
+
+在 Kubernetes 的开发中，开发者可以使用 Informer 来编写自定义的控制器、操作器或其他应用程序，以实现更高级的自动化管理功能。通过注册适当的回调函数，开发者可以在资源对象发生变化时执行一些逻辑操作，例如更新缓存、发送通知、触发其他操作等。
+
+通常情况下，使用 Informer 时，开发者需要指定要监视的资源类型（如 Pod、Service、Deployment 等）、筛选条件（可选）、以及注册相应的事件处理函数。Informer 会负责与 Kubernetes API Server 进行通信，并在资源对象发生变化时将相应的事件通知传递给注册的处理函数。
+
+在 Kubernetes 中，常见的 Informer 实现包括 client-go 库中的 Informer，它是 Kubernetes 官方提供的 Go 语言客户端库之一，用于与 Kubernetes API 进行交互和操作。此外，还有其他基于不同语言的客户端库也提供了类似的 Informer 机制。
+
+### ipvs模式工作原理
+当你的宿主机上有大量 Pod 的时候，成百上千条 iptables 规则不断地被刷新，会大量占用该宿主机的 CPU 资源，甚至会让宿主机“卡”在这个过程中。所以说，一直以来，基于 iptables 的 Service 实现，都是制约 Kubernetes 项目承载更多量级的 Pod 的主要障碍。
+
+而 IPVS 模式的 Service，就是解决这个问题的一个行之有效的方法。
+
+IPVS 模式的工作原理，其实跟 iptables 模式类似。当我们创建了前面的 Service 之后，kube-proxy 首先会在宿主机上创建一个虚拟网卡（叫作：kube-ipvs0），并为它分配 Service VIP 作为 IP 地址，如下所示：
+```
+# ip addr
+  ...
+  73：kube-ipvs0：<BROADCAST,NOARP>  mtu 1500 qdisc noop state DOWN qlen 1000
+  link/ether  1a:ce:f5:5f:c1:4d brd ff:ff:ff:ff:ff:ff
+  inet 10.0.1.175/32  scope global kube-ipvs0
+  valid_lft forever  preferred_lft forever
+```
+
+而接下来，kube-proxy 就会通过 Linux 的 IPVS 模块，为这个 IP 地址设置三个 IPVS 虚拟主机，并设置这三个虚拟主机之间使用轮询模式 (rr) 来作为负载均衡策略。我们可以通过 ipvsadm 查看到这个设置，如下所示：
+```
+# ipvsadm -ln
+ IP Virtual Server version 1.2.1 (size=4096)
+  Prot LocalAddress:Port Scheduler Flags
+    ->  RemoteAddress:Port           Forward  Weight ActiveConn InActConn     
+  TCP  10.102.128.4:80 rr
+    ->  10.244.3.6:9376    Masq    1       0          0         
+    ->  10.244.1.7:9376    Masq    1       0          0
+    ->  10.244.2.3:9376    Masq    1       0          0
+```
+可以看到，这三个 IPVS 虚拟主机的 IP 地址和端口，对应的正是三个被代理的 Pod。
+
+这时候，任何发往 10.102.128.4:80 的请求，就都会被 IPVS 模块转发到某一个后端 Pod 上了。
+
+而相比于 iptables，IPVS 在内核中的实现其实也是基于 Netfilter 的 NAT 模式，所以在转发这一层上，理论上 IPVS 并没有显著的性能提升。但是，IPVS 并不需要在宿主机上为每个 Pod 设置 iptables 规则（netlink创建ipvs规则，底层数据结构采用了hash table），而是把对这些“规则”的处理放到了内核态，从而极大地降低了维护这些规则的代价。这也正印证了我在前面提到过的，“将重要操作放入内核态”是提高性能的重要手段。
+
+ipvs模式还为负载均衡提供了更多的选择：rr、wrr、lc、wlc等等
+
+不过需要注意的是，IPVS 模块只负责上述的负载均衡和代理功能。而一个完整的 Service 流程正常工作所需要的包过滤、SNAT 等操作，还是要靠 iptables 来实现。只不过，这些辅助性的 iptables 规则数量有限，也不会随着 Pod 数量的增加而增加。
+
+所以，在大规模集群里，我非常建议你为 kube-proxy 设置–proxy-mode=ipvs 来开启这个功能。它为 Kubernetes 集群规模带来的提升，还是非常巨大的。
+
+### nodeport类型实现原理
+当以nodeport类型，service的8080端口代理pod80端口，service的443端口代理pod的443端口。此时kube-proxy会在每台宿主机上生成这样一条iptables规则：
+```
+-A KUBE-NODEPORTS -p tcp -m comment --comment "default/my-nginx: nodePort" -m tcp --dport 8080 -j KUBE-SVC-67RL4FN6JRUPOJYM
+```
+KUBE-SVC-67RL4FN6JRUPOJYM 其实就是一组随机模式的 iptables 规则。所以接下来的流程，就跟 ClusterIP 模式完全一样了。
+
+需要注意的是，在 NodePort 方式下，Kubernetes 会在 IP 包离开宿主机发往目的 Pod 时，对这个 IP 包做一次 SNAT 操作，如下所示：
+```
+-A KUBE-POSTROUTING -m comment --comment "kubernetes service traffic requiring SNAT" -m mark --mark 0x4000/0x4000 -j MASQUERADE
+```
+可以看到，这条规则设置在 POSTROUTING 检查点，也就是说，它给即将离开这台主机的 IP 包，进行了一次 SNAT 操作，将这个 IP 包的源地址替换成了这台宿主机上的 CNI 网桥地址，或者宿主机本身的 IP 地址（如果 CNI 网桥不存在的话）。
+
+当然，这个 SNAT 操作只需要对 Service 转发出来的 IP 包进行（否则普通的 IP 包就被影响了）。而 iptables 做这个判断的依据，就是查看该 IP 包是否有一个“0x4000”的“标志”。你应该还记得，这个标志正是在 IP 包被执行 DNAT 操作之前被打上去的。
+
+对流出包做SNAT的原因：
+```
+           client
+             \ ^
+              \ \
+               v \
+   node 1 <--- node 2
+    | ^   SNAT
+    | |   --->
+    v |
+ endpoint
+```
+当一个外部的 client 通过 node 2 的地址访问一个 Service 的时候，node 2 上的负载均衡规则，就可能把这个 IP 包转发给一个在 node 1 上的 Pod。这里没有任何问题。
+
+而当 node 1 上的这个 Pod 处理完请求之后，它就会按照这个 IP 包的源地址发出回复。
+
+可是，如果没有做 SNAT 操作的话，这时候，被转发来的 IP 包的源地址就是 client 的 IP 地址。所以此时，Pod 就会直接将回复发给client。对于 client 来说，它的请求明明发给了 node 2，收到的回复却来自 node 1，这个 client 很可能会报错。
+
+所以，在上图中，当 IP 包离开 node 2 之后，它的源 IP 地址就会被 SNAT 改成 node 2 的 CNI 网桥地址或者 node 2 自己的地址。这样，Pod 在处理完成之后就会先回复给 node 2（而不是 client），然后再由 node 2 发送给 client。
+
+当然，这也就意味着这个 Pod 只知道该 IP 包来自于 node 2，而不是外部的 client。对于 Pod 需要明确知道所有请求来源的场景来说，这是不可以的。
+
+所以这时候，你就可以将 Service 的 spec.externalTrafficPolicy 字段设置为 local，这就保证了所有 Pod 通过 Service 收到请求之后，一定可以看到真正的、外部 client 的源地址。
+
+而这个机制的实现原理也非常简单：这时候，一台宿主机上的 iptables 规则，会设置为只将 IP 包转发给运行在这台宿主机上的 Pod。所以这时候，Pod 就可以直接使用源地址将回复包发出，不需要事先进行 SNAT 了。这个流程，如下所示：
+```
+       client
+       ^ /   \
+      / /     \
+     / v       X
+   node 1     node 2
+    ^ |
+    | |
+    | v
+ endpoint
+```
+当然，这也就意味着如果在一台宿主机上，没有任何一个被代理的 Pod 存在，比如上图中的 node 2，那么你使用 node 2 的 IP 地址访问这个 Service，就是无效的。此时，你的请求会直接被 DROP 掉。
+
+### service相关排错思路
+1. 区分是service本身的配置文件还是k8s集群的dns服务出了问题
+在一个pod中执行命令nslookup + dns服务器vip地址（或者域名），观察dns是否正常返回，如果返回值有问题，就需要检查kube—dns的运行状态和日志；否则去检查自己的service定义是不是有问题
+
+2. 如果你的 Service 没办法通过 ClusterIP 访问到的时候，你首先应该检查的是这个 Service 是否有 Endpoints：
+```
+$ kubectl get endpoints hostnames
+NAME        ENDPOINTS
+hostnames   10.244.0.5:9376,10.244.0.6:9376,10.244.0.7:9376
+```
+
+3. 如果endpoints正常，那么就需要确认kube-proxy是否正在正确运行
+
+4. 如果kube-proxy也正常，那么就需要仔细检查宿主机上的iptables
+```
+KUBE-SERVICES 或者 KUBE-NODEPORTS 规则对应的 Service 的入口链，这个规则应该与 VIP 和 Service 端口一一对应；
+
+KUBE-SEP-(hash) 规则对应的 DNAT 链，这些规则应该与 Endpoints 一一对应；
+
+KUBE-SVC-(hash) 规则对应的负载均衡链，这些规则的数目应该与 Endpoints 数目一致；
+
+如果是 NodePort 模式的话，还有 POSTROUTING 处的 SNAT 链。
+
+通过查看这些链的数量、转发目的地址、端口、过滤条件等信息，你就能很容易发现一些异常的蛛丝马迹。
+```
+
+5. 还有一种典型问题，就是 Pod 没办法通过 Service 访问到自己。这往往就是因为 kubelet 的 hairpin-mode 没有被正确设置。关于 Hairpin 的原理我在前面已经介绍过，这里就不再赘述了。你只需要确保将 kubelet 的 hairpin-mode 设置为 hairpin-veth 或者 promiscuous-bridge 即可。
+
+## ingress
+工作在七层，是service的“service”，ingress就是kubernetes中的反向代理。  
+
+首先需要在集群中安装ingress-controller，然后这个pod会监听ingress对象以及它所代理的后端service变化的控制器，当一个新的ingress对象创建后，ingress-controller会根据ingress对象里定义的内容生成一份对应的nginx配置文件（/etc/nginx/nginx.conf），并使用这个配置文件启动一个nginx服务，而一旦ingress对象被更新，ingress-controller就会更新这个配置文件，如果只是被代理的service对象被更新，ingress-controller所管理的nginx是不需要reload的，此外ingress-controller还允许通过configmap对象来对上述的nginx配置文件进行定制。
+
+为了让用户能够用到这个nginx，我们需要创建一个service来把ingress-controller管理的nginx服务暴露出去
 
 ## 集群内核调优参考
 ```bash
