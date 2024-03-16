@@ -512,7 +512,7 @@ vxlan，即virtual extensible lan（虚拟可扩展网），是linux内核本身
 
 2. 当container-1发出请求后，这个ip包会先出现在docker0网桥，然后被路由到本机flannel.1设备进行处理
 
-3. 每台宿主机上的flanneld进程负责维护，比如，当 Node 2 启动并加入 Flannel 网络之后，在 Node 1（以及所有其他节点）上，flanneld 就会添加一条如下所示的路由规则：
+3. 每台宿主机上的flanneld进程负责维护路由，比如，当 Node 2 启动并加入 Flannel 网络之后，在 Node 1（以及所有其他节点）上，flanneld 就会添加一条如下所示的路由规则：
 ```
 $ route -n
 Kernel IP routing table
