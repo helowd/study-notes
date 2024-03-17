@@ -5,7 +5,7 @@
 <!-- vim-markdown-toc GFM -->
 
 * [基本语法](#基本语法)
-    * [完整语法：](#完整语法)
+    * [完整语法](#完整语法)
     * [模式](#模式)
         * [模式中表达式的运算符](#模式中表达式的运算符)
             * [比较运算符](#比较运算符)
@@ -65,7 +65,7 @@
 
 ## 基本语法
 
-### 完整语法：
+### 完整语法
 ```bash
 awk 'BEGIN { print "start" } pattern1 { commands1 } pattern2 { commands2 } ...  END { print "end" }' input_file
 ```

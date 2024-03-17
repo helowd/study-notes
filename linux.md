@@ -59,7 +59,7 @@ quota可以针对群主、个人或者单独目录限制磁盘使用率
 
 ### lvm
 1. 主要用来弹性管理存储容量
-2. 制作流程图：
+2. 制作流程图：  
 ![](./centos7_lvm.jpg)
 3. LVM thin Volume自动调整磁盘使用率
 4. lvcreate创建快照区
@@ -84,26 +84,29 @@ fuser 根据文件查使用该档案的程序
 pidof 根据程序查pid
 
 ## SElinuxux
-由美国国家安全局开发NSA，属于核心模块，重点用在保护程序读取目录的权限
-selinux作用的位置
+由美国国家安全局开发NSA，属于核心模块，重点用在保护程序读取目录的权限  
+
+selinux作用的位置   
 ![](selinux_1.gif)
+
 selinux目前只有targeted、mls、minimum三种政策
 
-getenforce 查看当前selinux模式
-setenforce [0|1] 将selinux在enforcing与permissive之间切换
-restorecon -Rv / 重新还原所有SELinux 的类型，处理更改selinux模式后不能正常开机的情况
-getsebool 查看selinux的规则
-setools-console-* selinux trubleshooting的各种工具
+selinux相关命令：  
+getenforce 查看当前selinux模式  
+setenforce [0|1] 将selinux在enforcing与permissive之间切换  
+restorecon -Rv / 重新还原所有SELinux 的类型，处理更改selinux模式后不能正常开机的情况  
+getsebool 查看selinux的规则  
+setools-console-* selinux trubleshooting的各种工具  
 
 ## systemd
-配置文件目录：/etc/systemd/system --> /run/systemd/system --> /usr/lib/systemd/system（实际的配置文件）
+配置文件目录加载顺序：/etc/systemd/system --> /run/systemd/system --> /usr/lib/systemd/system（实际的配置文件）
 
-systemctl常用命令：
+systemctl常用命令：  
 reload、is-active、is-enabled、mask注销，isolate切换模式，get-default，set-defaults，daemon-reload
 
 ## 日志记录
-logger  将资料写入到日志
-logrotate  轮转日志，删除旧的日志  
+logger  将资料写入到日志  
+logrotate  轮转日志，删除旧的日志    
 journalctl  查看系统日志，日志存在内存中，重启会清除，可以通过设置/var/log/jouranl目录将日志保存下来
 
 ## 开机流程

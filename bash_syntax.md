@@ -351,8 +351,8 @@ script.sh word1 word2 word3
 # $0：脚本文件名，即script.sh。
 # $1~$9：对应脚本的第一个参数到第九个参数。
 # $#：参数的总数。
-# $@：全部的参数，参数之间使用空格分隔。
-# $*：全部的参数，参数之间使用变量$IFS值的第一个字符分隔，默认为空格，但是可以自定义。
+# $@：全部的参数，参数之间使用空格分隔，每个参数会单独处理
+# $*：全部的参数，参数之间使用变量$IFS值的第一个字符分隔，默认为空格，但是可以自定义，所有参数会合并成一个字符串
 # $$：脚本运行的当前进程id号
 # $!: 后台运行的最后一个进程号
 # 如果脚本的参数多于9个，那么第10个参数可以用${10}的形式引用，以此类推。
@@ -709,8 +709,7 @@ done
 ### select结构
 语法：
 ```
-select name
-[in list]
+select name [in list]
 do
   commands
 done
@@ -1123,22 +1122,22 @@ trap egress EXIT
 
 3. interactive + non-login
 
-比如：`bash`
-对于ubuntu会去加载`/etc/bash.bashrc`和`~/.bashrc`文件
+比如：`bash`  
+对于ubuntu会去加载`/etc/bash.bashrc`和`~/.bashrc`文件  
 对于centos会去加载`~/.bashrc`文件
 
 4. non-interactive + non-login
 
-比如：`bash script.sh`和`ssh user@remote command`
+比如：`bash script.sh`和密钥方式登录的`ssh user@remote command`  
 由环境变量`BASH_ENV`变量指定的路径决定
 
-图例：
+图例：  
 ![](./BashStartupFiles1.png)
 
 注意：ssh非交互非登录方式执行命令，其PATH变量会因登录用户而不同  
-如果是root，默认为PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin  
+如果是root，默认为PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin   
 如果是普通用户，默认为PATH=/usr/local/bin:/usr/bin  
-－有些命令通过ssh的方式执行而报找不到的错误，很可能就是PATH变量的问题，例如sysctl就不在普通用户PATH变量下
+有些命令通过ssh的方式执行而报找不到的错误，很可能就是PATH变量的问题，例如sysctl就不在普通用户PATH变量下
 
 ### 键盘绑定
 ```
@@ -1248,6 +1247,7 @@ find /home -name .bashrc 2> /dev/null
 3. 将指令的资料全部写入名为list 的档案中
 ```bash
 find /home - name .bashrc > list 2>&1
+# or
 find /home -name .bashrc &> list 
 ```
 
