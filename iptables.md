@@ -36,10 +36,10 @@
 ### iptables
 参考：https://blog.gmem.cc/iptables
 
-基于Netfilter，根据封包的分析资料"比对" 你预先定义的规则内容，包括mac、ip、tcp、udp、icmp等封包的数据都可以进行过滤分析，所以主要工作在osi七层协议的2，3，4层。 若封包资料与规则内容相同则进行动作，否则就继续下一条规则的比对。
+是用户空间命令，基于内核模块Netfilter，根据封包的分析资料"比对" 你预先定义的规则内容，包括mac、ip、tcp、udp、icmp等封包的数据都可以进行过滤分析，所以主要工作在osi七层协议的2，3，4层。 若封包资料与规则内容相同则进行动作，否则就继续下一条规则的比对。
 
 相关软件：  
-iptables-service，此软件包含了iptables 服务和 ip6tables 服务，实现开机自动加载规则   
+iptables-services，此软件包含了iptables 服务和 ip6tables 服务，实现开机自动加载规则  
 iptables-persistent，ubuntu中实现开机自动加载iptables规则  
 
 iptables是传统的防火墙管理工具，centos7中firewalld和ubuntu中ufw都是新出的linux防火墙工具，不过这些都基于内核中的netfilter，三个防火墙管理工具之间会互相影响，所以一般建议只用其中一种
@@ -71,7 +71,8 @@ COMMIT
 
 filter表预设都为ACCEPT
 
-iptables支持外挂模组：这个想要进入的封包是否为刚刚我发出去的回应？如果是就放行
+service iptables save  保存iptables规则到/etc/sysconfig/iptables文件中，实现开机自动加载规则
+
 
 示例
 ```bash
@@ -120,4 +121,3 @@ iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to-destination
 # 端口转发80-->8080
 iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8080
 ```
-
