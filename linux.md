@@ -13,6 +13,7 @@
     * [lvm](#lvm)
 * [计划任务](#计划任务)
 * [程序管理](#程序管理)
+* [/proc/](#proc)
 * [SElinuxux](#selinuxux)
 * [systemd](#systemd)
 * [日志记录](#日志记录)
@@ -82,6 +83,30 @@ demesg 分析核心信息
 vmstat 查看系统资源
 fuser 根据文件查使用该档案的程序
 pidof 根据程序查pid
+
+## /proc/
+服务器上的程序都是在内存中，而内存中的资料又都是写到`/proc/*`这个目录下，基本上主机上面各个程序的pid都是以目录的形式存在/proc当中
+
+程序自己的数据存在/proc/pid/下，而整个linux系统的数据存在/proc/下
+```
+档名    档案内容
+/proc/cmdline   载入kernel 时所下达的相关指令与参数！查阅此档案，可了解指令是如何启动的！
+/proc/cpuinfo   本机的CPU 的相关资讯，包含时脉、类型与运算功能等
+/proc/devices   这个档案记录了系统各个主要装置的主要装置代号，与 mknod有关呢！
+/proc/filesystems   目前系统已经载入的档案系统啰！
+/proc/interrupts    目前系统上面的IRQ 分配状态。
+/proc/ioports   目前系统上面各个装置所配置的I/O 位址。
+/proc/kcore 这个就是记忆体的大小啦！好大对吧！但是不要读他啦！
+/proc/loadavg   还记得top以及uptime 吧？没错！上头的三个平均数值就是记录在此！
+/proc/meminfo   使用free列出的记忆体资讯，嘿嘿！在这里也能够查阅到！
+/proc/modules   目前我们的Linux 已经载入的模组列表，也可以想成是驱动程式啦！
+/proc/mounts    系统已经挂载的资料，就是用mount 这个指令呼叫出来的资料啦！
+/proc/swaps 到底系统挂载入的记忆体在哪里？呵呵！使用掉的partition 就记录在此啦！
+/proc/partitions    使用fdisk -l 会出现目前所有的partition 吧？在这个档案当中也有纪录喔！
+/proc/uptime    就是用uptime 的时候，会出现的资讯啦！
+/proc/version   核心的版本，就是用uname -a 显示的内容啦！
+/proc/bus/* 一些汇流排的装置，还有USB 的装置也记录在此喔！
+```
 
 ## SElinuxux
 由美国国家安全局开发NSA，属于核心模块，重点用在保护程序读取目录的权限  

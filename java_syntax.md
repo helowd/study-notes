@@ -247,7 +247,8 @@ public class HelloWorld {
 
 ## 变量和数据类型 
 java中变量分为两种：基本类型变量和引用类型变量  
-java中变量需要先声明后使用，也需要被初始化 
+java中变量需要先声明后使用，也需要被初始化，如果声明不指定值会自动赋予默认值  
+局部变量声明时必须初始化值
 
 ### 变量声明示例
 ```java
@@ -311,7 +312,6 @@ String message = """
                  You are ${age} years old.
                  """;
 ```
-
 
 字符串变量内容不可变，当对一个已经创建的字符串变量重新赋值时，会新开辟一个内存空间，并把这个字符串变量的指向改成这个新的内存空间，旧的内存空间依旧存在  
 ![](./StringPoint.png)  
@@ -2818,3 +2818,62 @@ public class Main {
 Map和List不同的是，Map存储的是key-value的映射关系，并且，它不保证顺序。在遍历的时候，遍历的顺序既不一定是put()时放入的key的顺序，也不一定是key的排序顺序。使用Map时，任何依赖顺序的逻辑都是不可靠的。以HashMap为例，假设我们放入"A"，"B"，"C"这3个key，遍历的时候，每个key会保证被遍历一次且仅遍历一次，但顺序完全没有保证，甚至对于不同的JDK版本，相同的代码遍历的输出顺序都是不同的！
 
 遍历Map时，不可假设输出的key是有序的！
+
+## maven
+一个java项目，如果我们需要用到commons logging，我们就必须把commons logging的jar包放入classpath。如果我们还需要log4j，就需要把log4j相关的jar包都放到classpath中。这些就是依赖包的管理。
+
+其次，还需要确认项目目录结构，如src目录放java源代码，resources目录放配置文件，bin目录放编译生成的.class文件
+
+此外还需要配置环境，如jdk版本，编译打包流程，当前代码版本
+
+Maven就是是专门为Java项目打造的管理和构建工具，它的主要功能有：
+
+提供了一套标准化的项目结构；  
+提供了一套标准化的构建流程（编译，测试，打包，发布……）；  
+提供了一套依赖管理机制。  
+
+### 目录结构
+一个用maven管理的java项目默认目录结构如下：
+```
+a-maven-project
+├── pom.xml
+├── src
+│   ├── main
+│   │   ├── java
+│   │   └── resources
+│   └── test
+│       ├── java
+│       └── resources
+└── target
+```
+项目的根目录a-maven-project是项目名，它有一个项目描述文件pom.xml，存放Java源码的目录是src/main/java，存放资源文件的目录是src/main/resources，存放测试源码的目录是src/test/java，存放测试资源的目录是src/test/resources，最后，所有编译、打包生成的文件都放在target目录里。这些就是一个Maven项目的标准目录结构。
+
+#### pox.xml文件
+```
+<project ...>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.itranswarp.learnjava</groupId>
+    <artifactId>hello</artifactId>
+    <version>1.0</version>
+    <packaging>jar</packaging>
+    <properties>
+        ...
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>1.2</version>
+        </dependency>
+    </dependencies>
+</project>
+```
+其中，groupId类似于Java的包名，通常是公司或组织名称，artifactId类似于Java的类名，通常是项目名称，再加上version，一个Maven工程就是由groupId，artifactId和version作为唯一标识。我们在引用其他第三方库的时候，也是通过这3个变量确定。例如，依赖commons-logging：
+```
+<dependency>
+    <groupId>commons-logging</groupId>
+    <artifactId>commons-logging</artifactId>
+    <version>1.2</version>
+</dependency>
+```
+使用`<dependency>`声明一个依赖后，Maven就会自动下载这个依赖包并把它放到classpath中。
