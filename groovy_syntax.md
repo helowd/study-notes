@@ -45,9 +45,22 @@
             * [stages](#stages-1)
             * [excludes (optional)](#excludes-optional)
             * [Matrix cell-level directives (optional)](#matrix-cell-level-directives-optional)
-        * [step-script](#step-script)
+        * [steps: script](#steps-script)
     * [脚本式](#脚本式)
         * [声明式和脚本式语法的差异](#声明式和脚本式语法的差异)
+    * [pipeline常用的steps总结](#pipeline常用的steps总结)
+        * [sh](#sh)
+        * [node](#node)
+        * [dir](#dir)
+        * [checkout](#checkout)
+        * [withCredentials](#withcredentials)
+        * [withEnv](#withenv)
+        * [archiveArtifacts](#archiveartifacts)
+        * [wrap([$class: 'BuildUser'])](#wrapclass-builduser)
+        * [writeFile](#writefile)
+        * [libraryResource](#libraryresource)
+        * [fileExists](#fileexists)
+        * [library](#library)
     * [groovy插值问题：使用单引号传递变量](#groovy插值问题使用单引号传递变量)
     * [可选步骤参数](#可选步骤参数)
     * [共享库](#共享库)
@@ -382,7 +395,7 @@ The list will only display those numbers which are divisible by 2.
 ### 声明式
 1. 所有有效的声明性管道必须包含在一个pipeline块中，例如：pipeline { }
 
-2. 声明式管道中有效的基本语句和表达式遵循与Groovy 语法相同的规则，但有以下例外：
+2. 声明式管道中有效的基本语句和表达式遵循与Groovy 语法相同的规则，但有以下例外：   
 Pipeline 的顶层必须是一个block，具体来说：pipeline { }。
 
 没有分号作为语句分隔符。每个语句必须独占一行。
@@ -435,7 +448,7 @@ pipeline {
 ```
 
 #### agent
-该agent部分指定整个管道或特定阶段将在 Jenkins 环境中执行的位置，具体取决于该agent部分的放置位置。该部分必须在块内的顶层定义pipeline，但阶段级别的使用是可选的。
+该agent部分指定整个管道或特定阶段将在 Jenkins 环境中执行的位置，具体取决于该agent部分的放置位置。该部分必须在块内的顶层定义pipeline，但阶段级别的使用是可选的。需要有参数
 
 pipeline agent和stage agent的区别：在pipeline agent当中options { timeout() }会在代理被分配之后启用，而stage agent会在代理被分配之前就启用，超时将包括代理分配的时间。是必须的，允许在顶级pipeline块和每个stage块中。
 
@@ -513,7 +526,7 @@ spec:
 ```
 
 #### post
-该部分定义了pipeline或stage运行完成时的动作。支持always、changed、fixed、regression、aborted、failure、success、unstable、unsuccessful和cleanup，这些条件块允许根据管道或阶段的完成状态执行每个条件内的步骤。条件块按如下所示的顺序执行。不是必须的，允许在顶级pipeline块和每个stage块中。
+该部分定义了pipeline或stage运行完成时的动作。支持always、changed、fixed、regression、aborted、failure、success、unstable、unsuccessful和cleanup，这些条件块允许根据管道或阶段的完成状态执行每个条件内的步骤。条件块按如下所示的顺序执行。不是必须的，允许在顶级pipeline块和每个stage块中，无参数。
 ```
 always
 post无论管道或阶段运行的完成状态如何，都运行本部分中的步骤。
@@ -566,7 +579,7 @@ pipeline {
 ```
 
 #### stages
-该部分包含一个或多个stage指令，stages至少包含一个stage指令。是必须的，允许在pipeline或stage
+该部分包含一个或多个stage指令，stages至少包含一个stage指令。是必须的，允许在pipeline或stage，无参数
 
 语法：
 ```
@@ -583,7 +596,7 @@ pipeline {
 ```
 
 #### steps
-该部分定义了一个或多个指令步骤。是必须的，允许在每个stage中
+该部分定义了一个或多个指令步骤。是必须的，允许在每个stage中，无参数
 ```groovy
 pipeline {
     agent any
@@ -598,7 +611,7 @@ pipeline {
 ```
 
 #### enviornment
-该指令指定了一系列键值对，这些键值对将被定义为所有步骤或特定于某个stage的环境变量，取决该指令在pipeline中的位置，该指令支持一种特殊的帮助程序方法credentials()，可用于通过 Jenkins 环境中的标识符来访问预定义的凭据。不是必须的，允许在pipeline块内或stage指令内。
+该指令指定了一系列键值对，这些键值对将被定义为所有步骤或特定于某个stage的环境变量，取决该指令在pipeline中的位置，该指令支持一种特殊的帮助程序方法credentials()，可用于通过 Jenkins 环境中的标识符来访问预定义的凭据。不是必须的，允许在pipeline块内或stage指令内，无参数。
 
 支持凭证类型：
 ```
@@ -666,7 +679,7 @@ pipeline {
 ```
 
 #### options
-该options指令允许从管道本身配置特定于管道的选项。Pipeline 提供了许多这样的选项，例如buildDiscarder，但它们也可以由插件提供，例如timestamps。不是必须的，允许在pipeline或在stage指令内（有限制）
+该options指令允许从管道本身配置特定于管道的选项。Pipeline 提供了许多这样的选项，例如buildDiscarder，但它们也可以由插件提供，例如timestamps。不是必须的，允许在pipeline或在stage指令内（有限制）,无参数
 
 可用options：
 ```
@@ -730,7 +743,7 @@ On failure, retry this stage the specified number of times. For example: options
 ```
 
 #### parameters
-该parameters指令提供了用户在触发管道时应提供的参数列表。这些用户指定参数的值可通过params对象提供给管道步骤。每个参数都有一个Name和Value，具体取决于参数类型。当构建开始时，此信息将导出为环境变量，从而允许构建配置的后续部分访问这些值。如使用`${PARAMETER_NAME}`在bash中访问。不是必须的，允许在pipeline中且只有一次
+该parameters指令提供了用户在触发管道时应提供的参数列表。这些用户指定参数的值可通过params对象提供给管道步骤。每个参数都有一个Name和Value，具体取决于参数类型。当构建开始时，此信息将导出为环境变量，从而允许构建配置的后续部分访问这些值。如使用`${PARAMETER_NAME}`在bash中访问。不是必须的，允许在pipeline中且只有一次，无参数
 
 可选参数：
 ```
@@ -784,7 +797,7 @@ pipeline {
 ```
 
 #### trigger
-该triggers指令定义了重新触发管道的自动方式。对于与 GitHub 或 BitBucket 等源集成的管道，triggers可能没有必要，因为基于 Webhooks 的集成可能已经存在。当前可用的触发器有cron、pollSCM和upstream。不是必须的，允许在pipeline中且只有一次
+该triggers指令定义了重新触发管道的自动方式。对于与 GitHub 或 BitBucket 等源集成的管道，triggers可能没有必要，因为基于 Webhooks 的集成可能已经存在。当前可用的触发器有cron、pollSCM和upstream。不是必须的，允许在pipeline中且只有一次，无参数
 
 cron
 接受 cron 样式的字符串来定义重新触发 Pipeline 的定期间隔，例如：`triggers { cron('H */4 * * 1-5') }`
@@ -860,7 +873,7 @@ pipeline {
 ```
 
 #### tools
-定义自动安装并放在 PATH 上的工具的部分。如果未指定代理，则忽略此选项。不是必须的，允许在pipelin或stage中
+定义自动安装并放在 PATH 上的工具的部分。如果未指定代理，则忽略此选项。不是必须的，允许在pipelin或stage中，无参数
 
 支持的工具有：maven、jdk、gradle
 
@@ -929,7 +942,7 @@ pipeline {
 ```
 
 #### when
-该when指令允许管道根据给定条件确定是否应执行该阶段。该when指令必须至少包含一个条件。如果when指令包含多个条件，则所有子条件都必须返回 true 才能执行该阶段。这与子条件嵌套在条件中相同allOf（请参阅下面的示例）。如果anyOf使用条件，请注意，一旦找到第一个“真”条件，该条件就会跳过剩余的测试。可以使用嵌套条件构建更复杂的条件结构：not、allOf或anyOf。嵌套条件可以嵌套到任意深度。不是必须的，允许在stage中
+该when指令允许管道根据给定条件确定是否应执行该阶段。该when指令必须至少包含一个条件。如果when指令包含多个条件，则所有子条件都必须返回 true 才能执行该阶段。这与子条件嵌套在条件中相同allOf（请参阅下面的示例）。如果anyOf使用条件，请注意，一旦找到第一个“真”条件，该条件就会跳过剩余的测试。可以使用嵌套条件构建更复杂的条件结构：not、allOf或anyOf。嵌套条件可以嵌套到任意深度。不是必须的，允许在stage中，无参数
 
 内置条件：
 ```
@@ -1369,7 +1382,7 @@ pipeline {
 }
 ```
 
-#### step-script
+#### steps: script
 该步骤采用脚本化管道script块并在声明式管道中执行它。对于大多数用例，该步骤在声明性管道中应该是不必要的，但它可以提供有用的“逃生舱口”。 大小和/或复杂性较大的块应移至共享库中。
 
 语法：
@@ -1461,6 +1474,366 @@ node {
 
 然而它们的不同之处在于语法和灵活性。声明式通过更严格和预定义的结构限制了用户可用的内容，使其成为更简单的连续交付管道的理想选择。脚本化提供的限制非常少，结构和语法的唯一限制往往是由 Groovy 本身定义，而不是任何特定于管道的系统，这使其成为高级用户和具有更复杂需求的用户的理想选择。顾名思义，声明式管道鼓励声明式编程模型。 [ 2 ] 而脚本化管道遵循更命令式的编程模型。 
 
+### pipeline常用的steps总结
+
+#### sh
+```
+script : String
+运行 Bourne shell 脚本，通常在 Unix 节点上。接受多行。
+可以使用解释器选择器，例如：#!/usr/bin/perl
+否则，将使用标志运行系统默认 shell -xe（您可以指定set +e和/或set +x禁用这些标志）。
+
+encoding : String（选修的）
+过程输出的编码。的情况下returnStdout，适用于本步骤的返回值；否则，或始终对于标准错误，控制如何将文本复制到构建日志。如果未指定，则使用运行该步骤的节点的系统默认编码。如果预计进程输出可能包含非 ASCII 字符，则最好显式指定编码。例如，如果您具体了解给定进程将生成 UTF-8，但将在具有不同系统编码的节点上运行（通常是 Windows，因为每个 Linux 发行版长期以来都默认为 UTF-8） ），您可以通过指定来确保正确的输出：encoding: 'UTF-8'
+
+label : String（选修的）
+要在管道步骤视图中显示的标签以及步骤的蓝海详细信息（而不是步骤类型）。因此，这种观点更有意义，也更特定于特定领域，而不是技术性的。
+
+returnStatus : boolean（选修的）
+通常，以非零状态代码退出的脚本将导致步骤失败并出现异常。如果选中此选项，则该步骤的返回值将改为状态代码。例如，您可以将其与零进行比较。
+
+returnStdout : boolean（选修的）
+如果选中，任务的标准输出将作为步骤值返回String，而不是打印到构建日志。（标准错误（如果有）仍将打印到日志中。）您经常需要调用.trim()结果来去掉尾随换行符。
+```
+
+示例：
+```groovy
+MAKE_NUM = sh(script: './shell_scripts/tools.sh set_node_env ${LABEL} MAKE_NUM',returnStdout: true).trim()
+```
+
+#### node
+```
+在节点（通常是构建代理）上分配执行程序，并在该代理上的工作区上下文中运行进一步的代码。
+
+label ：String
+计算机名称、标签名称或任何其他标签表达式，例如linux && 64bit限制此步骤的构建位置。可以留空，在这种情况下，将采用任何可用的执行程序。
+
+支持以下运算符（按优先级降序排序）：
+(expression)
+parentheses — used to explicitly define the associativity of an expression
+
+!expression
+NOT — negation; the result of expression must not be true
+
+a && b
+AND — both of the expressions a and b must be true
+
+a || b
+OR — either of the expressions a or b may be true
+
+a -> b
+"implies" operator — equivalent to !a || b.
+For example, windows -> x64 could be thought of as "if a Windows agent is used, then that agent must be 64-bit", while still allowing this block to be executed on any agents that do not have the windows label, regardless of whether they have also have an x64 label
+
+a <-> b
+"if and only if" operator — equivalent to a && b || !a && !b
+For example, windows <-> dc2 could be thought of as "if a Windows agent is used, then that agent must be in datacenter 2, but if a non-Windows agent is used, then it must not be in datacenter 2"
+
+
+注意：
+所有运算符都是左关联的，即 a -> b -> c 等价于 (a -> b) -> c。
+如果标签或代理名称包含与运算符语法冲突的字符，则可以用引号引起来。
+例如，“osx (10.11)” || “Windows 服务器”。
+表达式中可以不包含空格，但为了可读性，建议包含空格；Jenkins 在计算表达式时会忽略空格。
+不支持将标签或代理名称与通配符或正则表达式相匹配。
+空表达式将始终计算为true，匹配所有代理。
+```
+
+示例：
+```
+master
+该块只能在Jenkins内置节点上执行
+
+linux-machine-42
+该块只能在名为 linux-machine-42 的代理上执行（或在任何恰好具有名为 linux-machine-42 标签的机器上）
+
+Windows && jdk9
+此块只能在安装了 Java 开发工具包版本 9 的任何 Windows 代理上执行（假设安装了 JDK 9 的代理已被赋予 jdk9 标签）
+
+postgres && !vm && (linux || freebsd)
+该块只能在 Linux 或 FreeBSD 代理上执行，只要它们不是虚拟机，并且安装了 PostgreSQL（假设每个代理都有适当的标签 - 特别是，在虚拟机中运行的每个代理必须具有vm 标签，以便此示例按预期工作）
+```
+
+#### dir
+```
+更改当前目录。块内的任何步骤都dir将使用此目录作为当前目录，任何相对路径都将使用它作为基本路径。
+path : String
+工作区中用作新工作目录的目录的相对路径。
+```
+
+示例：
+```groovy
+dir('./Agent') {
+    script {
+        AGENT_VERSION = sh(script: '${WORKSPACE}/scripts/agent_apk_jenkins.sh git_checkout',returnStdout: true).trim()
+    }
+}
+```
+
+#### checkout
+```
+从版本控制中签出
+
+scm 对象的嵌套选择
+$class: 'FeatureBranchAwareMercurialSCM'
+$class: 'GeneXusServerSCM'
+scmGit
+$class: 'HarvestSCM'
+$class: 'IntegritySCM'
+$class: 'IspwConfiguration'
+$class: 'IspwContainerConfiguration'
+$class: 'MercurialSCM'
+$class: 'MergebotScm'
+$class: 'MultiSCM'
+
+changelog : boolean（选修的）
+启用或禁用“包含在变更日志中”：
+如果为 SCM 源启用了“包含在变更日志中”，则当发生构建时，来自该 SCM 源的更改将包含在变更日志中。
+如果禁用“包含在变更日志中”，则当发生构建时，来自此 SCM 源的更改将不会包含在变更日志中。
+
+poll : boolean（选修的）
+启用或禁用“包含在轮询中”
+如果启用“包含在轮询中”或“包含在更改日志中”，则当发生轮询时，如果从此 SCM 源检测到更改，则将启动作业。
+如果禁用“包含在轮询中”并且禁用“包含在更改日志中”，则当发生轮询时，从此存储库检测到的更改将被忽略。
+```
+
+示例：
+```
+checkout(changelog: false, poll: false, scm: scmGit(branches: [[name: 'main']], extensions: [], userRemoteConfigs: [[credentialsId: 'zjDesktop', url: 'https://github.com/helowd-jenkins-practice/script-pipeline-test.git']]))
+
+checkout( [
+    $class: 'GitSCM',
+    branches: scm.branches,
+    userRemoteConfigs: [ [ credentialsId: 'Bitbucket', url: 'git@bitbucket.org:NAVFREG/jenkinsfile-tests.git' ] ],
+] )
+```
+
+#### withCredentials
+```
+将凭证绑定到变量，允许以特殊方式使用各种凭证（秘密）。（某些步骤明确要求特定类型的凭据，通常作为credentialsId参数，在这种情况下，此步骤是不必要的。）每个绑定将定义一个在该步骤范围内处于活动状态的环境变量。然后，您可以直接从需要设置环境变量的任何其他步骤中使用它们
+
+bindings：对象嵌套选择的数组/列表
+aws
+token
+$class: 'AwsBucketCredentialsBinding'
+certificate
+ConjurSecretApplianceCredentials
+conjurSecretCredential
+conjurSecretUsername
+conjurSecretUsernameSSHKey
+dockerCert
+file
+gitUsernamePassword
+$class: 'KeychainPasswordAndPathBinding'
+OSFBuilderSuiteOpenCommerceAPICredentials
+sshUserPrivateKey
+string
+OSFBuilderSuiteTwoFactorAuthCredentials
+usernameColonPassword
+usernamePassword
+    将一个变量设置为用户名，将一个变量设置为凭据中给定的密码。
+    警告：如果 Jenkins 控制器或代理节点有多个执行程序，则在同一节点上同时运行的任何其他构建都将能够读取密钥文本，例如在 Linux 上使用ps e.
+    usernameVariable : String
+    在构建期间要设置为用户名的环境变量的名称。
+    passwordVariable : String
+    构建期间要设置为密码的环境变量的名称。
+    credentialsId : String
+    要设置给变量的适当类型的凭证。
+```
+
+示例：
+```groovy
+withCredentials( [ usernamePassword( credentialsId: 'alex.chartmuseum.gmem.cc', usernameVariable: 'USER', passwordVariable: 'PSWD' ) ] ) {
+    // 可以作为环境变量使用，但是尝试打印到控制台时，会被遮罩为****
+    sh 'echo $PSWD'
+    // 可以作为Groovy变量使用
+    echo USER
+    // 可以使用Groovy的变量替换
+    echo "username is $USER"
+}
+```
+
+#### withEnv
+```
+在块内设置一个或多个环境变量。环境变量的名称不区分大小写，但保留大小写，也就是说，设置“Foo”将更改“FOO”的值（如果它已经存在）。环境变量可供该范围内生成的任何外部进程使用。例如：
+node {
+  withEnv(['MYTOOL_HOME=/usr/local/mytool']) {
+    sh '$MYTOOL_HOME/bin/start'
+  }
+}
+（请注意，这里我们在 Groovy 中使用单引号，因此变量扩展是由 Bourne shell 完成的，而不是 Jenkins。）
+
+overrides : Array / List of String
+要设置的环境变量列表，每个变量都以形式VARIABLE=value或VARIABLE=取消设置以其他方式定义的变量。您还可以使用语法PATH+WHATEVER=/something添加/something到$PATH.
+```
+
+示例：
+```groovy
+withEnv(["OBJECT_NAME=apks/${env.OBJECT_NAME}${AGENT_VERSION}.apk", "LOCAL_NAME=app/build/outputs/apk/${params.BUILD_TYPE}/${env.LOCAL_NAME}"]) {
+    sh '${WORKSPACE}/scripts/agent_apk_jenkins.sh upload_apk ${LOCAL_NAME} ${OBJECT_NAME}'
+}
+```
+
+#### archiveArtifacts
+```
+归档构建工件（例如，分发 zip 文件或 jar 文件），以便稍后下载。可以从 Jenkins 网页访问存档的文件。
+通常，只要保留构建日志本身，Jenkins 就会保留构建的工件，但如果您不需要旧工件并且希望节省磁盘空间，则可以这样做。
+
+请注意，Maven 作业类型会自动归档任何生成的 Maven 工件。此处配置的任何工件都将在此基础上存档。可以在高级 Maven 选项下禁用自动工件归档。
+
+artifacts: String
+您可以使用“module/dist/**/*.zip”等通配符。请参阅Ant 文件集的 contains 属性以了解确切的格式 - 但","(逗号) 是唯一受支持的分隔符。基本目录是工作空间。您只能归档位于您工作区中的文件。
+
+allowEmptyArchive : boolean (optional)
+
+caseSensitive : boolean (optional)
+
+defaultExcludes : boolean (optional)
+
+excludes : String (optional)
+
+fingerprint : boolean (optional)
+
+followSymlinks : boolean (optional)
+
+onlyIfSuccessful : boolean (optional)
+
+figerprint：Jenkins 可以记录文件（最常见的是 jar 文件）的“指纹”，以跟踪这些文件的生成和使用地点/时间。当您在 Jenkins 上有相互依赖的项目时，这可以让您快速找到以下问题的答案：
+我的 HDD 上有foo.jar，但它来自哪个版本号的 FOO？
+我的 BAR 项目依赖于foo.jarFOO 项目。
+foo.jarBAR #51 使用的是哪个版本？
+哪个 BAR 版本包含我对foo.jar#32 的错误修复？
+要使用此功能，所有涉及的项目（不仅是生成文件的项目，还包括使用该文件的项目）都需要使用此功能并记录指纹。
+```
+
+示例：
+```groovy
+archiveArtifacts(artifacts: "env.log", allowEmptyArchive: false , fingerprint: true, onlyIfSuccessful: false)
+```
+
+#### wrap([$class: 'BuildUser'])
+```
+设置 jenkins 用户构建变量
+该插件用于设置用户构建变量：
+BUILD_USER -- 开始构建的用户的全名，
+BUILD_USER_FIRST_NAME -- 开始构建的用户的名字，
+BUILD_USER_LAST_NAME -- 开始构建的用户的姓氏，
+BUILD_USER_ID -- 开始构建的用户的 ID。
+BUILD_USER_EMAIL -- 开始构建的用户的电子邮件。
+```
+
+示例：
+```groovy
+wrap([$class: 'BuildUser']){
+    script {
+        currentBuild.displayName = "#${env.BUILD_ID}-${params.Agent_GIT_TAG}-${env.BUILD_USER}"
+        currentBuild.description = "BUILD_NAME: ${env.BUILD_NAME}"
+        currentBuild.description += "\nAgent_GIT_TAG: ${params.Agent_GIT_TAG}"
+        currentBuild.description += "\nBUILD_TYPE: ${params.BUILD_TYPE}"
+        feishuNotification("${env.BUILD_USER}")
+    }
+}
+```
+
+#### writeFile
+```
+将文件写入工作区
+将给定内容写入当前目录中的命名文件。
+
+file : String
+工作区中文件的相对路径。
+
+text : String
+要写入文件的数据。
+
+encoding : String（选修的）
+文件的目标编码。如果留空，将使用平台默认编码。如果文本是 Base64 编码的字符串，则可以通过指定“Base64”作为编码将解码后的二进制数据写入文件。
+```
+
+示例：
+```groovy
+writeFile file: 'docker_deb.tar.gz', text: libraryResource(resource: 'docker_deb.tar.gz', encoding: 'Base64'), encoding: 'Base64'
+sh '''
+    sudo tar -xzf docker_deb.tar.gz && \
+        sudo dpkg -i -R ./docker_deb && \
+        sudo systemctl enable docker.service && \
+        sudo systemctl enable containerd.service && \
+        sudo chmod o+rw /var/run/docker.sock && \
+        docker run hello-world
+    
+    if [ $? != 0 ];then
+        echo "Error: failed to install docker"
+        exit 1
+    fi
+'''
+```
+
+#### libraryResource
+```
+libraryResource：从库中加载资源文件
+从库中读取资源并以纯字符串形式返回其内容。
+
+resource : String
+库的 /resources 文件夹中资源的相对（/ 分隔）路径。
+
+encoding : String（选修的）
+读取资源时使用的编码。如果留空，将使用平台默认编码。通过指定“Base64”作为编码，可以将二进制文件读入 Base64 编码的字符串。
+```
+
+示例：参考上一个
+
+#### fileExists
+```
+检查当前node上是否存在给定文件。返回true | false。此步骤必须在node上下文中运行
+
+file : String
+用于验证其存在的文件或目录的路径。
+支持绝对路径和相对路径。当使用相对路径时，它是相对于当前工作目录（默认情况下：工作区）。
+Unix 和 Windows 路径都支持使用 /
+```
+
+示例：
+```groovy
+script {
+    if(!fileExists("${WORKSPACE}/${env.ANDROID_SDK_NAME}/platform-tools/adb")) {
+        sh 'mkdir -p android-sdk-sharedlib'
+        dir('./android-sdk-sharedlib'){
+            checkout scmGit(branches: [[name: 'main']], extensions: [cloneOption(noTags: false, reference: '', shallow: false, timeout: 60)], \
+                userRemoteConfigs: [[credentialsId: 'gitea-zhangjian', url: 'https://gitea.dev.nenly.cn/Jenkins/android-sdk-sharedlib.git']])
+        }
+        sh 'tar -xzf ./android-sdk-sharedlib/resources/android-sdk-28.tar.gz'
+    }
+}
+```
+
+#### library
+```
+动态加载库而不是使用@Library语法。此后您可以使用库中定义的全局变量：
+library 'mylib@master'
+usefulFunction()
+
+您还可以通过选择其完全限定名称（例如此步骤的返回值上的属性）来加载库中定义的类，然后调用静态方法或调用构造函数，就像它们是名为new的方法一样
+def utils = library('mylib').com.mycorp.jenkins.Utils.new(this)
+utils.handyStuff()
+
+identifier : String
+要加载的库名称。通常应与预定义库匹配。您可以在@后附加版本。您可以在此处定义内联库。
+
+changelog : boolean（选修的）
+是否将库中的任何更改包含在最近使用库的作业更改中。默认包括更改。
+
+retriever（选修的）
+对象的嵌套选择
+http
+nexus
+legacySCM
+modernSCM
+```
+
+示例：
+```groovy
+library identifier: 'android-sharedlib@master', retriever: modernSCM([$class: 'GitSCMSource', credentialsId: 'bot.jenkins', remote: 'https://gitea.dev.nenly.cn/Jenkins/android-sharedlib.git', traits: [gitBranchDiscovery()]])
+```
 
 ### groovy插值问题：使用单引号传递变量
 1. Groovy 字符串插值永远不应该与凭据一起使用。例如，考虑传递到sh步骤的敏感环境变量。
