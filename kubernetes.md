@@ -912,7 +912,7 @@ lsmod | grep overlay
 按照docker官网，设置systemctl enable --now，/etc/docker/daemon.json配置文件如下
 ```json
 {
-        "registry-mirrors": ["https://registry.docker-cn.com"],
+        "registry-mirrors": ["https://dockerproxy.com"],
         "exec-opts": ["native.cgroupdriver=systemd"],
         "storage-driver": "overlay2"
 }
