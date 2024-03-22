@@ -370,7 +370,7 @@ Kubernetes 是通过一个叫作 CNI 的接口，维护了一个单独的网桥�
 
 flannel的vxlan模式中，在kubernetes环境里，docker0网桥会替换成cni网桥：
 
-![](./flannel_vxlan_k8s.png)
+![](./flannel_vxlan_cni.png)
 
 在这里，Kubernetes 为 Flannel 分配的子网范围是 10.244.0.0/16
 
@@ -399,7 +399,8 @@ total 73088
 -rwxr-xr-x 1 root root  3475750 Aug 17  2017 vlan
 ```
 
-2. 这些cni的基础可执行文件，按功能可分为三类：  
+2. 这些cni的基础可执行文件，按功能可分为三类：
+ 
 第一类，叫作 Main 插件，它是用来创建具体网络设备的二进制文件。比如，bridge（网桥设备）、ipvlan、loopback（lo 设备）、macvlan、ptp（Veth Pair 设备），以及 vlan。
 
 我在前面提到过的 Flannel、Weave 等项目，都属于“网桥”类型的 CNI 插件。所以在具体的实现中，它们往往会调用 bridge 这个二进制文件。这个流程，我马上就会详细介绍到。
@@ -408,7 +409,8 @@ total 73088
 
 第三类，是由 CNI 社区维护的内置 CNI 插件。比如：flannel，就是专门为 Flannel 项目提供的 CNI 插件；tuning，是一个通过 sysctl 调整网络设备参数的二进制文件；portmap，是一个通过 iptables 配置端口映射的二进制文件；bandwidth，是一个使用 Token Bucket Filter (TBF) 来进行限流的二进制文件。
 
-3. 实现给kubernetes用的容器网络方案，需要两部分工作：  
+3. 实现给kubernetes用的容器网络方案，需要两部分工作：
+
 首先，实现这个网络方案本身。这一部分需要编写的，其实就是 flanneld 进程里的主要逻辑。比如，创建和配置 flannel.1 设备、配置宿主机路由、配置 ARP 和 FDB 表里的信息等等。
 
 然后，实现该网络方案对应的 CNI 插件。这一部分主要需要做的，就是配置 Infra 容器里面的网络栈，并把它连接在 CNI 网桥上。
