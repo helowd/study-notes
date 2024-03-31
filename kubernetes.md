@@ -829,7 +829,7 @@ KUBE-SVC-(hash) 规则对应的负载均衡链，这些规则的数目应该与 
 5. 还有一种典型问题，就是 Pod 没办法通过 Service 访问到自己。这往往就是因为 kubelet 的 hairpin-mode 没有被正确设置。关于 Hairpin 的原理我在前面已经介绍过，这里就不再赘述了。你只需要确保将 kubelet 的 hairpin-mode 设置为 hairpin-veth 或者 promiscuous-bridge 即可。
 
 ## ingress
-工作在七层，是service的“service”，ingress就是kubernetes中的反向代理。  
+工作在七层，是service的“service”，ingress就是kubernetes中全局的反向代理，负责k8s内部所有service的负载均衡，根据定义的rules转发到不同的service上去。它是本身也是通过Nodetype或者loadbalancer类型的service来对外提供服务的。 
 
 首先需要在集群中安装ingress-controller，然后这个pod会监听ingress对象以及它所代理的后端service变化的控制器，当一个新的ingress对象创建后，ingress-controller会根据ingress对象里定义的内容生成一份对应的nginx配置文件（/etc/nginx/nginx.conf），并使用这个配置文件启动一个nginx服务，而一旦ingress对象被更新，ingress-controller就会更新这个配置文件，如果只是被代理的service对象被更新，ingress-controller所管理的nginx是不需要reload的，此外ingress-controller还允许通过configmap对象来对上述的nginx配置文件进行定制。
 
@@ -925,6 +925,9 @@ lsmod | grep overlay
 按照kubernetes官网，设置kubelet systemctl enable --now
 
 ### 5. 初始化master节点
+sudo kubeadm init --config kubeadm_init_config.yaml --upload-certs
+
+重新上传证书：sudo kubeadm init phase upload-certs --upload-certs
 ```yaml
 apiVersion: kubeadm.k8s.io/v1beta3
 bootstrapTokens:

@@ -45,6 +45,21 @@ ctrl+w+j 移到下方窗口
 ctrl+w+k 移到上方窗口
 ```
 
+### 自用vim匹配
+```
+set nobackup
+set noundofile
+set nu
+set hlsearch
+set ruler
+set backspace=2
+syntax enable
+set bg=light
+set tabstop=4
+set expandtab
+set shiftwidth=4
+```
+
 ## linux终端
 ```
 ctrl+u 向前删除  
