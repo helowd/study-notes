@@ -5,6 +5,8 @@
 <!-- vim-markdown-toc GFM -->
 
 * [发展历史](#发展历史)
+    * [LSB和FHS](#lsb和fhs)
+    * [rocky linux](#rocky-linux)
 * [文件管理](#文件管理)
 * [账号管理](#账号管理)
 * [quota、raid、lvm](#quotaraidlvm)
@@ -33,6 +35,25 @@
 5. Stallman在1984年发起GNU计划，旨在引导自由软件计划，在Unix的基础上，GNU开发了gcc、c library、bash等，1990年。推出了GPL，此时还是缺少一个自由的unix核心
 6. 到了1991年，芬兰的赫尔辛基大学的Linus Torvalds在BBS上面贴了一则消息， 宣称他以bash, gcc等GNU 的工具写了一个小小的核心程式，该核心程式单纯是个玩具，不像GNU 那么专业。不过该核心程式可以在Intel的386机器上面运作就是了。这让很多人很感兴趣！从此开始了Linux不平凡的路程！第一个核心版本为0.02，linux遵循POSIX规范以让软件都能够在linux上跑
 7. 这个『Kernel + Softwares + Tools + 可完整安装程序』的咚咚，我们称之为Linux distribution，他们都支持LSB和FHS标准，所以都大同小异
+
+### LSB和FHS
+LSB（Linux Standard Base）和FHS（Filesystem Hierarchy Standard）是两个不同的Linux标准，用于确保不同Linux发行版之间的兼容性和一致性。
+
+1. **LSB（Linux Standard Base）**：
+    
+    * LSB是一个由Linux Foundation制定的标准，旨在定义Linux操作系统的一致性基础，以便于软件开发人员在不同Linux发行版上编写可移植的应用程序。
+    * LSB规范定义了Linux系统中各种组件、库和API的标准化，以确保软件在LSB兼容的系统上可以正确运行。
+    * LSB标准包括了如标准化系统调用、二进制文件格式、命令和工具等方面的规范。
+2. **FHS（Filesystem Hierarchy Standard）**：
+    
+    * FHS是一个由Linux社区制定的标准，用于定义Linux系统中文件系统的布局结构和目录层次，以确保不同Linux发行版的一致性。
+    * FHS规范定义了Linux系统中各个目录的用途和内容，如 `/bin`、`/sbin`、`/usr`、`/var` 等，以及如何组织用户和系统数据。
+    * FHS标准的目的是使开发人员和系统管理员能够更容易地理解和管理Linux系统中的文件系统，以提高系统的可维护性和可移植性。
+
+综上所述，LSB和FHS是两个不同的Linux标准，LSB用于定义Linux操作系统的一致性基础，而FHS用于定义Linux系统中文件系统的布局结构和目录层次。这两个标准的存在有助于确保不同Linux发行版之间的兼容性和一致性。
+
+### rocky linux
+从2021 年底，RHEL 衍生的CentOS 8 系列就不再持续维护(CentOS 7 则到2024/06/30 结束营业)，由于RHEL 算是业界使用广泛的一个商品， 因此，Red Hat 自己公司出产的CentOS 系列，一向都是业余界相当热门使用的Linux distribution 之一。在2022 年中，由当初的CentOS 共同创办人提出RockyLinux 的产品发表，同时于该年度推出RHEL 9 的衍生版本。
 
 ## 文件管理
 文件隐藏属性：chattr设置隐藏属性，lsattr显示隐藏属性

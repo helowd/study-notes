@@ -579,7 +579,25 @@ awk -F ".”'{
 ```
 脚本：
 ```bash
-awk '{time[$1,substr($1,5,1),substr($2,1,5)]+=$3}END{for (i in time)print i,time[i]}'  test.txt |sort -n -k 3 -t -
+awk '{
+    timestamp = $1; # 提取时间戳
+    traffic = $2; # 提取流量值
+    split(timestamp, arr, "[:-]"); # 使用分隔符（-或:）将时间戳拆分成数组
+    month = arr[2]; # 提取月份
+    day = arr[3]; # 提取日期
+    hour = arr[4]; # 提取小时
+    minute = arr[5]; # 提取分钟
+    # 将时间戳格式化为YYYY-MM-DD HH:MM的形式
+    timestamp_formatted = arr[1] "-" month "-" day " " hour ":" minute;
+    # 将流量值添加到对应的时间戳下
+    traffic_sum[timestamp_formatted] += traffic;
+} 
+END {
+    # 遍历所有时间戳，并打印时间戳和对应的流量值
+    for (timestamp_formatted in traffic_sum) {
+        print timestamp_formatted, traffic_sum[timestamp_formatted];
+    }
+}' data.txt
 ```
 
 ### nginx access.log日志分析
