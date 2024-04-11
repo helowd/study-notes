@@ -396,6 +396,7 @@ The list will only display those numbers which are divisible by 2.
 1. 所有有效的声明性管道必须包含在一个pipeline块中，例如：pipeline { }
 
 2. 声明式管道中有效的基本语句和表达式遵循与Groovy 语法相同的规则，但有以下例外：   
+
 Pipeline 的顶层必须是一个block，具体来说：pipeline { }。
 
 没有分号作为语句分隔符。每个语句必须独占一行。
