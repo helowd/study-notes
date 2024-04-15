@@ -42,6 +42,7 @@
     * [模块的分类](#模块的分类)
     * [nginx的请求处理](#nginx的请求处理)
     * [请求的处理流程](#请求的处理流程)
+* [nginx健康检查机制](#nginx健康检查机制)
 * [nginx实际应用](#nginx实际应用)
     * [nginx常用命令](#nginx常用命令)
     * [http反向代理](#http反向代理)
@@ -58,7 +59,17 @@
     * [静态站点](#静态站点)
     * [搭建文件服务器](#搭建文件服务器)
     * [解决跨域](#解决跨域)
-    * [nginx.conf配置文件示例](#nginxconf配置文件示例)
+    * [nginx配置](#nginx配置)
+        * [nginx.conf配置文件示例](#nginxconf配置文件示例)
+        * [配置http请求限制和50x路由](#配置http请求限制和50x路由)
+        * [隐藏nginx版本](#隐藏nginx版本)
+        * [nginx状态统计](#nginx状态统计)
+        * [实现网页认证功能：ngx_http_auth_basic_module](#实现网页认证功能ngx_http_auth_basic_module)
+        * [实现http跳转到https页面功能](#实现http跳转到https页面功能)
+        * [配置web服务器知道客户端的ip地址](#配置web服务器知道客户端的ip地址)
+            * [后端real server不使用realip模块](#后端real-server不使用realip模块)
+            * [在后端real server上使用realip模块](#在后端real-server上使用realip模块)
+        * [主机域名配置文件路径](#主机域名配置文件路径)
 
 <!-- vim-markdown-toc -->
 
@@ -531,6 +542,11 @@ write:  写输出到客户端，实际上是写到连接对应的socket上。
 postpone:   这个filter是负责subrequest的，也就是子请求的。
 copy:   将一些需要复制的buf(文件或者内存)重新复制一份然后交给剩余的body filter处理。
 ```
+
+## nginx健康检查机制
+
+https://mp.weixin.qq.com/s/VyWfY6ad0gW9mmMonJ69bQ
+
 
 ## nginx实际应用
 
@@ -1052,7 +1068,46 @@ server {
 }
 ```
 
-### nginx.conf配置文件示例
+### nginx配置
+
+编译安装目录
+
+```
+[root@localhost ~]# tree /usr/local/nginx
+/usr/local/nginx
+├── client_body_temp                 # POST 大文件暂存目录
+├── conf                             # Nginx所有配置文件的目录
+│   ├── fastcgi.conf                 # fastcgi相关参数的配置文件
+│   ├── fastcgi.conf.default         # fastcgi.conf的原始备份文件
+│   ├── fastcgi_params               # fastcgi的参数文件
+│   ├── fastcgi_params.default      
+│   ├── koi-utf
+│   ├── koi-win
+│   ├── mime.types                   # 媒体类型
+│   ├── mime.types.default
+│   ├── nginx.conf                   #这是Nginx默认的主配置文件，日常使用和修改的文件
+│   ├── nginx.conf.default
+│   ├── scgi_params                 # scgi相关参数文件
+│   ├── scgi_params.default  
+│   ├── uwsgi_params                 # uwsgi相关参数文件
+│   ├── uwsgi_params.default
+│   └── win-utf
+├── fastcgi_temp                     # fastcgi临时数据目录
+├── html                             # Nginx默认站点目录
+│   ├── 50x.html                     # 错误页面优雅替代显示文件，例如出现502错误时会调用此页面
+│   └── index.html                   # 默认的首页文件
+├── logs                             # Nginx日志目录
+│   ├── access.log                   # 访问日志文件
+│   ├── error.log                   # 错误日志文件
+│   └── nginx.pid                   # pid文件，Nginx进程启动后，会把所有进程的ID号写到此文件
+├── proxy_temp                       # 临时目录
+├── sbin                             # Nginx 可执行文件目录
+│   └── nginx                       # Nginx 二进制可执行程序
+├── scgi_temp                       # 临时目录
+└── uwsgi_temp                       # 临时目录
+```
+
+#### nginx.conf配置文件示例
 
 ```
 #定义 nginx 运行的用户和用户组
@@ -1064,7 +1119,7 @@ worker_processes 8;
 #nginx 默认没有开启利用多核 CPU, 通过增加 worker_cpu_affinity 配置参数来充分利用多核 CPU 以下是 8 核的配置参数
 worker_cpu_affinity 00000001 00000010 00000100 00001000 00010000 00100000 01000000 10000000;
 
-#全局错误日志定义类型，[ debug | info | notice | warn | error | crit ]
+#全局错误日志定义类型，[ debug | info | notice | warn | error | crit ]，这里表示info以上级别的都记录
 error_log /var/log/nginx/error.log info;
 
 #进程文件
@@ -1247,3 +1302,115 @@ http {
 }
 ``` 
 
+#### 配置http请求限制和50x路由 
+
+1. 修改配置文件http块里添加这一行：
+
+```
+#制定访问次数的政策，1秒钟允许访问1次（每秒生成通行证的数量），统计的依据是根据客户机的IP地址
+limit_req_zone $binary_remote_addr zone=perip:10m rate=1r/s;
+```
+
+2. 在想要包含此配置的server里添加这一行：
+
+```
+#把http下的限制政策应用到本server里，burst表示初始通信证数量，每个访问都需要一个通行证
+limit_req zone=perip burst=1 nodelay;
+```
+
+3. server里加上的50x错误
+
+```
+error_page  500 502 503 504  /50x.html;  #默认会到server里root指定的目录下查找
+location = /50x.html{
+    root html;   #指定路由，访问50x.html页面的时候到html目录下查找
+}
+```
+
+#### 隐藏nginx版本
+
+在http块里添加一行：server_tokens off;
+
+#### nginx状态统计
+
+pv：page view页面浏览量
+
+打开状态统计页面：在server配置块添加状态统计信息功能
+
+localtion = /sc_status { stub_status; }
+
+统计数据的意思：这些信息存放在nginx内存中，nginx重启数据就会丢失
+
+```
+Active connections：1  # 目前活跃的用户，处于establish状态
+server accepts handled requests  # accepts累计接收客户端连接的次数，handled连接后的累计处理数量，requests累计请求数
+3 3 3
+Reading：0 Writing：1 Waiting：0  # Reading当前正在连接的数，Writing当前正在回复的数，Waiting当前正在连接的闲置数（没有动作的）
+```
+
+拿到统计数据：
+
+```
+拿active：curl http://192.168.50.131/status 2>/dev/null|awk '/Active/{print $NF}'
+拿requests：curl http://192.168.50.131/status 2>/dev/null|awk 'NR==3{print $NF}'
+```
+
+#### 实现网页认证功能：ngx_http_auth_basic_module
+
+1. 安装httpd-tool软件得到htpasswd命令：yum install httpd-tools -y 
+2. 创建账号密码：htpasswd -c /usr/local/sclilin99/conf/htpasswd cali
+3. 然后在nginx配置文件里想要添加认证的location块下添加这两行：auth_basic  "sanchuang site";   auth_basic_user_file  htpasswd;
+4. ngx_http_access_module：allow、deny命令指定路由是否可以访问
+
+#### 实现http跳转到https页面功能
+
+在http的server块里修改
+
+```
+server {
+    listen 80;
+    server_name www.sanchaungedu.cn;
+    # retrun 301 https://www.sanchaungedu.cn
+    # rewrite ^/(.*) https://www.sanchuangedu.cn redirect;  # 临时重定向，浏览器不会缓存当前域名的解析记录
+    rewrite ^/(.*) https://www.sanchuangedu.cn permannent;  # 永久重定向，浏览器缓存当前解析记录，可以减轻服务器压力
+}
+```
+
+#### 配置web服务器知道客户端的ip地址
+
+##### 后端real server不使用realip模块
+
+1. 在反向代理nginx机器上修改http请求报文头部字段，添加一个X-REAL-IP字段，将nginx内部的remote_addr这个变量的值，赋值给X-Real-IP这个变量，X-Real-IP这个变量会在http协议的请求报文添加一个X-Real-IP的字段，后端的real server上nginx就可以读取这个字段的值，X-Real-IP这个变量名可以自定义，引用的时候不区分大小写
+
+```
+server {
+    listen 80;
+    server_name www.sc.com;
+    location / {
+        proxy_pass http://myweb1;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+2. 在后端real server的http块中log_format上使用这个X-Real-IP这个字段
+
+```
+http {
+    log_format main "$remote_addr - $HTTP_X_REAL_IP - ..."
+}
+```
+
+##### 在后端real server上使用realip模块
+
+1. 前提条件需要在real server编译安装的nginx的时候，接--with-http-realip_module来开启这个功能
+
+2. 在负载均衡器上修改http请求报文头部字段，添加一个X-REAL-IP字段
+
+3. 在后端real server上的server块中使用set_real_ip_from 192.168.43.2，告诉本机nginx 192.168.43.2是负载均衡地址，不是真正的client
+
+#### 主机域名配置文件路径
+
+Windows域名配置文件路径：c:\windows\system32\drivers\etc\hosts  
+
+Linux: /etc/hosts
