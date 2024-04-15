@@ -1239,8 +1239,11 @@ execute now():
 #### __name__问题
 以上两种decorator的定义都没有问题，但还差最后一步。因为我们讲了函数也是对象，它有__name__等属性，但你去看经过decorator装饰之后的函数，它们的__name__已经从原来的'now'变成了'wrapper'：
 
+```
 >>> now.__name__
 'wrapper'
+```
+
 因为返回的那个wrapper()函数名字就是'wrapper'，所以，需要把原始函数的__name__等属性复制到wrapper()函数中，否则，有些依赖函数签名的代码执行就会出错。
 
 不需要编写wrapper.__name__ = func.__name__这样的代码，Python内置的functools.wraps就是干这个事的，所以，一个完整的decorator的写法如下：
@@ -1268,8 +1271,6 @@ def log(text):
         return wrapper
     return decorator
 ```
-
-import functools是导入functools模块。模块的概念稍候讲解。现在，只需记住在定义wrapper()的前面加上@functools.wraps(func)即可。
 
 ### 偏函数
 python中的functools模块提供了很多有用的功能，其中一个就是偏函数（partial function）。通过设定参数的默认值，额可以降低函数调用的难度。而偏函数也可以做到这一点。举例如下：
