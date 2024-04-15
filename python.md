@@ -50,6 +50,12 @@
         * [sorted](#sorted)
     * [返回函数](#返回函数)
         * [函数作为返回值](#函数作为返回值)
+        * [闭包](#闭包)
+        * [nonlocal](#nonlocal)
+    * [匿名函数](#匿名函数)
+    * [装饰器](#装饰器)
+        * [__name__问题](#__name__问题)
+    * [偏函数](#偏函数)
 
 <!-- vim-markdown-toc -->
 ## 简介
@@ -1054,3 +1060,259 @@ list(filter(not_empty, ['A', '', 'B', None, 'C', '  ']))
 
 #### 函数作为返回值
 高阶函数除了可以接受函数作为参数外，还可以把函数作为结果值返回。
+
+比如一个求和的函数是这样定义的：
+
+```python
+def calc_sum(*args):
+    ax = 0
+    for n in args:
+        ax = ax + n
+    return ax
+```
+
+但是，如果不需要立即求和，而是在后面的代码中，根据需要再计算，就可以不反悔求和的结果，而是返回求和的函数：
+
+```python
+def lazy_sum(*args):
+    def sum():
+        ax = 0
+        for n in args:
+            ax = ax + n
+        return ax
+    return sum
+```
+
+当我们调用lazy_sum()时，返回的并不是求和结果，而是求和函数，调用f时，才真正计算求和的结果:
+
+```
+>>> f = lazy_sum(1, 3, 5, 7, 9)
+>>> f
+<function lazy_sum.<locals>.sum at 0x101c6ed90>
+
+>>> f()
+25
+```
+
+#### 闭包
+
+在这个例子中，我们在函数lazy_sum中又定义了函数sum，并且，内部函数sum可以引用外部函数lazy_sum的参数和局部变量，当lazy_sum返回函数sum时，相关参数和变量都保存在返回的函数中，这种称为闭包（closure）的程序结构拥有极大的威力。
+
+注意，当我们调用lazy_sum()时，每次调用都会返回一个新的函数，即使传入相同的参数：
+
+```
+>>> f1 = lazy_sum(1, 3, 5, 7, 9)
+>>> f2 = lazy_sum(1, 3, 5, 7, 9)
+>>> f1 = f2
+False
+```
+
+f1()和f2()的调用结果互不影响
+
+#### nonlocal
+
+如果内函数对外层变量赋值，由于python解释器会把x当作函数fn()的局部变量，它会报错：
+
+```
+def inc():
+    x = 0
+    def fn():
+        # nonlocal x 
+        x = x + 1
+        return x
+    return fn
+
+f = inc()
+print(f())  # 1
+print(f())  # 2
+```
+
+原因是x作为局部变量并有没有初始化，直接计算x+1是不行的。但我们其实是想引用inc()函数内部的x，所以需要在fn()函数内部加一个nonlocal x的声明。加上这个声明后，解释器把fn()的x看作外层函数的局部变量，它已经被初始化了，可以正确计算x+1
+
+使用闭包时，对外层变量赋值前，需要先使用nonlocal声明该变量不是当前函数的局部变量。
+
+### 匿名函数
+当我们在传入函数时，有些时候，不需要显示地定义函数，直接传入匿名函数更方便。
+
+在计算f(x)=x^2时，除了定义一个f(x)的函数外，还可以直接传入匿名函数：
+
+```
+>>> list(map(lambda x: x * x, [1, 2, 3, 4, 5, 6, 7, 8, 9]))
+[1, 4, 9, 16, 25, 36, 49, 64, 81]
+```
+
+通过对比可以看出，匿名函数`lambda x : x * x`实际上就是
+
+```
+def f(x):
+    return x * x
+```
+
+关键字lambda表示匿名函数，冒号前面x表示函数参数
+
+匿名函数有个限制，就是只能有一个表达式，不用写return，返回值就是该表达式的结果。
+
+匿名函数没有名字，不必担心函数名冲突。此外匿名函数也是一个函数对象，也可以把匿名函数赋值给一个变量，再利用变量来调用该函数：
+
+```
+>>> f = lambda x: x * x
+>>> f
+<function <lambda> at 0x101c6ef28>
+>>> f(5)
+25
+```
+
+同样，也可以把匿名函数作为返回值返回，比如：
+
+```python
+def build(x, y):
+    return lambda: x * x + y * y
+```
+
+### 装饰器
+在代码运行期间动态增加功能的方式，称为装饰器（Decorator），本质上decorator就是一个返回函数的高阶函数。所以我们要定义一个能打印日志的decorator，可以定义如下：
+
+```python
+def log(func):
+    def wrapper(*args, **kw):
+        print('call %s():' % func.__name__)
+        return func(*args, **kw)
+    return wrapper
+```
+
+观察上面的log，因为他是一个decorator，所以接受一个函数作为参数，并返回一个函数。我们要借助python的@语法，把decorator置于函数的定义处：
+
+```python
+@log
+def now():
+    print('2015-3-25')
+```
+
+调用now()函数，不仅会运行now()函数本身，还会运行now()函数前打印一行日志：
+
+```
+>>> now()
+call now():
+2015-3-25
+```
+
+把@log放到now()函数的定义处，相当于执行了语句：`now = log(now)`
+
+由于log()是一个decorator，返回一个函数，所以原来的now()函数仍然存在，只是现在同名的now变量指向了新的函数，于是调用now()将执行新函数，即在log()函数中返回的wrapper()函数。
+
+wrapper()函数的参数定义是`(*args, **kw)`，因此，wrapper()函数可以接受任何参数的调用。在wrapper()函数内，首先打印日志，再紧接着调用原始函数。
+
+如果decorator本身需要传入参数，那就需要编写一个返回decorator的高阶函数，写出来会更复杂，比如要自定义log的文本：
+
+```python
+def log(text):
+    def decorator(func):
+        def wrapper(*args, **kw):
+            print('%s %s():' % (text, func.__name__))
+            return func(**args, **kw)
+        return wrapper
+    return decorator
+```
+
+这三层嵌套的decorator用法如下：
+
+```python
+@log('execute')
+def now():
+    print('2015-3-25')
+```
+
+执行结果如下：
+
+```
+>>> now()
+execute now():
+2015-3-25
+```
+
+和两层嵌套的decorator相比，3层嵌套的效果是这样的：
+
+`>>> now = log('execute')(now)`
+
+我们来剖析上面的语句，首先执行log('execute')，返回的是decorator函数，再调用返回的函数，参数是now函数，返回值最终是wrapper函数。
+
+#### __name__问题
+以上两种decorator的定义都没有问题，但还差最后一步。因为我们讲了函数也是对象，它有__name__等属性，但你去看经过decorator装饰之后的函数，它们的__name__已经从原来的'now'变成了'wrapper'：
+
+>>> now.__name__
+'wrapper'
+因为返回的那个wrapper()函数名字就是'wrapper'，所以，需要把原始函数的__name__等属性复制到wrapper()函数中，否则，有些依赖函数签名的代码执行就会出错。
+
+不需要编写wrapper.__name__ = func.__name__这样的代码，Python内置的functools.wraps就是干这个事的，所以，一个完整的decorator的写法如下：
+```python
+import functools
+
+def log(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kw):
+        print('call %s():' % func.__name__)
+        return func(*args, **kw)
+    return wrapper
+```
+
+或者针对带参数的decorator：
+```python
+import functools
+
+def log(text):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kw):
+            print('%s %s():' % (text, func.__name__))
+            return func(*args, **kw)
+        return wrapper
+    return decorator
+```
+
+import functools是导入functools模块。模块的概念稍候讲解。现在，只需记住在定义wrapper()的前面加上@functools.wraps(func)即可。
+
+### 偏函数
+python中的functools模块提供了很多有用的功能，其中一个就是偏函数（partial function）。通过设定参数的默认值，额可以降低函数调用的难度。而偏函数也可以做到这一点。举例如下：
+
+int()函数可以把字符串转换为整数，当仅传入字符串时，int()函数默认按十进制转换：
+
+```
+>>> int("12345")
+12345
+```
+
+但如果int()函数还提供额外的base参数，默认值为10。如果传入base参数，就可以做N进制的转换：
+
+```
+>>> int('12345', base=8)
+5349
+
+>>> int('12345', 16)
+74565
+```
+
+假设要转换大量的二进制字符串，每次都传入int(x, base=2)非常麻烦，于是可以定义一个int2()的函数，默认把base=2传进去:
+
+```python
+def int2(x, base=2)
+    return int(x, base)
+```
+
+functools.parial就是帮助我们创建一个偏函数的，不需要我们自定义int2()，可以直接使用下面的代码创建一个新的函数int2：
+```
+>>> import functools
+>>> int2 = functools.partial(int, base=2)
+>>> int2('1000000')
+64
+>>> int2('1010101')
+85
+```
+
+所以，简单总结functools.partial的作用就是，把一个函数的某些参数给固定住（也就是设置默认值）返回一个新的函数，调用这个新函数会更加简单。
+
+上面新的int2函数，仅仅是把base参数重新设置默认值为2，但也可以在函数调用时传入其他值：
+
+```
+>>> int('1000000', base=10)
+1000000
+```
