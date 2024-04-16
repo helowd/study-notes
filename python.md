@@ -56,8 +56,18 @@
     * [装饰器](#装饰器)
         * [__name__问题](#__name__问题)
     * [偏函数](#偏函数)
+* [模块](#模块)
+    * [作用域](#作用域)
+    * [安装第三方模块](#安装第三方模块)
+    * [模块搜索路径](#模块搜索路径)
+    * [常用内建模块](#常用内建模块)
+        * [argparse](#argparse)
+    * [常用第三方模块](#常用第三方模块)
+        * [requests](#requests)
+* [venv](#venv)
 
 <!-- vim-markdown-toc -->
+
 ## 简介
 python由荷兰人“龟叔”guido van rossum在1989年开发出来的。
 
@@ -73,7 +83,6 @@ python缺点：
 1. 运行速度慢，因为是解释型语言，代码会在执行时一行一行的翻译成cpu能理解的机器码，翻译的过程很耗时。而C程序是运行前直接编译成CPU能执行的机器码，所以非常快。
 
 2. 是代码不能加密。如果要发布你的Python程序，实际上就是发布源代码，这一点跟C语言不同，C语言不用发布源代码，只需要把编译后的机器码（也就是你在Windows上常见的xxx.exe文件）发布出去。要从机器码反推出C代码是不可能的，所以，凡是编译型的语言，都没有这个问题，而解释型的语言，则必须把源码发布出去。
-
 
 ## 安装
 因为Python是跨平台的，它可以运行在Windows、Mac和各种Linux/Unix系统上。在Windows上写Python程序，放到Linux上也是能够运行的。
@@ -1317,3 +1326,384 @@ functools.parial就是帮助我们创建一个偏函数的，不需要我们自�
 >>> int('1000000', base=10)
 1000000
 ```
+
+## 模块
+
+pyhon本身就内置了很多非常有用的模块，只要安装完毕，这些模块就可以立即使用。
+
+我们以内建的sys模块为例，编写一个hello的模块：
+
+```
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+'a test module'
+
+__author__ = 'Michael Liao'
+
+import sys
+
+def test():
+    args = sys.argv
+    if len(args) == 1:
+        print("Hello, world!")
+    elif len(args) == 2:
+        print("Hello, %s!" % args[1])
+    else:
+        print("Too many arguments!")
+
+if __name__ == "__main__":
+    test()
+```
+
+第1行和第2行是标准注释，第1行注释可以让这个hello.py文件直接在Unix/Linux/Mac上运行，第2行注释表示.py文件本身使用标准UTF-8编码；
+
+第4行是一个字符串，表示模块的文档注释，任何模块代码的第一个字符串都被视为模块的文档注释；
+
+第6行使用__author__变量把作者写进去，这样当你公开源代码后别人就可以瞻仰你的大名；
+
+以上就是Python模块的标准文件模板，当然也可以全部删掉不写，但是，按标准办事肯定没错。
+
+后面开始就是真正的代码部分。
+
+当我们在命令行运行hello模块文件时，Python解释器把一个特殊变量__name__置为__main__，而如果在其他地方导入该hello模块时，if判断将失败，因此，这种if测试可以让一个模块通过命令行运行时执行一些额外的代码，最常见的就是运行测试。
+
+### 作用域
+
+在一个模块中，我们可能会定义很多函数和变量，但有的函数和变量我们希望给别人使用，有的函数和变量我们希望仅仅在模块内部使用。在Python中，是通过_前缀来实现的。
+
+正常的函数和变量名是公开的（public），可以被直接引用，比如：abc，x123，PI等；
+
+类似__xxx__这样的变量是特殊变量，可以被直接引用，但是有特殊用途，比如上面的__author__，__name__就是特殊变量，hello模块定义的文档注释也可以用特殊变量__doc__访问，我们自己的变量一般不要用这种变量名；
+
+类似_xxx和__xxx这样的函数或变量就是非公开的（private），不应该被直接引用，比如_abc，__abc等；
+
+之所以我们说，private函数和变量“不应该”被直接引用，而不是“不能”被直接引用，是因为Python并没有一种方法可以完全限制访问private函数或变量，但是，从编程习惯上不应该引用private函数或变量。
+
+
+private函数或变量不应该被别人引用，那它们有什么用呢？请看例子：
+```python
+def _private_1(name):
+    return "Hello, %s" % name
+
+def _private_2(name):
+    return "Hi, %s" % name
+
+def greeting(name):
+    if len(name) > 3:
+        return _private_1(name)
+    else:
+        return _private_2(name)
+```
+
+我们在模块里公开greeting()函数，而把内部逻辑用private函数隐藏起来了，这样，调用greeting()函数不用关心内部的private函数细节，这也是一种非常有用的代码封装和抽象的方法，即：
+
+外部不需要引用的函数全部定义成private，只有外部需要引用的函数才定义为public。
+
+### 安装第三方模块
+在python中，安装第三方模块，是通过包管理工具pip完成的。python3和python2并存的时候，对应的pip命令是pip3
+
+一般来说，第三方库都会在Python官方的pypi.python.org网站注册，要安装一个第三方库，必须先知道该库的名称，可以在官网或者pypi上搜索，比如Pillow的名称叫Pillow，因此，安装Pillow的命令就是：
+
+```
+pip install Pillow
+
+```
+
+### 模块搜索路径
+当我们试图加载一个模块时，python会在指定的路径下搜索对应的.py文件，如果找不到就会报错：
+
+```
+>>> import mymodule
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ImportError: No module named mymodule
+```
+
+默认情况下，python解释器会搜索当前目录、所有已安装的内置模块和第三方模块，搜索路径存放在sys模块的path变量中：
+
+```
+>>> import sys
+>>> sys.path
+['', '/Library/Frameworks/Python.framework/Versions/3.6/lib/python36.zip', '/Library/Frameworks/Python.framework/Versions/3.6/lib/python3.6', ..., '/Library/Frameworks/Python.framework/Versions/3.6/lib/python3.6/site-packages']
+```
+
+如果我们要添加自己的搜索目录，有两种方法：
+
+一是直接修改sys.path，添加要搜索的目录，这种方法是在运行时修改，运行结束后失效：
+
+```
+>>> import sys
+>>> sys.path.append('/Users/michael/my_py_scripts')
+```
+
+第二种方法是设置环境变量PYTHONPATH，该环境变量的内容会被自动添加到模块搜索路径中。设置方式与设置Path环境变量类似。注意只需要添加你自己的搜索路径，Python自己本身的搜索路径不受影响。
+
+### 常用内建模块
+
+#### argparse
+
+为了简化参数解析，我们可以使用内置的argparse库，定义好各个参数类型后，它能直接返回有效的参数。
+
+假设我们想编写一个备份MySQL数据库的命令行程序，需要输入的参数如下：
+
+```
+host参数：表示MySQL主机名或IP，不输入则默认为localhost；
+port参数：表示MySQL的端口号，int类型，不输入则默认为3306；
+user参数：表示登录MySQL的用户名，必须输入；
+password参数：表示登录MySQL的口令，必须输入；
+gz参数：表示是否压缩备份文件，不输入则默认为False；
+outfile参数：表示备份文件保存在哪，必须输入。
+```
+
+其中，outfile是位置参数，而其他则是类似--user root这样的“关键字”参数。
+
+用argparse来解析参数，一个完整示例如下：
+
+```python
+# backup.py
+
+import argparse
+
+def main():
+    # 定义一个ArgumentParser实例:
+    parser = argparse.ArgumentParser(
+        prog='backup', # 程序名
+        description='Backup MySQL database.', # 描述
+        epilog='Copyright(r), 2023' # 说明信息
+    )
+    # 定义位置参数:
+    parser.add_argument('outfile')
+    # 定义关键字参数:
+    parser.add_argument('--host', default='localhost')
+    # 此参数必须为int类型:
+    parser.add_argument('--port', default='3306', type=int)
+    # 允许用户输入简写的-u:
+    parser.add_argument('-u', '--user', required=True)
+    parser.add_argument('-p', '--password', required=True)
+    parser.add_argument('--database', required=True)
+    # gz参数不跟参数值，因此指定action='store_true'，意思是出现-gz表示True:
+    parser.add_argument('-gz', '--gzcompress', action='store_true', required=False, help='Compress backup files by gz.')
+
+
+    # 解析参数:
+    args = parser.parse_args()
+
+    # 打印参数:
+    print('parsed args:')
+    print(f'outfile = {args.outfile}')
+    print(f'host = {args.host}')
+    print(f'port = {args.port}')
+    print(f'user = {args.user}')
+    print(f'password = {args.password}')
+    print(f'database = {args.database}')
+    print(f'gzcompress = {args.gzcompress}')
+
+if __name__ == '__main__':
+    main()    
+```
+
+输入有效的参数，则程序能解析出所需的所有参数：
+```
+$ ./backup.py -u root -p hello --database testdb backup.sql
+parsed args:
+outfile = backup.sql
+host = localhost
+port = 3306
+user = root
+password = hello
+database = testdb
+gzcompress = False
+```
+
+缺少必要的参数，或者参数不对，将报告详细的错误信息：
+```
+$ ./backup.py --database testdb backup.sql
+usage: backup [-h] [--host HOST] [--port PORT] -u USER -p PASSWORD --database DATABASE outfile
+backup: error: the following arguments are required: -u/--user, -p/--password
+```
+
+更神奇的是，如果输入-h，则打印帮助信息：
+```
+$ ./backup.py -h                          
+usage: backup [-h] [--host HOST] [--port PORT] -u USER -p PASSWORD --database DATABASE outfile
+
+Backup MySQL database.
+
+positional arguments:
+  outfile
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --host HOST
+  --port PORT
+  -u USER, --user USER
+  -p PASSWORD, --password PASSWORD
+  --database DATABASE
+  -gz, --gzcompress     Compress backup files by gz.
+
+Copyright(r), 2023
+```
+
+获取有效参数的代码实际上是这一行：
+```
+args = parser.parse_args()
+```
+
+我们不必捕获异常，parse_args()非常方便的一点在于，如果参数有问题，则它打印出错误信息后，结束进程；如果参数是-h，则它打印帮助信息后，结束进程。只有当参数全部有效时，才会返回一个NameSpace对象，获取对应的参数就把参数名当作属性获取，非常方便。
+
+可见，使用argparse后，解析参数的工作被大大简化了，我们可以专注于定义参数，然后直接获取到有效的参数输入。
+
+### 常用第三方模块
+
+#### requests
+我们已经讲解了Python内置的urllib模块，用于访问网络资源。但是，它用起来比较麻烦，而且，缺少很多实用的高级功能。
+
+更好的方案是使用requests。它是一个Python第三方库，处理URL资源特别方便。    
+
+要通过GET访问一个页面，只需要几行代码：
+```
+>>> import requests
+>>> r = requests.get('https://www.douban.com/') # 豆瓣首页
+>>> r.status_code
+200
+>>> r.text
+r.text
+'<!DOCTYPE HTML>\n<html>\n<head>\n<meta name="description" content="提供图书、电影、音乐唱片的推荐、评论和...'
+```
+
+对于带参数的URL，传入一个dict作为params参数：
+```
+>>> r = requests.get('https://www.douban.com/search', params={'q': 'python', 'cat': '1001'})
+>>> r.url # 实际请求的URL
+'https://www.douban.com/search?q=python&cat=1001'
+```
+
+requests自动检测编码，可以使用encoding属性查看：
+```
+>>> r.encoding
+'utf-8
+```
+
+无论响应是文本还是二进制内容，我们都可以用content属性获得bytes对象：
+```
+>>> r.content
+b'<!DOCTYPE html>\n<html>\n<head>\n<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n...'
+```
+
+requests的方便之处还在于，对于特定类型的响应，例如JSON，可以直接获取：
+```
+>>> r = requests.get('https://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20weather.forecast%20where%20woeid%20%3D%202151330&format=json')
+>>> r.json()
+{'query': {'count': 1, 'created': '2017-11-17T07:14:12Z', ...
+```
+
+需要传入HTTP Header时，我们传入一个dict作为headers参数：
+```
+>>> r = requests.get('https://www.douban.com/', headers={'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit'})
+>>> r.text
+'<!DOCTYPE html>\n<html>\n<head>\n<meta charset="UTF-8">\n <title>豆瓣(手机版)</title>...'
+```
+
+要发送POST请求，只需要把get()方法变成post()，然后传入data参数作为POST请求的数据：
+```
+>>> r = requests.post('https://accounts.douban.com/login', data={'form_email': 'abc@example.com', 'form_password': '123456'})
+```
+
+requests默认使用application/x-www-form-urlencoded对POST数据编码。如果要传递JSON数据，可以直接传入json参数：
+```
+params = {'key': 'value'}
+r = requests.post(url, json=params) # 内部自动序列化为JSON
+```
+
+类似的，上传文件需要更复杂的编码格式，但是requests把它简化成files参数：
+```
+>>> upload_files = {'file': open('report.xls', 'rb')}
+>>> r = requests.post(url, files=upload_files)
+```
+在读取文件时，注意务必使用'rb'即二进制模式读取，这样获取的bytes长度才是文件的长度。
+
+把post()方法替换为put()，delete()等，就可以以PUT或DELETE方式请求资源。
+
+除了能轻松获取响应内容外，requests对获取HTTP响应的其他信息也非常简单。例如，获取响应头：
+```
+>>> r.headers
+{Content-Type': 'text/html; charset=utf-8', 'Transfer-Encoding': 'chunked', 'Content-Encoding': 'gzip', ...}
+>>> r.headers['Content-Type']
+'text/html; charset=utf-8'
+```
+
+requests对Cookie做了特殊处理，使得我们不必解析Cookie就可以轻松获取指定的Cookie：
+```
+>>> r.cookies['ts']
+'example_cookie_12345'
+```
+
+要在请求中传入Cookie，只需准备一个dict传入cookies参数：
+```
+>>> cs = {'token': '12345', 'status': 'working'}
+>>> r = requests.get(url, cookies=cs)
+```
+
+最后，要指定超时，传入以秒为单位的timeout参数：
+```
+>>> r = requests.get(url, timeout=2.5) # 2.5秒后超时
+```
+
+## venv
+在开发Python应用程序的时候，系统安装的Python3只有一个版本：3.10。所有第三方的包都会被pip安装到Python3的site-packages目录下。
+
+如果我们要同时开发多个应用程序，那这些应用程序都会共用一个Python，就是安装在系统的Python 3。如果应用A需要jinja 2.7，而应用B需要jinja 2.6怎么办？
+
+这种情况下，每个应用可能需要各自拥有一套“独立”的Python运行环境。venv就是用来为一个应用创建一套“隔离”的Python运行环境。
+
+首先，我们假定要开发一个新的项目project101，需要一套独立的Python运行环境，可以这么做：
+
+第一步，创建目录，这里把venv命名为proj101env，因此目录名为proj101env：
+```
+~$ mkdir proj101env
+~$ cd proj101env/
+proj101env$
+```
+第二步，创建一个独立的Python运行环境：
+```
+proj101env$ python3 -m venv .
+```
+查看当前目录，可以发现有几个文件夹和一个pyvenv.cfg文件：
+```
+proj101env$ ls
+bin  include  lib  pyvenv.cfg
+```
+命令python3 -m venv <目录>就可以创建一个独立的Python运行环境。观察bin目录的内容，里面有python3、pip3等可执行文件，实际上是链接到Python系统目录的软链接。
+
+继续进入bin目录，Linux/Mac用source activate，Windows用activate.bat激活该venv环境：
+```
+proj101env$ cd bin
+bin$ source activate
+(proj101env) bin$
+```
+注意到命令提示符变了，有个(proj101env)前缀，表示当前环境是一个名为proj101env的Python环境。
+
+下面正常安装各种第三方包，并运行python命令：
+```
+(proj101env) bin$ pip3 install jinja2
+...
+Successfully installed jinja2-xxx
+(proj101env) bin$ python3
+>>> import jinja2
+>>> exit()
+```
+在venv环境下，用pip安装的包都被安装到proj101env这个环境下，具体目录是proj101env/lib/python3.x/site-packages，因此，系统Python环境不受任何影响。也就是说，proj101env环境是专门针对project101这个应用创建的。
+
+退出当前的proj101env环境，使用deactivate命令：
+```
+(proj101env) bin$ deactivate
+bin$
+```
+此时就回到了正常的环境，现在pip或python均是在系统Python环境下执行。
+
+完全可以针对每个应用创建独立的Python运行环境，这样就可以对每个应用的Python环境进行隔离。
+
+venv是如何创建“独立”的Python运行环境的呢？原理很简单，就是把系统Python链接或复制一份到venv的环境，用命令source activate进入一个venv环境时，venv会修改相关环境变量，让命令python和pip均指向当前的venv环境。
+
+如果不再使用某个venv，例如proj101env，删除它也很简单。首先确认该venv没有处于“激活”状态，然后直接把整个目录proj101env删掉就行。
