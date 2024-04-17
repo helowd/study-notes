@@ -294,7 +294,7 @@ SELECT * FROM students WHERE (score < 80 OR score > 90) AND gender = 'M';
 ```
 
 #### 常用的条件表达式
-![](./sql_condition_operator)
+![](./sql_condition_operator.png)
 
 ### 投影查询
 使用`SELECT *`表示查询表的所有列，使用SELECT 列1, 列2, 列3则可以仅返回指定列，这种操作称为投影。
