@@ -132,13 +132,13 @@ awk 'BEGIN { print "start" } pattern1 { commands1 } pattern2 { commands2 } ...  
 ```
 
 #### 模式总结
-![](./awk_pattern.png)
+![](images/awk_pattern.png)
 
 ### 动作
 动作由一个或多个命令、函数、表达式组成，之间由换行符或分号隔开，并位于大括号内
 
 #### 动作类型总结
-![](./awk_action.png)
+![](images/awk_action.png)
 
 #### 数据类型
 
@@ -151,19 +151,19 @@ awk中只有两种类型常量，字符串和数值，将一个字符串用一�
 awk中变量不需要事先声明，awk会根据上下文环境推断出变量的类型。未初始化的变量值默认为""或者0
 
 ###### 内建变量
-![](./awk_buildin_var.png)
+![](images/awk_buildin_var.png)
 
 ###### 字段变量
 当前输入行的字段从$1一直到$NF，$0表示整行。字段变量和其它变量相比没有什么不同，也可以参与算数和字符串运算
 
 #### 表达式运算符
-![](./awk_action_operators.png)
+![](images/awk_action_operators.png)
 
 #### 内建算数函数
-![](./awk_action_buildin_arithfunctions.png)
+![](images/awk_action_buildin_arithfunctions.png)
 
 #### 内建字符串函数
-![](./awk_action_buildin_stringfunctions.png)
+![](images/awk_action_buildin_stringfunctions.png)
 
 ### 流程控制
 流程控制语句if-else以及循环语句只能用在动作里，这些流程控制都来之c语言
@@ -291,7 +291,7 @@ split("7/4/76", arr, "/")
 ```
 
 #### 多维数组
-![](./awk_action_mutiarray.png)
+![](images/awk_action_mutiarray.png)
 
 ### 自定义函数
 函数定义可以出现在任何 模式-动作 语句可以出现的地方   
@@ -310,7 +310,7 @@ function max(m, n) {
 ```
 
 ### 输出
-![](./awk_action_stdout.png)
+![](images/awk_action_stdout.png)
 
 #### print语句
 语法：
@@ -343,13 +343,13 @@ BEGIN   { OFS = ":"; ORS = "\n\n" }
 
 #### printf语句
 语法：    
-![](./awk_action_printf_syntax.png)
+![](images/awk_action_printf_syntax.png)
 
 格式控制字符：  
-![](./awk_action_printf_format.png)
+![](images/awk_action_printf_format.png)
 
 示例：  
-![](./awk_action_printf_examples.png)
+![](images/awk_action_printf_examples.png)
 
 #### 输出到文件
 ```awk
@@ -506,10 +506,10 @@ END { print sum }
 3. 换配置更好的机器
 
 ## awk语言的限制
-![](./awk_limitation.png)
+![](images/awk_limitation.png)
 
 ## 初始化，比较和强制类型转换
-![](./awk_init_cmp_chg.png)
+![](images/awk_init_cmp_chg.png)
 
 ## 案例
 

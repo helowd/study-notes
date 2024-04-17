@@ -452,7 +452,7 @@ $ cat /sys/fs/aufs/si_972c6d361e6b32ba/br[0-9]*
 从这些信息里，我们可以看到，镜像的层都放置在 /var/lib/docker/aufs/diff 目录下，然后被联合挂载在 /var/lib/docker/aufs/mnt 里面。
 
 而且，从这个结构可以看出来，这个容器的 rootfs 由如下图所示的三部分组成：
-![](./docker_layer.png)
+![](images/docker_layer.png)
 
 第一部分，只读层。
 
@@ -649,7 +649,7 @@ Volume 机制，允许你将宿主机上指定的目录或者文件，挂载到�
 而这里要使用到的挂载技术，就是 Linux 的绑定挂载（bind mount）机制。它的主要作用就是，允许你将一个目录或者文件，而不是整个设备，挂载到一个指定的目录上。并且，这时你在该挂载点上进行的任何操作，只是发生在被挂载的目录或者文件上，而原挂载点的内容则会被隐藏起来且不受影响。
 
 其实，如果你了解 Linux 内核的话，就会明白，绑定挂载实际上是一个 inode 替换的过程。在 Linux 操作系统中，inode 可以理解为存放文件内容的“对象”，而 dentry，也叫目录项，就是访问这个 inode 所使用的“指针”。
-![](./mount_bind)
+![](images/mount_bind)
 
 正如上图所示，mount --bind /home /test，会将 /home 挂载到 /test 上。其实相当于将 /test 的 dentry，重定向到了 /home 的 inode。这样当我们修改 /test 目录时，实际修改的是 /home 目录的 inode。这也就是为何，一旦执行 umount 命令，/test 目录原先的内容就会恢复：因为修改真正发生在的，是 /home 目录里。
 

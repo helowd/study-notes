@@ -100,7 +100,7 @@ SQL语言关键字不区分大小写！！！但是，针对不同的数据库�
 所以，数据库作为一种专门管理数据的软件就出现了。应用程序不需要自己管理数据，而是通过数据库软件提供的接口来读写数据。至于数据本身如何存储到文件，那是数据库软件的事情，应用程序自己并不关心
 
 ### 数据类型
-![](./mysql_data_type.png)
+![](images/mysql_data_type.png)
 
 ### 主流关系型数据库
 1. 商用数据库，例如：Oracle，SQL Server，DB2等；
@@ -294,7 +294,7 @@ SELECT * FROM students WHERE (score < 80 OR score > 90) AND gender = 'M';
 ```
 
 #### 常用的条件表达式
-![](./sql_condition_operator.png)
+![](images/sql_condition_operator.png)
 
 ### 投影查询
 使用`SELECT *`表示查询表的所有列，使用SELECT 列1, 列2, 列3则可以仅返回指定列，这种操作称为投影。

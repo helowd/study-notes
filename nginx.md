@@ -98,7 +98,7 @@ http://linux.vbird.org/linux_basic/index.php --> /var/www/html/linux_basic/index
 
 ### 提供使用者互动介面的动态网站
 这种类型的网站可以让伺服器与使用者互动，常见的例如讨论区论坛与留言版，包括一些部落格也都是属于这类型。这类型的网站需要的技术程度比较高，因为他是藉由『网页程式语言』来达成与使用者互动的行为， 常见的例如PHP 网页程式语言，配合MySQL 资料库系统来进行资料的读、写。整个互动可以使用下图来说明：  
-![](./server_client_2.gif)  
+![](images/server_client_2.gif)  
 这就是所谓的伺服器端工作任务介面(Server Side Include, SSI)，因为不论你要求的资料是什么，其实都是透过伺服器端同一支网页程式在负责将资料读出或写入资料库，处理完毕后将结果传给用户端的一种方式，变动的是资料库内的资料，网页程式其实并没有任何改变的。这部份的网页程式包括 PHP, ASP, Perl...很多啦！
 
 另外一种互动式的动态网页主要是在用户端达成的！举例来说，我们可以透过利用所谓的Java scripts 这种语法， 将可执行的程式码(java script) 传送给用户端，用户端的浏览器如果有提供java script 的功能， 那么该程式就可以在用户端的电脑上面运作了。由于程式是在用户端电脑上执行， 因此如果伺服器端所制作的程式是恶意的，那么用户端的电脑就可能会遭到破坏。这也是为啥很多浏览器都已经将一些危险的java script 关闭的原因。
@@ -209,11 +209,11 @@ PHP 这个软体提供给Apache 使用的模组！这也是我们能否在Apache
 nginx是一款轻量级web服务器/反向代理服务器以及电子邮件（IMAP/POP3）代理服务器，在BSD-like协议下发行。特点是占有内存少，并发能力强。第一个公开版本发布于2004-10-4
 
 ### LNMP架构图
-![](./LNMP_arch.png)
+![](images/LNMP_arch.png)
 
 ## nginx架构
 nginx在启动后，会有一个master进程和多个woker进程。master进程主要用来管理worker进程，包含：接收来自外界的信号，向各worker进程发送信号，监控worker进程的运行状态，当woker进程退出后（异常情况下），会自动重新启动新的worker进程。而基本的网络事件，则是放在了worker进程中来处理了。多个worker进程之间是对等的，他们同等竞争来自客户端的请求，各进程互相之间是独立的。一个请求，只可能在一个worker进程中处理，一个worker进程，不可能处理其他进程的请求。woker进程的个数是可以设置的，一般我们会设置与cpu核数一致，这里面的原因与nginx的进程模型以及事件处理模型是分不开的。nginx的进程模型，可以由下图来表示：   
-![](./nginx_arch.png)  
+![](images/nginx_arch.png)  
 
 ### kill -HUP pid / nginx -s reload原理
 首先master进程在接收到信号后，会先重新加载配置文件，然后再启动新的worker进程，并向所有老的worker进程发送信号，告诉他们可以光荣退休了。新的worker再启动后，就开始接收新的请求，而老的worker在收到来自master的信号后，就不再接收新的请求，并在当前进程中的所有未处理完的请求处理完后，再退出。
@@ -563,7 +563,7 @@ nginx -V            显示 nginx 的版本，编译器版本和配置参数。
 ```
 
 ### http反向代理
-![](./reverse-proxy.png)
+![](images/reverse-proxy.png)
 ```
 #运行用户
 #user somebody;
@@ -719,7 +719,7 @@ SSL 标准需要引入安全证书，所以在 nginx.conf 中你需要指定证�
 
 ### 负载均衡
 
-![](./nginx-load-balance.png)  
+![](images/nginx-load-balance.png)  
 假设这样一个应用场景：将应用部署在 192.168.1.11:80、192.168.1.12:80、192.168.1.13:80 三台 linux 环境的服务器上。网站域名叫 www.helloworld.com，公网 IP 为 192.168.1.11。在公网 IP 所在的服务器上部署 nginx，对所有请求做负载均衡处理（下面例子中使用的是加权轮询策略）。
 
 nginx.conf配置如下：

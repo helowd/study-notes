@@ -139,4 +139,4 @@ git add -f <filename> 强制添加被忽略的文件
 git check-ignore -v <filename> 查看此文件对应的.gitignore规则
 
 git-cheat-sheet.png
-![](./git-cheat-sheet.png)
+![](images/git-cheat-sheet.png)

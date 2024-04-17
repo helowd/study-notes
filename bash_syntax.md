@@ -1132,7 +1132,7 @@ trap egress EXIT
 由环境变量`BASH_ENV`变量指定的路径决定
 
 图例：  
-![](./BashStartupFiles1.png)
+![](images/BashStartupFiles1.png)
 
 注意：ssh非交互非登录方式执行命令，其PATH变量会因登录用户而不同  
 如果是root，默认为PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin   
@@ -1232,7 +1232,7 @@ PS1='\[\033[0;41m\]<\u@\h \W>\$\[\033[0m\] '
 标准输入(stdin) ：代码为0 ，使用< 或<< ；  键盘鼠标  
 标准输出(stdout)：代码为1 ，使用> 或>> ；  屏幕或文件  
 标准错误输出(stderr)：代码为2 ，使用2> 或2>> ； 屏幕或文件  
-![](./linux_cmd_redirect.png)
+![](images/linux_cmd_redirect.png)
 
 1. 将stdout与stderr分别存到不通的档案去
 ```bash

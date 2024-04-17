@@ -85,7 +85,7 @@ quota可以针对群主、个人或者单独目录限制磁盘使用率
 ### lvm
 1. 主要用来弹性管理存储容量
 2. 制作流程图：  
-![](./centos7_lvm.jpg)
+![](images/centos7_lvm.jpg)
 3. LVM thin Volume自动调整磁盘使用率
 4. lvcreate创建快照区
 5. 不用lvm要把相关内容都删除，并复原

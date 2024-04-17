@@ -168,7 +168,7 @@ Java虚拟机有自己完善的硬件架构，如处理器、堆栈、寄存器�
 * 实例变量：每个对象都有独特的实例变量，对象的状态由这些实例变量的值决定。
 
 基本格式解释：
-![](./syntax_explain.jpg)
+![](images/syntax_explain.jpg)
 
 ## 命名
 大小写敏感：Java 是大小写敏感的，这就意味着标识符 Hello 与 hello 是不同的。
@@ -223,7 +223,7 @@ String[][] str = new String[3][4];  //　声明二维数组
 布尔类型：boolean  
 
 基础数据类型变量可以反复赋值。每次赋值都会新建或者覆盖之前的变量的内存空间  
-![](./basic_var.png)  
+![](images/basic_var.png)  
 
 ### 引用类型
 除了上述基本类型的变量，剩下的都是引用类型。例如，引用类型最常用的就是String字符串，引用类型的变量类似于C语言的指针，它内部存储一个“地址”，指向某个对象在内存的位置
@@ -265,7 +265,7 @@ String message = """
 ```
 
 字符串变量内容不可变，当对一个已经创建的字符串变量重新赋值时，会新开辟一个内存空间，并把这个字符串变量的指向改成这个新的内存空间，旧的内存空间依旧存在  
-![](./StringPoint.png)  
+![](images/StringPoint.png)  
 ```java
 public class Main {
     public static void main(String[] args) {
@@ -374,7 +374,7 @@ public class RunoobTest {
 ```
 
 ### 强类型弱类型，动态语言静态语言  
-![](./language_type.jpeg)
+![](images/language_type.jpeg)
 
 ## 运算 
 如果参与运算的两个数其中一个是整型，那么整型可以自动提升到浮点型
@@ -1620,7 +1620,7 @@ interface Person extends Hello {
 
 #### 继承关系
 合理设计interface和abstract class的继承关系，可以充分复用代码。一般来说，公共逻辑适合放在abstract class中，具体逻辑放到各个子类，而接口层次代表抽象程度。可以参考Java的集合类定义的一组接口、抽象类以及具体子类的继承关系：  
-![](./relationship.png)  
+![](images/relationship.png)  
 在使用的时候，实例化的对象永远只能是某个具体的子类，但总是通过接口去引用它，因为接口比抽象类更抽象：
 ```java
 List list = new ArrayList(); // 用List接口引用具体子类的实例 
@@ -1694,7 +1694,7 @@ class Person {
 }
 ```
 对于静态字段，无论修改哪个实例的静态字段，效果都是一样的：所有实例的静态字段都被修改了，原因是静态字段并不属于实例： 
-![](./static_filed.png)   
+![](images/static_filed.png)   
 虽然实例可以访问静态字段，但是它们指向的其实都是Person class的静态字段。所以，所有实例共享一个静态字段。
 
 推荐用类名来访问静态字段。可以把静态字段理解为描述class本身的字段（非实例字段）。对于上面的代码，更好的写法是：

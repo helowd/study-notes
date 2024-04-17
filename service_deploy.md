@@ -1,6 +1,6 @@
 # 服务器架设
 连接服务器流程图  
-![](./file_permission.gif)
+![](images/file_permission.gif)
 
 ## 目录
 <!-- vim-markdown-toc GFM -->

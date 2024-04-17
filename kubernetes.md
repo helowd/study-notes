@@ -370,7 +370,7 @@ Kubernetes 是通过一个叫作 CNI 的接口，维护了一个单独的网桥�
 
 flannel的vxlan模式中，在kubernetes环境里，docker0网桥会替换成cni网桥：
 
-![](./flannel_vxlan_cni.png)
+![](images/flannel_vxlan_cni.png)
 
 在这里，Kubernetes 为 Flannel 分配的子网范围是 10.244.0.0/16
 
@@ -474,7 +474,7 @@ default via 10.168.0.1 dev eth0
 ```
 
 ### udp模式
-![](./flannel_udp.png)
+![](images/flannel_udp.png)
 
 1. 首先ip包会通过docker0出现在宿主机上，接着会匹配宿主机上的第二条路由，从而把包交给虚拟网卡flannel0处理，然后这个包由内核态（网卡设备）流向用户态（宿主机上的flanneld进程）
 
@@ -493,7 +493,7 @@ $ dockerd --bip=$FLANNEL_SUBNET ...
 ```
 
 #### udp模式下ip包用户态与内核态之间的数据拷贝
-![](./flannel_udp_tun.png)
+![](images/flannel_udp_tun.png)
 
 第一次：用户态的容器进程发出的 IP 包经过 docker0 网桥进入内核态；
 
@@ -508,7 +508,7 @@ $ dockerd --bip=$FLANNEL_SUBNET ...
 ### vxlan模式 
 vxlan，即virtual extensible lan（虚拟可扩展网），是linux内核本身就支持的一种网络，所以vxlan可以完全在内核态上实现上述的封装和解封装的工作
 
-![](./flannel_vxlan.png)
+![](images/flannel_vxlan.png)
 
 1. 每台宿主机上叫flannel.1的设备就是vxlan所需的vtep（VXLAN Tunnel End Point 虚拟隧道端点）设备，它既有ip地址也有mac地址。 container-1 的 IP 地址是 10.1.15.2，要访问的 container-2 的 IP 地址是 10.1.16.3。
 
@@ -544,12 +544,12 @@ $ bridge fdb show flannel.1 | grep 5e:f8:4f:00:e3:37
 发往我们前面提到的“目的 VTEP 设备”（MAC 地址是 5e:f8:4f:00:e3:37）的二层数据帧，应该通过 flannel.1 设备，发往 IP 地址为 10.168.0.3 的主机。显然，这台主机正是 Node 2，UDP 包要发往的目的地就找到了。
 
 最终的帧结构：  
-![](./flannel_vxlan_frame.png)
+![](images/flannel_vxlan_frame.png)
 
 8. 接下来，node1上的flannel.1设备就可以把这个数据帧从node1的eth0网卡发送到node2的eth0网卡，node2的内核网络栈发现这个数据帧中有vxlan header，并且VNI=1，所以linux内核会对他进行解包，拿到内部数据帧把它交给node2上的flannel.1设备。而flannel.1会进一步解包，取出原始ip包，最终会进入到container-2的network namespace
 
 ### host-gw模式
-![](./flannel_host-gw.png)
+![](images/flannel_host-gw.png)
 
 1. 当node1上infra-container-1访问node2上的infra-container2时，当设置flannel使用host-gw模式后，flanneld会在宿主机上创建一条规则，以node1为例：
 ```
@@ -577,7 +577,7 @@ Calico 项目提供的网络解决方案，与 Flannel 的 host-gw 模式，几�
 
 BGP 的全称是 Border Gateway Protocol，即：边界网关协议。它是一个 Linux 内核原生就支持的、专门用在大规模数据中心里维护不同的“自治系统”之间路由信息的、无中心的路由协议。
 
-![](./calico_bgp.png)
+![](images/calico_bgp.png)
 
 在这个图中，我们有两个自治系统（Autonomous System，简称为 AS）：AS 1 和 AS 2。而所谓的一个自治系统，指的是一个组织管辖下的所有 IP 网络和路由器的全体。但是，如果这样两个自治系统里的主机，要通过 IP 地址直接进行通信，我们就必须使用路由器把这两个自治系统连接起来。
 
@@ -598,7 +598,7 @@ BGP 的全称是 Border Gateway Protocol，即：边界网关协议。它是一�
 
 除了对路由信息的维护方式之外，Calico 项目与 Flannel 的 host-gw 模式的另一个不同之处，就是它不会在宿主机上创建任何网桥设备。
 
-![](./calico_working_principle.png)
+![](images/calico_working_principle.png)
 
 由于 Calico 没有使用 CNI 的网桥模式，Calico 的 CNI 插件还需要在宿主机上为每个容器的 Veth Pair 设备配置一条路由规则，用于接收传入的 IP 包。比如，宿主机 Node 2 上的 Container 4 对应的路由规则，如下所示：
 `10.233.2.3 dev cali5863f3 scope link`
@@ -612,7 +612,7 @@ BGP 的全称是 Border Gateway Protocol，即：边界网关协议。它是一�
 ### calico ipip模式
 当出现两台宿主机不在同一个网络,没办法通过二层网络把 IP 包发送到下一跳地址时需要开启ipip模式
 
-![](./calico_ipip.png)
+![](images/calico_ipip.png)
 
 1. 在 Calico 的 IPIP 模式下，Felix 进程在 Node 1 上添加的路由规则，会稍微不同，如下所示：
 `10.233.2.0/24 via 192.168.2.2 tunl0` 包会交给tunl0设备处理
