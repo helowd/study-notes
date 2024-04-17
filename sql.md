@@ -4,6 +4,12 @@
 <!-- vim-markdown-toc GFM -->
 
 * [介绍](#介绍)
+    * [sql分类](#sql分类)
+        * [DDL（Data Definition Language，数据定义语言）](#ddldata-definition-language数据定义语言)
+        * [DML（Data Manipulation Language，数据操纵语言）](#dmldata-manipulation-language数据操纵语言)
+        * [DCL（Data Control Language，数据控制语言）](#dcldata-control-language数据控制语言)
+        * [数据查询语言DQL（Data Query Language）](#数据查询语言dqldata-query-language)
+        * [特定语法：](#特定语法)
 * [nosql](#nosql)
 * [关系型数据库](#关系型数据库)
     * [数据类型](#数据类型)
@@ -58,22 +64,48 @@
 
 现实情况是，如果我们只使用标准SQL的核心功能，那么所有数据库通常都可以执行。不常用的SQL功能，不同的数据库支持的程度都不一样。而各个数据库支持的各自扩展的功能，通常我们把它们称之为“方言”。
 
-总的来说，SQL语言定义了这么几种操作数据库的能力：
+### sql分类
 
-DDL：Data Definition Language
+#### DDL（Data Definition Language，数据定义语言）
 
-DDL允许用户定义数据，也就是创建表、删除表、修改表结构这些操作。通常，DDL由数据库管理员执行。
+用来创建或者删除存储数据用的数据库以及数据库中的表等对象。DDL 包含以下几种指令。
 
-DML：Data Manipulation Language
+CREATE： 创建数据库和表等对象
 
-DML为用户提供添加、删除、更新数据的能力，这些是应用程序对数据库的日常操作。
+DROP： 删除数据库和表等对象
 
-DQL：Data Query Language
+ALTER： 修改数据库和表等对象的结构
 
-DQL允许用户查询数据，这也是通常最频繁的数据库日常操作。
+#### DML（Data Manipulation Language，数据操纵语言）
 
-语法特定：
+用来查询或者变更表中的记录。DML 包含以下几种指令。
 
+SELECT：查询表中的数据
+
+INSERT：向表中插入新数据
+
+UPDATE：更新表中的数据
+
+DELETE：删除表中的数据
+
+#### DCL（Data Control Language，数据控制语言）
+
+用来确认或者取消对数据库中的数据进行的变更。除此之外，还可以对RDBMS 的用户是否有权限操作数据库中的对象（数据库表等）进行设定。DCL 包含以下几种指令。
+
+COMMIT： 确认对数据库中的数据进行的变更
+
+ROLLBACK： 取消对数据库中的数据进行的变更
+
+GRANT： 赋予用户操作权限
+
+REVOKE： 取消用户的操作权限
+
+#### 数据查询语言DQL（Data Query Language）
+SELECT 查询表中数据
+
+这个较为好理解 即查询操作，以select关键字。各种简单查询，连接查询等 都属于DQL。
+
+#### 特定语法：
 SQL语言关键字不区分大小写！！！但是，针对不同的数据库，对于表名和列名，有的数据库区分大小写，有的数据库不区分大小写。同一个数据库，有的在Linux上区分大小写，有的在Windows上不区分大小写。
 
 所以，本教程约定：SQL关键字总是大写，以示突出，表名和列名均使用小写。
