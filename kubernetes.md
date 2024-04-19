@@ -919,15 +919,15 @@ lsmod | grep overlay
 ```
 
 ### 3. 安装容器运行时接口
-按照cri-dockerd GitHub仓库，cri-dockerd服务启动参数需要指定--pod-infra-container-image，设置systemctl enable --now
+按照cri-dockerd GitHub仓库，cri-dockerd服务启动参数需要指定--pod-infra-container-image registry.aliyuncs.com/google_containers/pause:3.9，设置systemctl enable --now
 
 ### 4. 安装kubeadm、kubelet、kubectl
 按照kubernetes官网，设置kubelet systemctl enable --now
 
 ### 5. 初始化master节点
-sudo kubeadm init --config kubeadm_init_config.yaml --upload-certs
+sudo kubeadm init --config kubeadm_init_config.yaml 
 
-重新上传证书：sudo kubeadm init phase upload-certs --upload-certs
+重新上传证书：kubeadm init phase upload-certs --upload-certs --config=SOME_YAML_FILE
 ```yaml
 apiVersion: kubeadm.k8s.io/v1beta3
 bootstrapTokens:
