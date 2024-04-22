@@ -17,6 +17,15 @@
         * [list列表](#list列表)
         * [tuple元组](#tuple元组)
         * [dict字典](#dict字典)
+            * [定义](#定义)
+            * [取值](#取值)
+            * [新增和修改](#新增和修改)
+            * [删除](#删除)
+            * [合并](#合并)
+            * [遍历key/value对](#遍历keyvalue对)
+            * [遍历key](#遍历key)
+            * [遍历value](#遍历value)
+            * [字典内置方法](#字典内置方法)
         * [set集合](#set集合)
         * [数据结构总结](#数据结构总结)
         * [可变与不可变](#可变与不可变)
@@ -243,13 +252,16 @@ list是一种有序的列表，可以随时添加和删除其中的元素，list
 
 示例：
 ```
+# 定义
 >>> classmates = ['Michael', 'Bob', 'Tracy']
 >>> classmates
 ['Michael', 'Bob', 'Tracy']
 
+# 获取列表元素总数
 >>> len(classmates)
 3
 
+# 取值
 >>> classmates[0]
 'Michael'
 >>> classmates[1]
@@ -260,6 +272,10 @@ list是一种有序的列表，可以随时添加和删除其中的元素，list
 Traceback (most recent call last):
   File "<stdin>", line 1, in <module>
 IndexError: list index out of range
+
+# 追加append：作为整体追加，类型不限
+k
+
 ```
 
 #### tuple元组
@@ -280,18 +296,145 @@ TypeError: 'tuple' object does not support item assignment
 ```
 
 #### dict字典
-Python内置了字典：dict的支持，dict全称dictionary，在其他语言中也称为map，使用键-值（key-value）存储，具有极快的查找速度。
+键值映射、无序、可变数据类型、key唯一天生去重、key必须是一个可hash对象（不可变数据类型，如字符串、数字、布尔值），value可以是任何数据类型
 
-示例：
+##### 定义
+```
+# 使用大括号 {} 来创建空字典
+emptyDict = {}
+
+# 也可以如此创建字典
+tinydict1 = { 'abc': 456 }
+tinydict2 = { 'abc': 123, 98.6: 37 }
+
+# 使用内建函数dict创建空字典 
+emptyDict = dict()
+
+# 打印字典
+print(emptyDict)
+ 
+# 查看字典的数量，key的数量
+print("Length:", len(emptyDict))
+ 
+# 查看类型
+print(type(emptyDict))
+```
+
+##### 取值
 ```
 >>> d = {'Michael': 95, 'Bob': 75, 'Tracy': 85}
 >>> d['Michael']
 95
 
-# dict提供get()方法，如果key不存在，可以返回None，或者自己指定的value
+# dict提供get()方法，如果key不存在，可以返回None，而不是报错，或者自己指定的value
 >>> d.get('Thomas')
 >>> d.get('Thomas', -1)
 -1
+```
+
+##### 新增和修改
+```
+# 如果key存在就是修改，否则就是新增
+dict[key] = values 
+```
+
+##### 删除
+```
+tinydict = {'Name': 'Runoob', 'Age': 7, 'Class': 'First'}
+ 
+del tinydict['Name'] # 删除键 'Name'
+tinydict.clear()     # 清空字典
+del tinydict         # 删除字典，del删除字典后字典将不再存在
+ 
+print ("tinydict['Age']: ", tinydict['Age'])
+print ("tinydict['School']: ", tinydict['School'])
+
+# 指定key删除
+dict.pop(key)
+
+# 默认删除最后一个元素
+dict.popitem()
+```
+
+##### 合并
+```
+# 将dict2合并到dict1
+dict1.update(dict2)
+
+# 将dict1与dict2合并生成一个新字典
+dict(dict1, **dict2)
+```
+
+##### 遍历key/value对
+```
+dict1 = {"a": "aa", "b": "bb", "c": "cc"}
+
+print(dict1.itmes())
+
+for item in dict1.items():
+    print(item)
+
+# 输出
+dict_items([("a", "aa"), ("b", "bb"), ("c", "cc")])
+("a", "aa")
+("b", "bb")
+("c", "cc")
+```
+
+##### 遍历key
+```
+print(dict1.keys())
+
+for key in dict1.keys():
+    print(key)
+
+# 输出
+dict_keys(["a", "b", "c"])
+a
+b
+c
+```
+
+##### 遍历value
+```
+print(dict1.values())
+
+for value in dcit1.values():
+    print(value)
+
+# 输出
+dict_values(["aa", "bb", "cc"])
+aa
+bb
+cc
+```
+
+##### 字典内置方法
+```
+1   dict.clear()
+删除字典内所有元素
+2   dict.copy()
+返回一个字典的浅复制
+3   dict.fromkeys()
+创建一个新字典，以序列seq中元素做字典的键，val为字典所有键对应的初始值
+4   dict.get(key, default=None)
+返回指定键的值，如果键不在字典中返回 default 设置的默认值
+5   key in dict
+如果键在字典dict里返回true，否则返回false
+6   dict.items()
+以列表返回一个视图对象
+7   dict.keys()
+返回一个视图对象
+8   dict.setdefault(key, default=None)
+和get()类似, 但如果键不存在于字典中，将会添加键并将值设为default
+9   dict.update(dict2)
+把字典dict2的键/值对更新到dict里
+10  dict.values()
+返回一个视图对象
+11  dict.pop(key[,default])
+删除字典 key（键）所对应的值，返回被删除的值。
+12  dict.popitem()
+返回并删除字典中的最后一对键和值。
 ```
 
 #### set集合
