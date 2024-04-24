@@ -1262,11 +1262,18 @@ cat file test
 # 用stdin取代键盘输入新建文件
 cat > catfile < ~/.bashrc
 
-# eof
+# eof覆盖方式（cat >>表示追加方式）
 cat > catfile << "eof" 
 > This is a test. 
 > OK now stop 
 > eof 
+
+#如果结束分解符EOF前有制表符或者空格，则EOF不会被当做结束分界符，只会继续被当做stdin来输入。
+而<<-就是为了解决这一问题：
+
+cat <<-EOF
+Hello,world!
+      EOF
 ```
 
 5. 屏蔽 stdout 和 stderr 

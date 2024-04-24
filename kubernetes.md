@@ -925,7 +925,7 @@ lsmod | grep overlay
 按照kubernetes官网，设置kubelet systemctl enable --now
 
 ### 5. 初始化master节点
-sudo kubeadm init --config kubeadm_init_config.yaml 
+sudo kubeadm init --config kubeadm_init_config.yaml --upload-certs
 
 重新上传证书：kubeadm init phase upload-certs --upload-certs --config=SOME_YAML_FILE
 ```yaml
