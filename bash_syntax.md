@@ -20,9 +20,9 @@
     * [浮点数比较](#浮点数比较)
     * [数值的进制](#数值的进制)
     * [位运算（pass）](#位运算pass)
-    * [逻辑运算（pass）](#逻辑运算pass)
-    * [赋值运算（pass）](#赋值运算pass)
-    * [求值运算（pass）](#求值运算pass)
+    * [逻辑运算](#逻辑运算)
+    * [赋值运算](#赋值运算)
+    * [求值运算](#求值运算)
 * [脚本入门](#脚本入门)
     * [shebang行](#shebang行)
     * [注释](#注释)
@@ -305,11 +305,76 @@ $ echo $((2#11111111))
 
 ### 位运算（pass）
 
-### 逻辑运算（pass）
+### 逻辑运算
+$((...))支持以下的逻辑运算符。
+```
+<：小于
+>：大于
+<=：小于或相等
+>=：大于或相等
+==：相等
+!=：不相等
+&&：逻辑与
+||：逻辑或
+!：逻辑否
+expr1?expr2:expr3：三元条件运算符。若表达式expr1的计算结果为非零值（算术真），则执行表达式expr2，否则执行表达式expr3。
+如果逻辑表达式为真，返回1，否则返回0。
 
-### 赋值运算（pass）
+$ echo $((3 > 2))
+1
+$ echo $(( (3 > 2) || (4 <= 1) ))
+1
+三元运算符执行一个单独的逻辑测试。它用起来类似于if/then/else语句。
 
-### 求值运算（pass）
+$ a=0
+$ echo $((a<1 ? 1 : 0))
+1
+$ echo $((a>1 ? 1 : 0))
+0
+上面例子中，第一个表达式为真时，返回第二个表达式的值，否则返回第三个表达式的值。
+```
+
+### 赋值运算
+算术表达式$((...))可以执行赋值运算。
+```
+$ echo $((a=1))
+1
+$ echo $a
+1
+上面例子中，a=1对变量a进行赋值。这个式子本身也是一个表达式，返回值就是等号右边的值。
+
+$((...))支持的赋值运算符，有以下这些。
+
+parameter = value：简单赋值。
+parameter += value：等价于parameter = parameter + value。
+parameter -= value：等价于parameter = parameter – value。
+parameter *= value：等价于parameter = parameter * value。
+parameter /= value：等价于parameter = parameter / value。
+parameter %= value：等价于parameter = parameter % value。
+parameter <<= value：等价于parameter = parameter << value。
+parameter >>= value：等价于parameter = parameter >> value。
+parameter &= value：等价于parameter = parameter & value。
+parameter |= value：等价于parameter = parameter | value。
+parameter ^= value：等价于parameter = parameter ^ value。
+下面是一个例子。
+
+$ foo=5
+$ echo $((foo*=2))
+10
+如果在表达式内部赋值，可以放在圆括号中，否则会报错。
+
+$ echo $(( a<1 ? (a+=1) : (a-=1) ))
+```
+
+### 求值运算
+逗号,在$((...))内部是求值运算符，执行前后两个表达式，并返回后一个表达式的值。
+```
+$ echo $((foo = 1 + 2, 3 * 4))
+12
+$ echo $foo
+3
+```
+上面例子中，逗号前后两个表达式都会执行，然后返回后一个表达式的值12。
 
 ## 脚本入门
 
@@ -536,6 +601,15 @@ if [[ "$INT" =~ ^-?[0-9]+$ ]]; then
 else
   echo "INT is not an integer." >&2
   exit 1
+fi
+```
+
+使用否定操作符!时，最好用圆括号确定转义的范围。
+```
+if !([ $INT -ge $MIN_VAL ] && [ $INT -le $MAX_VAL ]); then
+  echo "$INT is outside $MIN_VAL to $MAX_VAL."
+else
+  echo "$INT is in range."
 fi
 ```
 
