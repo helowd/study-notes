@@ -101,7 +101,17 @@
         * [argparse](#argparse)
     * [常用第三方模块](#常用第三方模块)
         * [requests](#requests)
-* [venv](#venv)
+* [面向对象编程](#面向对象编程)
+    * [类和实例](#类和实例)
+    * [访问限制](#访问限制)
+    * [继承和多态](#继承和多态)
+        * [静态语言vs动态语言](#静态语言vs动态语言)
+    * [获取对象信息](#获取对象信息)
+        * [type()获取对象类型](#type获取对象类型)
+        * [isinstance()判断class的类型](#isinstance判断class的类型)
+        * [使用dir()获得一个对象的所有属性和方法](#使用dir获得一个对象的所有属性和方法)
+        * [getattr()、setattr()以及hasattr()](#getattrsetattr以及hasattr)
+    * [实例属性和类属性](#实例属性和类属性)
 * [io编程](#io编程)
     * [文件读写](#文件读写)
         * [语法](#语法-1)
@@ -118,6 +128,30 @@
         * [shutil](#shutil)
     * [序列化](#序列化)
         * [json](#json)
+* [进程和线程](#进程和线程)
+    * [fork调用](#fork调用)
+    * [多进程](#多进程)
+        * [mutiprocessing跨平台的多进程模块](#mutiprocessing跨平台的多进程模块)
+        * [Pool进程池](#pool进程池)
+        * [subprocess外部子进程](#subprocess外部子进程)
+        * [进程间通信](#进程间通信)
+    * [多线程](#多线程)
+        * [Lock](#lock)
+        * [GIL问题](#gil问题)
+    * [ThreadLocal](#threadlocal)
+    * [进程vs线程](#进程vs线程)
+        * [线程切换](#线程切换)
+        * [计算密集型vsIO密集型](#计算密集型vsio密集型)
+        * [异步IO（协程）](#异步io协程)
+    * [分布式进程](#分布式进程)
+* [正则表达式](#正则表达式)
+    * [re模块](#re模块)
+        * [match()](#match)
+        * [切分字符串](#切分字符串)
+        * [分组](#分组)
+        * [贪婪匹配](#贪婪匹配)
+        * [编译](#编译)
+* [venv](#venv)
 
 <!-- vim-markdown-toc -->
 
@@ -1959,7 +1993,6 @@ ImportError: No module named mymodule
 ```
 
 默认情况下，python解释器会搜索当前目录、所有已安装的内置模块和第三方模块，搜索路径存放在sys模块的path变量中：
-
 ```
 >>> import sys
 >>> sys.path
@@ -2188,63 +2221,266 @@ requests对Cookie做了特殊处理，使得我们不必解析Cookie就可以轻
 >>> r = requests.get(url, timeout=2.5) # 2.5秒后超时
 ```
 
-## venv
-在开发Python应用程序的时候，系统安装的Python3只有一个版本：3.10。所有第三方的包都会被pip安装到Python3的site-packages目录下。
+## 面向对象编程
+面向对象最重要的概念就是类（Class）和实例（Instance），必须牢记类是抽象的模板，比如Student类，而实例是根据类创建出来的一个个具体的“对象”，每个对象都拥有相同的方法，但各自的数据可能不同。
 
-如果我们要同时开发多个应用程序，那这些应用程序都会共用一个Python，就是安装在系统的Python 3。如果应用A需要jinja 2.7，而应用B需要jinja 2.6怎么办？
+### 类和实例
+```
+# 定义类
+class Student(object):  # 该类继承object类
+    pass
 
-这种情况下，每个应用可能需要各自拥有一套“独立”的Python运行环境。venv就是用来为一个应用创建一套“隔离”的Python运行环境。
+# 创建实例
+>>> bart = Student()  # 创建实例是通过类名+()实现的
+>>> bart
+<__main__.Student object at 0x10a67a590>
+>>> Student
+<class '__main__.Student'>  # Student本身是一个类
 
-首先，我们假定要开发一个新的项目project101，需要一套独立的Python运行环境，可以这么做：
+# 可以自由的给一个实例变量绑定属性
+>>> bart.name = 'Bart Simpson'
+>>> bart.name
+'Bart Simpson'
 
-第一步，创建目录，这里把venv命名为proj101env，因此目录名为proj101env：
-```
-~$ mkdir proj101env
-~$ cd proj101env/
-proj101env$
-```
-第二步，创建一个独立的Python运行环境：
-```
-proj101env$ python3 -m venv .
-```
-查看当前目录，可以发现有几个文件夹和一个pyvenv.cfg文件：
-```
-proj101env$ ls
-bin  include  lib  pyvenv.cfg
-```
-命令python3 -m venv <目录>就可以创建一个独立的Python运行环境。观察bin目录的内容，里面有python3、pip3等可执行文件，实际上是链接到Python系统目录的软链接。
+# 特殊方法__init__方法
+class Student(object):
+    
+    def __init__(self, name, socre):  # __init__方法的第一个参数永远是self，表示创建的实例本身，因此在__init__方法内部就可以把各种属性绑定到self，因为self就指向创建的实例本身
+        self.name = name
+        self.score = score
 
-继续进入bin目录，Linux/Mac用source activate，Windows用activate.bat激活该venv环境：
-```
-proj101env$ cd bin
-bin$ source activate
-(proj101env) bin$
-```
-注意到命令提示符变了，有个(proj101env)前缀，表示当前环境是一个名为proj101env的Python环境。
+# 有了__init__方法，创建实例的时候就不能传入空的参数，必须传入与__init__方法匹配的参数，但self不需要传，python解释器自己会把实例变量传进去
+>>> bart = Student('Bart Simpson', 59)
+>>> bart.name
+'Bart Simpson'
+>>> bart.score
+59
 
-下面正常安装各种第三方包，并运行python命令：
+# 和普通的函数相比，在类中定义的函数只有一点不同，就是第一个参数永远是实例变量self，并且，调用时，不用传递该参数。除此之外，类的方法和普通函数没有什么区别，所以，你仍然可以用默认参数、可变参数、关键字参数和命名关键字参数。
+
+# 数据封装
+class Student(object):
+
+    def __init__(self, name, score):
+        self.name = name
+        self.score = score
+
+    def print_score(self):
+        print('%s: %s' % (self.name, self.score))
+
+# 调用类中的方法
+>>> bart.print_score()
+Bart Simpson: 59
 ```
-(proj101env) bin$ pip3 install jinja2
+
+### 访问限制
+如果要让内部属性不被外部访问，可以把属性的名称前加上两个下划线__，在Python中，实例的变量名如果以__开头，就变成了一个私有变量（private），只有内部可以访问，外部不能访问
+```
+class Student(object):
+
+    def __init__(self, name, score):
+        self.__name = name
+        self.__score = score
+
+    def print_score(self):
+        print('%s: %s' % (self.__name, self.__score))
+```
+
+可以通过增加方法来访问类的私有属性
+```
+class Student(object):
+    ...
+
+    def get_name(self):
+        return self.__name
+
+    def get_score(self):
+        return self.__score
+```
+
+增加方法来从外部修改私有属性
+```
+class Student(object):
+    ...
+
+    def set_score(self, score):
+        self.__score = score
+```
+
+### 继承和多态
+在OOP程序设计中，当我们定义一个class的时候，可以从某个现有的class继承，新的class称为子类（Subclass），而被继承的class称为基类、父类或超类（Base class、Super class）。子类获得了父类的全部功能
+```
+# 父类Animal
+class Animal(object):
+    def run(self):
+        print('Animal is running...')
+
+# 编写Dog和Cat类继承Animal
+class Dog(Animal):
+    pass
+
+class Cat(Animal):
+    pass
+
+# 子类调用父类中的方法
+dog = Dog()
+dog.run()
+
+cat = Cat()
+cat.run()
+
+# 多态：当子类和父类都存在相同的run()方法时，我们说，子类的run()覆盖了父类的run()，在代码运行的时候，总是会调用子类的run()
+class Dog(Animal):
+
+    def run(self):
+        print('Dog is running...')
+
+class Cat(Animal):
+
+    def run(self):
+        print('Cat is running...')
+
+# 开闭原则：
+# 对扩展开放：允许新增Animal子类；
+# 对修改封闭：不需要修改依赖Animal类型的run_twice()等函数。
+```
+
+#### 静态语言vs动态语言
+对于静态语言（例如Java）来说，如果需要传入Animal类型，则传入的对象必须是Animal类型或者它的子类，否则，将无法调用run()方法。
+
+对于Python这样的动态语言来说，则不一定需要传入Animal类型。我们只需要保证传入的对象有一个run()方法就可以了：
+```
+class Timer(object):
+    def run(self):
+        print('Start...')
+```
+这就是动态语言的“鸭子类型”，它并不要求严格的继承体系，一个对象只要“看起来像鸭子，走起路来像鸭子”，那它就可以被看做是鸭子。
+
+Python的“file-like object“就是一种鸭子类型。对真正的文件对象，它有一个read()方法，返回其内容。但是，许多对象，只要有read()方法，都被视为“file-like object“。许多函数接收的参数就是“file-like object“，你不一定要传入真正的文件对象，完全可以传入任何实现了read()方法的对象。
+
+### 获取对象信息
+
+#### type()获取对象类型
+```
+>>> type(123)
+<class 'int'>
+>>> type('str')
+<class 'str'>
+>>> type(None)
+<type(None) 'NoneType'>
+
+>>> type(abs)
+<class 'builtin_function_or_method'>
+>>> type(a)
+<class '__main__.Animal'>
+
+>>> type(123)==type(456)
+True
+>>> type(123)==int
+True
+>>> type('abc')==type('123')
+True
+>>> type('abc')==str
+True
+>>> type('abc')==type(123)
+False
+```
+
+#### isinstance()判断class的类型
+```
+# 继承关系
+object -> Animal -> Dog -> Husky
+
+>>> a = Animal()
+>>> d = Dog()
+>>> h = Husky()
+
+>>> isinstance(h, Husky)
+True
+
+>>> isinstance(h, Dog)
+True
+
+>>> isinstance('a', str)
+True
+>>> isinstance(123, int)
+True
+>>> isinstance(b'a', bytes)
+True
+
+总是优先使用isinstance()判断类型，可以将指定类型及其子类“一网打尽”。
+```
+
+#### 使用dir()获得一个对象的所有属性和方法
+```
+>>> dir('ABC')
+['__add__', '__class__',..., '__subclasshook__', 'capitalize', 'casefold',..., 'zfill']
+
+# 类似__xxx__的属性和方法在Python中都是有特殊用途的，比如__len__方法返回长度。在Python中，如果你调用len()函数试图获取一个对象的长度，实际上，在len()函数内部，它自动去调用该对象的__len__()方法，所以，下面的代码是等价的：
+
+>>> len('ABC')
+3
+>>> 'ABC'.__len__()
+3
+```
+
+#### getattr()、setattr()以及hasattr()
+```
+>>> class MyObject(object):
+...     def __init__(self):
+...         self.x = 9
+...     def power(self):
+...         return self.x * self.x
 ...
-Successfully installed jinja2-xxx
-(proj101env) bin$ python3
->>> import jinja2
->>> exit()
+>>> obj = MyObject()
+
+>>> hasattr(obj, 'x') # 有属性'x'吗？
+True
+>>> obj.x
+9
+>>> hasattr(obj, 'y') # 有属性'y'吗？
+False
+>>> setattr(obj, 'y', 19) # 设置一个属性'y'
+>>> hasattr(obj, 'y') # 有属性'y'吗？
+True
+>>> getattr(obj, 'y') # 获取属性'y'
+19
+>>> obj.y # 获取属性'y'
+19
 ```
-在venv环境下，用pip安装的包都被安装到proj101env这个环境下，具体目录是proj101env/lib/python3.x/site-packages，因此，系统Python环境不受任何影响。也就是说，proj101env环境是专门针对project101这个应用创建的。
 
-退出当前的proj101env环境，使用deactivate命令：
+### 实例属性和类属性
 ```
-(proj101env) bin$ deactivate
-bin$
+# 给实例绑定属性
+class Student(object):
+    def __init__(self, name):
+        self.name = name
+
+s = Student('Bob')
+s.score = 90
+
+# 类属性
+class Student(object):
+    name = 'Student'
+
+# 当我们定义了一个类属性后，这个属性虽然归类所有，但类的所有实例都可以访问到。来测试一下：
+>>> class Student(object):
+...     name = 'Student'
+...
+>>> s = Student() # 创建实例s
+>>> print(s.name) # 打印name属性，因为实例并没有name属性，所以会继续查找class的name属性
+Student
+>>> print(Student.name) # 打印类的name属性
+Student
+>>> s.name = 'Michael' # 给实例绑定name属性
+>>> print(s.name) # 由于实例属性优先级比类属性高，因此，它会屏蔽掉类的name属性
+Michael
+>>> print(Student.name) # 但是类属性并未消失，用Student.name仍然可以访问
+Student
+>>> del s.name # 如果删除实例的name属性
+>>> print(s.name) # 再次调用s.name，由于实例的name属性没有找到，类的name属性就显示出来了
+Student
 ```
-此时就回到了正常的环境，现在pip或python均是在系统Python环境下执行。
-
-完全可以针对每个应用创建独立的Python运行环境，这样就可以对每个应用的Python环境进行隔离。
-
-venv是如何创建“独立”的Python运行环境的呢？原理很简单，就是把系统Python链接或复制一份到venv的环境，用命令source activate进入一个venv环境时，venv会修改相关环境变量，让命令python和pip均指向当前的venv环境。
-
-如果不再使用某个venv，例如proj101env，删除它也很简单。首先确认该venv没有处于“激活”状态，然后直接把整个目录proj101env删掉就行。
 
 ## io编程
 
@@ -2659,3 +2895,650 @@ def dict2student(d):
 >>> print(json.loads(json_str, object_hook=dict2student))
 <__main__.Student object at 0x10cd3c190>
 ```
+
+## 进程和线程
+
+### fork调用
+Unix/Linux操作系统提供了一个fork()系统调用，它非常特殊。普通的函数调用，调用一次，返回一次，但是fork()调用一次，返回两次，因为操作系统自动把当前进程（称为父进程）复制了一份（称为子进程），然后，分别在父进程和子进程内返回。
+
+子进程永远返回0，而父进程返回子进程的ID。这样做的理由是，一个父进程可以fork出很多子进程，所以，父进程要记下每个子进程的ID，而子进程只需要调用getppid()就可以拿到父进程的ID。
+
+Python的os模块封装了常见的系统调用，其中就包括fork，可以在Python程序中轻松创建子进程：
+```
+import os
+
+print('Process (%s) start...' % os.getpid())
+# Only works on Unix/Linux/Mac:
+pid = os.fork()
+if pid == 0:
+    print('I am child process (%s) and my parent is %s.' % (os.getpid(), os.getppid()))
+else:
+    print('I (%s) just created a child process (%s).' % (os.getpid(), pid))
+
+# 输出
+Process (876) start...
+I (876) just created a child process (877).
+I am child process (877) and my parent is 876.
+```
+有了fork调用，一个进程在接到新任务时就可以复制出一个子进程来处理新任务，常见的Apache服务器就是由父进程监听端口，每当有新的http请求时，就fork出子进程来处理新的http请求。
+
+### 多进程
+ 
+#### mutiprocessing跨平台的多进程模块
+multiprocessing模块提供了一个Process类来代表一个进程对象，下面的例子演示了启动一个子进程并等待其结束：
+```
+from multiprocessing import Process
+import os
+
+# 子进程要执行的代码
+def run_proc(name):
+    print('Run child process %s (%s)...' % (name, os.getpid()))
+
+if __name__=='__main__':
+    print('Parent process %s.' % os.getpid())
+    p = Process(target=run_proc, args=('test',))
+    print('Child process will start.')
+    p.start()  # start()方法启动子进程
+    p.join()  # join()方法等待子进程结束后再继续往下运行
+    print('Child process end.')
+
+# 输出
+Parent process 928.
+Child process will start.
+Run child process test (929)...
+Process end.
+```
+
+#### Pool进程池
+如果要启动大量的子进程，可以用进程池的方式批量创建子进程：
+```
+from multiprocessing import Pool
+import os, time, random
+
+def long_time_task(name):
+    print('Run task %s (%s)...' % (name, os.getpid()))
+    start = time.time()
+    time.sleep(random.random() * 3)
+    end = time.time()
+    print('Task %s runs %0.2f seconds.' % (name, (end - start)))
+
+if __name__=='__main__':
+    print('Parent process %s.' % os.getpid())
+    p = Pool(4)  # 表示最多同时执行4个进程
+    for i in range(5):
+        p.apply_async(long_time_task, args=(i,))
+    print('Waiting for all subprocesses done...')
+    p.close()  # 调用close()之后就不能继续添加新的Process了
+    p.join()  # 等待所有子进程执行完毕
+    print('All subprocesses done.')
+
+# 输出
+Parent process 669.
+Waiting for all subprocesses done...
+Run task 0 (671)...
+Run task 1 (672)...
+Run task 2 (673)...
+Run task 3 (674)...
+Task 2 runs 0.14 seconds.
+Run task 4 (673)...
+Task 1 runs 0.27 seconds.
+Task 3 runs 0.86 seconds.
+Task 0 runs 1.41 seconds.
+Task 4 runs 1.91 seconds.
+All subprocesses done.
+```
+
+#### subprocess外部子进程
+很多时候，子进程并不是自身，而是一个外部进程。我们创建了子进程后，还需要控制子进程的输入和输出。
+
+subprocess模块可以让我们非常方便地启动一个子进程，然后控制其输入和输出。
+
+下面的例子演示了如何在Python代码中运行命令nslookup www.python.org，这和命令行直接运行的效果是一样的：
+```
+import subprocess
+
+print('$ nslookup www.python.org')
+r = subprocess.call(['nslookup', 'www.python.org'])
+print('Exit code:', r)
+
+# 输出
+$ nslookup www.python.org
+Server:     192.168.19.4
+Address:    192.168.19.4#53
+
+Non-authoritative answer:
+www.python.org  canonical name = python.map.fastly.net.
+Name:   python.map.fastly.net
+Address: 199.27.79.223
+
+Exit code: 0
+```
+如果子进程还需要输入，则可以通过communicate()方法输入：
+```
+import subprocess
+
+print('$ nslookup')
+p = subprocess.Popen(['nslookup'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+output, err = p.communicate(b'set q=mx\npython.org\nexit\n')
+print(output.decode('utf-8'))
+print('Exit code:', p.returncode)
+
+# 相当于执行nslookup后再输入
+set q=mx
+python.org
+exit
+```
+
+#### 进程间通信 
+Process之间肯定是需要通信的，操作系统提供了很多机制来实现进程间的通信。Python的multiprocessing模块包装了底层的机制，提供了Queue、Pipes等多种方式来交换数据。
+
+我们以Queue为例，在父进程中创建两个子进程，一个往Queue里写数据，一个从Queue里读数据：
+```
+from multiprocessing import Process, Queue
+import os, time, random
+
+# 写数据进程执行的代码:
+def write(q):
+    print('Process to write: %s' % os.getpid())
+    for value in ['A', 'B', 'C']:
+        print('Put %s to queue...' % value)
+        q.put(value)
+        time.sleep(random.random())
+
+# 读数据进程执行的代码:
+def read(q):
+    print('Process to read: %s' % os.getpid())
+    while True:
+        value = q.get(True)
+        print('Get %s from queue.' % value)
+
+if __name__=='__main__':
+    # 父进程创建Queue，并传给各个子进程：
+    q = Queue()
+    pw = Process(target=write, args=(q,))
+    pr = Process(target=read, args=(q,))
+    # 启动子进程pw，写入:
+    pw.start()
+    # 启动子进程pr，读取:
+    pr.start()
+    # 等待pw结束:
+    pw.join()
+    # pr进程里是死循环，无法等待其结束，只能强行终止:
+    pr.terminate()
+
+# 输出
+Process to write: 50563
+Put A to queue...
+Process to read: 50564
+Get A from queue.
+Put B to queue...
+Get B from queue.
+Put C to queue...
+Get C from queue.
+```
+
+在Unix/Linux下，multiprocessing模块封装了fork()调用，使我们不需要关注fork()的细节。由于Windows没有fork调用，因此，multiprocessing需要“模拟”出fork的效果，父进程所有Python对象都必须通过pickle序列化再传到子进程去，所以，如果multiprocessing在Windows下调用失败了，要先考虑是不是pickle失败了。
+
+### 多线程
+Python的标准库提供了两个模块：_thread和threading，_thread是低级模块，threading是高级模块，对_thread进行了封装。绝大多数情况下，我们只需要使用threading这个高级模块。
+
+启动一个线程就是把一个函数传入并创建Thread实例，然后调用start()开始执行：
+```
+import time, threading
+
+# 新线程执行的代码:
+def loop():
+    print('thread %s is running...' % threading.current_thread().name)
+    n = 0
+    while n < 5:
+        n = n + 1
+        print('thread %s >>> %s' % (threading.current_thread().name, n))
+        time.sleep(1)
+    print('thread %s ended.' % threading.current_thread().name)
+
+print('thread %s is running...' % threading.current_thread().name)
+t = threading.Thread(target=loop, name='LoopThread')
+t.start()
+t.join()
+print('thread %s ended.' % threading.current_thread().name)
+
+# 输出
+thread MainThread is running...
+thread LoopThread is running...
+thread LoopThread >>> 1
+thread LoopThread >>> 2
+thread LoopThread >>> 3
+thread LoopThread >>> 4
+thread LoopThread >>> 5
+thread LoopThread ended.
+thread MainThread ended.
+```
+由于任何进程默认就会启动一个线程，我们把该线程称为主线程，主线程又可以启动新的线程，Python的threading模块有个current_thread()函数，它永远返回当前线程的实例。主线程实例的名字叫MainThread，子线程的名字在创建时指定，我们用LoopThread命名子线程。名字仅仅在打印时用来显示，完全没有其他意义，如果不起名字Python就自动给线程命名为Thread-1，Thread-2……
+
+#### Lock
+多线程和多进程最大的不同在于，多进程中，同一个变量，各自有一份拷贝存在于每个进程中，互不影响，而多线程中，所有变量都由所有线程共享，所以，任何一个变量都可以被任何一个线程修改，因此，线程之间共享数据最大的危险在于多个线程同时改一个变量，把内容给改乱了。
+```
+import time, threading
+
+# 假定这是你的银行存款:
+balance = 0
+
+def change_it(n):
+    # 先存后取，结果应该为0:
+    global balance
+    balance = balance + n
+    balance = balance - n
+
+def run_thread(n):
+    for i in range(2000000):
+        change_it(n)
+
+t1 = threading.Thread(target=run_thread, args=(5,))
+t2 = threading.Thread(target=run_thread, args=(8,))
+t1.start()
+t2.start()
+t1.join()
+t2.join()
+print(balance)
+
+# 加锁
+balance = 0
+lock = threading.Lock()
+
+def run_thread(n):
+    for i in range(100000):
+        # 先要获取锁:
+        lock.acquire()
+        try:
+            # 放心地改吧:
+            change_it(n)
+        finally:
+            # 改完了一定要释放锁:
+            lock.release()
+```
+
+#### GIL问题
+试试用Python写个死循环：
+```
+import threading, multiprocessing
+
+def loop():
+    x = 0
+    while True:
+        x = x ^ 1
+
+for i in range(multiprocessing.cpu_count()):
+    t = threading.Thread(target=loop)
+    t.start()
+```
+启动与CPU核心数量相同的N个线程，在4核CPU上可以监控到CPU占用率仅有102%，也就是仅使用了一核。
+
+但是用C、C++或Java来改写相同的死循环，直接可以把全部核心跑满，4核就跑到400%，8核就跑到800%，为什么Python不行呢？
+
+因为Python的线程虽然是真正的线程，但解释器执行代码时，有一个GIL锁：Global Interpreter Lock，任何Python线程执行前，必须先获得GIL锁，然后，每执行100条字节码，解释器就自动释放GIL锁，让别的线程有机会执行。这个GIL全局锁实际上把所有线程的执行代码都给上了锁，所以，多线程在Python中只能交替执行，即使100个线程跑在100核CPU上，也只能用到1个核。
+
+GIL是Python解释器设计的历史遗留问题，通常我们用的解释器是官方实现的CPython，要真正利用多核，除非重写一个不带GIL的解释器。
+
+所以，在Python中，可以使用多线程，但不要指望能有效利用多核。如果一定要通过多线程利用多核，那只能通过C扩展来实现，不过这样就失去了Python简单易用的特点。
+
+不过，也不用过于担心，Python虽然不能利用多线程实现多核任务，但可以通过多进程实现多核任务。多个Python进程有各自独立的GIL锁，互不影响。
+
+### ThreadLocal
+```
+import threading
+    
+# 创建全局ThreadLocal对象:
+local_school = threading.local()
+
+def process_student():
+    # 获取当前线程关联的student:
+    std = local_school.student
+    print('Hello, %s (in %s)' % (std, threading.current_thread().name))
+
+def process_thread(name):
+    # 绑定ThreadLocal的student:
+    local_school.student = name
+    process_student()
+
+t1 = threading.Thread(target= process_thread, args=('Alice',), name='Thread-A')
+t2 = threading.Thread(target= process_thread, args=('Bob',), name='Thread-B')
+t1.start()
+t2.start()
+t1.join()
+t2.join()
+
+# 输出
+Hello, Alice (in Thread-A)
+Hello, Bob (in Thread-B)
+```
+全局变量local_school就是一个ThreadLocal对象，每个Thread对它都可以读写student属性，但互不影响。你可以把local_school看成全局变量，但每个属性如local_school.student都是线程的局部变量，可以任意读写而互不干扰，也不用管理锁的问题，ThreadLocal内部会处理。
+
+可以理解为全局变量local_school是一个dict，不但可以用local_school.student，还可以绑定其他变量，如local_school.teacher等等。
+
+ThreadLocal最常用的地方就是为每个线程绑定一个数据库连接，HTTP请求，用户身份信息等，这样一个线程的所有调用到的处理函数都可以非常方便地访问这些资源。
+
+### 进程vs线程
+多进程模式最大的优点就是稳定性高，因为一个子进程崩溃了，不会影响主进程和其他子进程。（当然主进程挂了所有进程就全挂了，但是Master进程只负责分配任务，挂掉的概率低）著名的Apache最早就是采用多进程模式。
+
+多进程模式的缺点是创建进程的代价大，在Unix/Linux系统下，用fork调用还行，在Windows下创建进程开销巨大。另外，操作系统能同时运行的进程数也是有限的，在内存和CPU的限制下，如果有几千个进程同时运行，操作系统连调度都会成问题。
+
+多线程模式通常比多进程快一点，但是也快不到哪去，而且，多线程模式致命的缺点就是任何一个线程挂掉都可能直接造成整个进程崩溃，因为所有线程共享进程的内存。在Windows上，如果一个线程执行的代码出了问题，你经常可以看到这样的提示：“该程序执行了非法操作，即将关闭”，其实往往是某个线程出了问题，但是操作系统会强制结束整个进程。
+
+#### 线程切换
+无论是多进程还是多线程，只要数量一多，效率肯定上不去，操作系统在切换进程或者线程时也是一样的，它需要先保存当前执行的现场环境（CPU寄存器状态、内存页等），然后，把新任务的执行环境准备好（恢复上次的寄存器状态，切换内存页等），才能开始执行。这个切换过程虽然很快，但是也需要耗费时间。如果有几千个任务同时进行，操作系统可能就主要忙着切换任务，根本没有多少时间去执行任务了，这种情况最常见的就是硬盘狂响，点窗口无反应，系统处于假死状态。
+
+所以，多任务一旦多到一个限度，就会消耗掉系统所有的资源，结果效率急剧下降，所有任务都做不好。
+
+#### 计算密集型vsIO密集型
+计算密集型（适合多进程）：任务的特点是要进行大量的计算，消耗CPU资源，比如计算圆周率、对视频进行高清解码等等，全靠CPU的运算能力。这种计算密集型任务虽然也可以用多任务完成，但是任务越多，花在任务切换的时间就越多，CPU执行任务的效率就越低，所以，要最高效地利用CPU，计算密集型任务同时进行的数量应当等于CPU的核心数。
+
+计算密集型任务由于主要消耗CPU资源，因此，代码运行效率至关重要。Python这样的脚本语言运行效率很低，完全不适合计算密集型任务。对于计算密集型任务，最好用C语言编写。
+
+IO密集型（适合多线程）：涉及到网络、磁盘IO的任务都是IO密集型任务，这类任务的特点是CPU消耗很少，任务的大部分时间都在等待IO操作完成（因为IO的速度远远低于CPU和内存的速度）。对于IO密集型任务，任务越多，CPU效率越高，但也有一个限度。常见的大部分任务都是IO密集型任务，比如Web应用。
+
+IO密集型任务执行期间，99%的时间都花在IO上，花在CPU上的时间很少，因此，用运行速度极快的C语言替换用Python这样运行速度极低的脚本语言，完全无法提升运行效率。对于IO密集型任务，最合适的语言就是开发效率最高（代码量最少）的语言，脚本语言是首选，C语言最差。
+
+#### 异步IO（协程）
+如果充分利用操作系统提供的异步IO支持，就可以用单进程单线程模型来执行多任务，这种全新的模型称为事件驱动模型，Nginx就是支持异步IO的Web服务器，它在单核CPU上采用单进程模型就可以高效地支持多任务。在多核CPU上，可以运行多个进程（数量与CPU核心数相同），充分利用多核CPU。由于系统总的进程数量十分有限，因此操作系统调度非常高效。用异步IO编程模型来实现多任务是一个主要的趋势。
+
+对应到Python语言，单线程的异步编程模型称为协程，有了协程的支持，就可以基于事件驱动编写高效的多任务程序。我们会在后面讨论如何编写协程。
+
+### 分布式进程
+在Thread和Process中，应当优选Process，因为Process更稳定，而且，Process可以分布到多台机器上，而Thread最多只能分布到同一台机器的多个CPU上。
+
+Python的multiprocessing模块不但支持多进程，其中managers子模块还支持把多进程分布到多台机器上。一个服务进程可以作为调度者，将任务分布到其他多个进程中，依靠网络通信。由于managers模块封装很好，不必了解网络通信的细节，就可以很容易地编写分布式多进程程序。
+
+举个例子：如果我们已经有一个通过Queue通信的多进程程序在同一台机器上运行，现在，由于处理任务的进程任务繁重，希望把发送任务的进程和处理任务的进程分布到两台机器上。怎么用分布式进程实现？
+
+原有的Queue可以继续使用，但是，通过managers模块把Queue通过网络暴露出去，就可以让其他机器的进程访问Queue了。
+
+我们先看服务进程，服务进程负责启动Queue，把Queue注册到网络上，然后往Queue里面写入任务：
+```
+# task_master.py
+
+import random, time, queue
+from multiprocessing.managers import BaseManager
+
+# 发送任务的队列:
+task_queue = queue.Queue()
+# 接收结果的队列:
+result_queue = queue.Queue()
+
+# 从BaseManager继承的QueueManager:
+class QueueManager(BaseManager):
+    pass
+
+# 把两个Queue都注册到网络上, callable参数关联了Queue对象:
+QueueManager.register('get_task_queue', callable=lambda: task_queue)
+QueueManager.register('get_result_queue', callable=lambda: result_queue)
+# 绑定端口5000, 设置验证码'abc':
+manager = QueueManager(address=('', 5000), authkey=b'abc')
+# 启动Queue:
+manager.start()
+# 获得通过网络访问的Queue对象:
+task = manager.get_task_queue()
+result = manager.get_result_queue()
+# 放几个任务进去:
+for i in range(10):
+    n = random.randint(0, 10000)
+    print('Put task %d...' % n)
+    task.put(n)
+# 从result队列读取结果:
+print('Try get results...')
+for i in range(10):
+    r = result.get(timeout=10)
+    print('Result: %s' % r)
+# 关闭:
+manager.shutdown()
+print('master exit.')
+```
+请注意，当我们在一台机器上写多进程程序时，创建的Queue可以直接拿来用，但是，在分布式多进程环境下，添加任务到Queue不可以直接对原始的task_queue进行操作，那样就绕过了QueueManager的封装，必须通过manager.get_task_queue()获得的Queue接口添加。
+
+然后，在另一台机器上启动任务进程（本机上启动也可以）：
+```
+# task_worker.py
+
+import time, sys, queue
+from multiprocessing.managers import BaseManager
+
+# 创建类似的QueueManager:
+class QueueManager(BaseManager):
+    pass
+
+# 由于这个QueueManager只从网络上获取Queue，所以注册时只提供名字:
+QueueManager.register('get_task_queue')
+QueueManager.register('get_result_queue')
+
+# 连接到服务器，也就是运行task_master.py的机器:
+server_addr = '127.0.0.1'
+print('Connect to server %s...' % server_addr)
+# 端口和验证码注意保持与task_master.py设置的完全一致:
+m = QueueManager(address=(server_addr, 5000), authkey=b'abc')
+# 从网络连接:
+m.connect()
+# 获取Queue的对象:
+task = m.get_task_queue()
+result = m.get_result_queue()
+# 从task队列取任务,并把结果写入result队列:
+for i in range(10):
+    try:
+        n = task.get(timeout=1)
+        print('run task %d * %d...' % (n, n))
+        r = '%d * %d = %d' % (n, n, n*n)
+        time.sleep(1)
+        result.put(r)
+    except Queue.Empty:
+        print('task queue is empty.')
+# 处理结束:
+print('worker exit.')
+```
+任务进程要通过网络连接到服务进程，所以要指定服务进程的IP。
+
+现在，可以试试分布式进程的工作效果了。先启动task_master.py服务进程：
+```
+$ python3 task_master.py 
+Put task 3411...
+Put task 1605...
+Put task 1398...
+Put task 4729...
+Put task 5300...
+Put task 7471...
+Put task 68...
+Put task 4219...
+Put task 339...
+Put task 7866...
+Try get results...
+```
+task_master.py进程发送完任务后，开始等待result队列的结果。现在启动task_worker.py进程：
+```
+$ python3 task_worker.py
+Connect to server 127.0.0.1...
+run task 3411 * 3411...
+run task 1605 * 1605...
+run task 1398 * 1398...
+run task 4729 * 4729...
+run task 5300 * 5300...
+run task 7471 * 7471...
+run task 68 * 68...
+run task 4219 * 4219...
+run task 339 * 339...
+run task 7866 * 7866...
+worker exit.
+```
+task_worker.py进程结束，在task_master.py进程中会继续打印出结果：
+```
+Result: 3411 * 3411 = 11634921
+Result: 1605 * 1605 = 2576025
+Result: 1398 * 1398 = 1954404
+Result: 4729 * 4729 = 22363441
+Result: 5300 * 5300 = 28090000
+Result: 7471 * 7471 = 55815841
+Result: 68 * 68 = 4624
+Result: 4219 * 4219 = 17799961
+Result: 339 * 339 = 114921
+Result: 7866 * 7866 = 61873956
+```
+这个简单的Master/Worker模型有什么用？其实这就是一个简单但真正的分布式计算，把代码稍加改造，启动多个worker，就可以把任务分布到几台甚至几十台机器上，比如把计算n*n的代码换成发送邮件，就实现了邮件队列的异步发送。
+
+## 正则表达式
+
+### re模块
+Python提供re模块，包含所有正则表达式的功能。由于Python的字符串本身也用\转义，所以要特别注意：
+```
+s = 'ABC\\-001' # Python的字符串
+# 对应的正则表达式字符串变成：
+# 'ABC\-001'
+```
+因此我们强烈建议使用Python的r前缀，就不用考虑转义的问题了：
+```
+s = r'ABC\-001' # Python的字符串
+# 对应的正则表达式字符串不变：
+# 'ABC\-001'
+```
+
+#### match()
+```
+>>> import re
+>>> re.match(r'^\d{3}\-\d{3,8}$', '010-12345')
+<_sre.SRE_Match object; span=(0, 9), match='010-12345'>
+>>> re.match(r'^\d{3}\-\d{3,8}$', '010 12345')
+>>>
+```
+match()方法判断是否匹配，如果匹配成功，返回一个Match对象，否则返回None。常见的判断方法就是：
+```
+test = '用户输入的字符串'
+if re.match(r'正则表达式', test):
+    print('ok')
+else:
+    print('failed')
+```
+
+#### 切分字符串
+用正则表达式切分字符串比用固定的字符更灵活，请看正常的切分代码：
+```
+>>> 'a b   c'.split(' ')
+['a', 'b', '', '', 'c']
+```
+嗯，无法识别连续的空格，用正则表达式试试：
+```
+>>> re.split(r'\s+', 'a b   c')
+['a', 'b', 'c']
+```
+无论多少个空格都可以正常分割。加入,试试：
+```
+>>> re.split(r'[\s\,]+', 'a,b, c  d')
+['a', 'b', 'c', 'd']
+```
+再加入;试试：
+```
+>>> re.split(r'[\s\,\;]+', 'a,b;; c  d')
+['a', 'b', 'c', 'd']
+```
+如果用户输入了一组标签，下次记得用正则表达式来把不规范的输入转化成正确的数组。
+
+#### 分组
+```
+# 匹配区号和本地号码
+>>> m = re.match(r'^(\d{3})-(\d{3,8})$', '010-12345')
+>>> m
+<_sre.SRE_Match object; span=(0, 9), match='010-12345'>
+>>> m.group(0)  # group(0)永远是与整个正则表达式相匹配的字符串
+'010-12345'
+>>> m.group(1)  # group(1)表示第一个字串
+'010'
+>>> m.group(2)
+'12345'
+```
+
+#### 贪婪匹配
+正则匹配默认是贪婪匹配，也就是匹配尽可能多的字符。举例如下，匹配出数字后面的0：
+```
+>>> re.match(r'^(\d+)(0*)$', '102300').groups()
+('102300', '')
+```
+由于\d+采用贪婪匹配，直接把后面的0全部匹配了，结果0*只能匹配空字符串了。
+
+必须让\d+采用非贪婪匹配（也就是尽可能少匹配），才能把后面的0匹配出来，加个?就可以让\d+采用非贪婪匹配：
+```
+>>> re.match(r'^(\d+?)(0*)$', '102300').groups()
+('1023', '00')
+```
+
+#### 编译
+当我们在Python中使用正则表达式时，re模块内部会干两件事情：
+
+编译正则表达式，如果正则表达式的字符串本身不合法，会报错；
+
+用编译后的正则表达式去匹配字符串。
+
+如果一个正则表达式要重复使用几千次，出于效率的考虑，我们可以预编译该正则表达式，接下来重复使用时就不需要编译这个步骤了，直接匹配：
+```
+>>> import re
+# 编译:
+>>> re_telephone = re.compile(r'^(\d{3})-(\d{3,8})$')
+# 使用：
+>>> re_telephone.match('010-12345').groups()
+('010', '12345')
+>>> re_telephone.match('010-8086').groups()
+('010', '8086')
+```
+编译后生成Regular Expression对象，由于该对象自己包含了正则表达式，所以调用对应的方法时不用给出正则字符串。
+
+## venv
+在开发Python应用程序的时候，系统安装的Python3只有一个版本：3.10。所有第三方的包都会被pip安装到Python3的site-packages目录下。
+
+如果我们要同时开发多个应用程序，那这些应用程序都会共用一个Python，就是安装在系统的Python 3。如果应用A需要jinja 2.7，而应用B需要jinja 2.6怎么办？
+
+这种情况下，每个应用可能需要各自拥有一套“独立”的Python运行环境。venv就是用来为一个应用创建一套“隔离”的Python运行环境。
+
+首先，我们假定要开发一个新的项目project101，需要一套独立的Python运行环境，可以这么做：
+
+第一步，创建目录，这里把venv命名为proj101env，因此目录名为proj101env：
+```
+~$ mkdir proj101env
+~$ cd proj101env/
+proj101env$
+```
+第二步，创建一个独立的Python运行环境：
+```
+proj101env$ python3 -m venv .
+```
+查看当前目录，可以发现有几个文件夹和一个pyvenv.cfg文件：
+```
+proj101env$ ls
+bin  include  lib  pyvenv.cfg
+```
+命令python3 -m venv <目录>就可以创建一个独立的Python运行环境。观察bin目录的内容，里面有python3、pip3等可执行文件，实际上是链接到Python系统目录的软链接。
+
+继续进入bin目录，Linux/Mac用source activate，Windows用activate.bat激活该venv环境：
+```
+proj101env$ cd bin
+bin$ source activate
+(proj101env) bin$
+```
+注意到命令提示符变了，有个(proj101env)前缀，表示当前环境是一个名为proj101env的Python环境。
+
+下面正常安装各种第三方包，并运行python命令：
+```
+(proj101env) bin$ pip3 install jinja2
+...
+Successfully installed jinja2-xxx
+(proj101env) bin$ python3
+>>> import jinja2
+>>> exit()
+```
+在venv环境下，用pip安装的包都被安装到proj101env这个环境下，具体目录是proj101env/lib/python3.x/site-packages，因此，系统Python环境不受任何影响。也就是说，proj101env环境是专门针对project101这个应用创建的。
+
+退出当前的proj101env环境，使用deactivate命令：
+```
+(proj101env) bin$ deactivate
+bin$
+```
+此时就回到了正常的环境，现在pip或python均是在系统Python环境下执行。
+
+完全可以针对每个应用创建独立的Python运行环境，这样就可以对每个应用的Python环境进行隔离。
+
+venv是如何创建“独立”的Python运行环境的呢？原理很简单，就是把系统Python链接或复制一份到venv的环境，用命令source activate进入一个venv环境时，venv会修改相关环境变量，让命令python和pip均指向当前的venv环境。
+
+如果不再使用某个venv，例如proj101env，删除它也很简单。首先确认该venv没有处于“激活”状态，然后直接把整个目录proj101env删掉就行。
+
