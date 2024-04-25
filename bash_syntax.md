@@ -41,9 +41,9 @@
     * [case结构](#case结构)
 * [循环](#循环)
     * [while循环](#while循环)
-    * [示例](#示例)
     * [until循环](#until循环)
     * [for...in循环](#forin循环)
+    * [使用seq命令](#使用seq命令)
     * [for循环（C语言）](#for循环c语言)
     * [break, continue](#break-continue)
     * [select结构](#select结构)
@@ -623,7 +623,7 @@ while condition; do
 done
 ```
 
-### 示例
+示例
 ```bash
 #!/bin/bash
 
@@ -669,6 +669,14 @@ done
 ```bash
 for i in word1 word2 word3; do
   echo $i
+done
+```
+
+### 使用seq命令
+示例：
+```bash
+for i in $(seq 1 5); do
+    echo $i
 done
 ```
 

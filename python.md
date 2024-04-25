@@ -12,6 +12,7 @@
         * [输出](#输出)
         * [输入](#输入)
     * [数据类型和变量](#数据类型和变量)
+        * [python中下划线的含义](#python中下划线的含义)
     * [格式化](#格式化)
     * [内置四种数据结构](#内置四种数据结构)
         * [可变与不可变](#可变与不可变)
@@ -112,6 +113,18 @@
         * [使用dir()获得一个对象的所有属性和方法](#使用dir获得一个对象的所有属性和方法)
         * [getattr()、setattr()以及hasattr()](#getattrsetattr以及hasattr)
     * [实例属性和类属性](#实例属性和类属性)
+* [面向对象高级编程（todo）](#面向对象高级编程todo)
+    * [使用__slots__](#使用__slots__)
+    * [使用@property](#使用property)
+    * [多重继承](#多重继承)
+    * [定制类](#定制类)
+    * [使用枚举类型](#使用枚举类型)
+    * [使用元类](#使用元类)
+* [错误、调试和测试](#错误调试和测试)
+    * [错误处理](#错误处理)
+        * [异常继承关系](#异常继承关系)
+        * [记录错误](#记录错误)
+        * [raise抛出错误](#raise抛出错误)
 * [io编程](#io编程)
     * [文件读写](#文件读写)
         * [语法](#语法-1)
@@ -293,10 +306,17 @@ print(b)  # 打印ABC
 精确除法：10 / 3，会得到浮点数，即使恰好整除  
 地板除：10 // 3，会得到整数
 
-
 Python支持多种数据类型，在计算机内部，可以把任何数据都看成一个“对象”，而变量就是在程序中用来指向这些数据对象的，对变量赋值就是把数据和变量给关联起来。
 
 对变量赋值x = y是把变量x指向真正的对象，该对象是变量y所指向的。随后对变量y的赋值不影响变量x的指向。
+
+#### python中下划线的含义
+![](images/python_underline.jpg)
+
+单下划线开头的属性或方法称之为保护方法或保护属性，和普通实例方法没有太大区别  
+双下划线开头称之为私有成员。python中的私有其实是一种伪私有，就是把双下划线开头的变量改了个名字( _类名__变量名)，双下划线前缀会导致Python解释器重写属性名称，以避免子类中的命名冲突  
+
+双下线开头双下划线结尾都是python的内置方法或属性
 
 ### 格式化
 在Python中，采用的格式化方式和C语言是一致的，用%实现，举例如下：
@@ -2307,6 +2327,12 @@ class Student(object):
         self.__score = score
 ```
 
+双下划线开头的实例变量是不是一定不能从外部访问呢？其实也不是。不能直接访问__name是因为Python解释器对外把__name变量改成了_Student__name，所以，仍然可以通过_Student__name来访问__name变量：
+```
+>>> bart._Student__name
+'Bart Simpson'
+```
+
 ### 继承和多态
 在OOP程序设计中，当我们定义一个class的时候，可以从某个现有的class继承，新的class称为子类（Subclass），而被继承的class称为基类、父类或超类（Base class、Super class）。子类获得了父类的全部功能
 ```
@@ -2481,6 +2507,229 @@ Student
 >>> print(s.name) # 再次调用s.name，由于实例的name属性没有找到，类的name属性就显示出来了
 Student
 ```
+
+## 面向对象高级编程（todo）
+
+### 使用__slots__
+
+### 使用@property
+
+### 多重继承
+
+### 定制类
+
+### 使用枚举类型
+
+### 使用元类
+
+## 错误、调试和测试
+
+### 错误处理
+```
+try:
+    print('try...')
+    r = 10 / 0
+    print('result:', r)
+except ZeroDivisionError as e:
+    print('except:', e)
+finally:
+    print('finally...')
+print('END')
+```
+当我们认为某些代码可能会出错时，就可以用try来运行这段代码，如果执行出错，则后续代码不会继续执行，而是直接跳转至错误处理代码，即except语句块，执行完except后，如果有finally语句块，则执行finally语句块，至此，执行完毕。
+
+此外，如果没有错误发生，可以在except语句块后面加一个else，当没有错误发生时，会自动执行else语句：
+```
+try:
+    print('try...')
+    r = 10 / int('2')
+    print('result:', r)
+except ValueError as e:
+    print('ValueError:', e)
+except ZeroDivisionError as e:
+    print('ZeroDivisionError:', e)
+else:
+    print('no error!')
+finally:
+    print('finally...')
+print('END')
+```
+
+Python的错误其实也是class，所有的错误类型都继承自BaseException，所以在使用except时需要注意的是，它不但捕获该类型的错误，还把其子类也“一网打尽”。比如：
+```
+try:
+    foo()
+except ValueError as e:
+    print('ValueError')
+except UnicodeError as e:
+    print('UnicodeError')
+```
+第二个except永远也捕获不到UnicodeError，因为UnicodeError是ValueError的子类，如果有，也被第一个except给捕获了。
+
+使用try...except捕获错误还有一个巨大的好处，就是可以跨越多层调用，比如函数main()调用bar()，bar()调用foo()，结果foo()出错了，这时，只要main()捕获到了，就可以处理：
+```
+def foo(s):
+    return 10 / int(s)
+
+def bar(s):
+    return foo(s) * 2
+
+def main():
+    try:
+        bar('0')
+    except Exception as e:
+        print('Error:', e)
+    finally:
+        print('finally...')
+```
+也就是说，不需要在每个可能出错的地方去捕获错误，只要在合适的层次去捕获错误就可以了。这样一来，就大大减少了写try...except...finally的麻烦。
+
+#### 异常继承关系
+```
+BaseException
+ ├── BaseExceptionGroup
+ ├── GeneratorExit
+ ├── KeyboardInterrupt
+ ├── SystemExit
+ └── Exception
+      ├── ArithmeticError
+      │    ├── FloatingPointError
+      │    ├── OverflowError
+      │    └── ZeroDivisionError
+      ├── AssertionError
+      ├── AttributeError
+      ├── BufferError
+      ├── EOFError
+      ├── ExceptionGroup [BaseExceptionGroup]
+      ├── ImportError
+      │    └── ModuleNotFoundError
+      ├── LookupError
+      │    ├── IndexError
+      │    └── KeyError
+      ├── MemoryError
+      ├── NameError
+      │    └── UnboundLocalError
+      ├── OSError
+      │    ├── BlockingIOError
+      │    ├── ChildProcessError
+      │    ├── ConnectionError
+      │    │    ├── BrokenPipeError
+      │    │    ├── ConnectionAbortedError
+      │    │    ├── ConnectionRefusedError
+      │    │    └── ConnectionResetError
+      │    ├── FileExistsError
+      │    ├── FileNotFoundError
+      │    ├── InterruptedError
+      │    ├── IsADirectoryError
+      │    ├── NotADirectoryError
+      │    ├── PermissionError
+      │    ├── ProcessLookupError
+      │    └── TimeoutError
+      ├── ReferenceError
+      ├── RuntimeError
+      │    ├── NotImplementedError
+      │    └── RecursionError
+      ├── StopAsyncIteration
+      ├── StopIteration
+      ├── SyntaxError
+      │    └── IndentationError
+      │         └── TabError
+      ├── SystemError
+      ├── TypeError
+      ├── ValueError
+      │    └── UnicodeError
+      │         ├── UnicodeDecodeError
+      │         ├── UnicodeEncodeError
+      │         └── UnicodeTranslateError
+      └── Warning
+           ├── BytesWarning
+           ├── DeprecationWarning
+           ├── EncodingWarning
+           ├── FutureWarning
+           ├── ImportWarning
+           ├── PendingDeprecationWarning
+           ├── ResourceWarning
+           ├── RuntimeWarning
+           ├── SyntaxWarning
+           ├── UnicodeWarning
+           └── UserWarning
+```
+
+#### 记录错误
+如果不捕获错误，自然可以让Python解释器来打印出错误堆栈，但程序也被结束了。既然我们能捕获错误，就可以把错误堆栈打印出来，然后分析错误原因，同时，让程序继续执行下去。
+
+Python内置的logging模块可以非常容易地记录错误信息：
+```
+# err_logging.py
+
+import logging
+
+def foo(s):
+    return 10 / int(s)
+
+def bar(s):
+    return foo(s) * 2
+
+def main():
+    try:
+        bar('0')
+    except Exception as e:
+        logging.exception(e)
+
+main()
+print('END')
+```
+
+同样是出错，但程序打印完错误信息后会继续执行，并正常退出：
+```
+$ python3 err_logging.py
+ERROR:root:division by zero
+Traceback (most recent call last):
+  File "err_logging.py", line 13, in main
+    bar('0')
+  File "err_logging.py", line 9, in bar
+    return foo(s) * 2
+  File "err_logging.py", line 6, in foo
+    return 10 / int(s)
+ZeroDivisionError: division by zero
+END
+```
+
+#### raise抛出错误
+如果要抛出错误，首先根据需要，可以定义一个错误的class，选择好继承关系，然后，用raise语句抛出一个错误的实例：
+```
+# err_raise.py
+class FooError(ValueError):
+    pass
+
+def foo(s):
+    n = int(s)
+    if n==0:
+        raise FooError('invalid value: %s' % s)
+    return 10 / n
+
+foo('0')
+```
+执行，可以最后跟踪到我们自己定义的错误：
+```
+$ python3 err_raise.py 
+Traceback (most recent call last):
+  File "err_throw.py", line 11, in <module>
+    foo('0')
+  File "err_throw.py", line 8, in foo
+    raise FooError('invalid value: %s' % s)
+__main__.FooError: invalid value: 0
+```
+只有在必要的时候才定义我们自己的错误类型。如果可以选择Python已有的内置的错误类型（比如ValueError，TypeError），尽量使用Python内置的错误类型。
+
+raise语句如果不带参数，就会把当前错误原样抛出。此外，在except中raise一个Error，还可以把一种类型的错误转化成另一种类型：
+```
+try:
+    10 / 0
+except ZeroDivisionError:
+    raise ValueError('input error!')
+```
+只要是合理的转换逻辑就可以，但是，决不应该把一个IOError转换成毫不相干的ValueError。
 
 ## io编程
 

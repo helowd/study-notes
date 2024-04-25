@@ -45,7 +45,7 @@ ctrl+w+j 移到下方窗口
 ctrl+w+k 移到上方窗口
 ```
 
-### 自用vim匹配
+### 自用vim配置
 ```
 set nobackup
 set noundofile
