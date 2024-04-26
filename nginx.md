@@ -16,15 +16,16 @@
 * [在讲Nginx之前](#在讲nginx之前)
     * [同步与异步](#同步与异步)
     * [阻塞与非阻塞](#阻塞与非阻塞)
-* [nginx概述](#nginx概述)
+* [概述](#概述)
     * [LNMP架构图](#lnmp架构图)
-* [nginx架构](#nginx架构)
-    * [kill -HUP pid / nginx -s reload原理](#kill--hup-pid--nginx--s-reload原理)
+* [tengine安装](#tengine安装)
+* [架构](#架构)
+    * [kill -s SIGHUP pid / nginx -s reload原理](#kill--s-sighup-pid--nginx--s-reload原理)
     * [epoll模型](#epoll模型)
     * [为什么Nginx比其他Web服务器并发高](#为什么nginx比其他web服务器并发高)
         * [上下文切换介绍](#上下文切换介绍)
         * [为什么推荐设置worker个数为cpu核数](#为什么推荐设置worker个数为cpu核数)
-* [nginx基本概念](#nginx基本概念)
+* [基本概念](#基本概念)
     * [connection](#connection)
         * [最大连接数](#最大连接数)
         * [连接是如何在多个worker中分配的](#连接是如何在多个worker中分配的)
@@ -32,19 +33,33 @@
     * [keepalive](#keepalive)
     * [pipe](#pipe)
     * [lingering_close](#lingering_close)
-* [nginx的配置系统](#nginx的配置系统)
+* [配置系统](#配置系统)
     * [指令概述](#指令概述)
     * [指令参数](#指令参数)
     * [指令上下文](#指令上下文)
     * [示例配置](#示例配置)
-* [nginx的模块体系结构](#nginx的模块体系结构)
+* [模块体系结构](#模块体系结构)
     * [模块概述](#模块概述)
     * [模块的分类](#模块的分类)
-    * [nginx的请求处理](#nginx的请求处理)
+    * [请求处理](#请求处理)
     * [请求的处理流程](#请求的处理流程)
-* [nginx健康检查机制](#nginx健康检查机制)
-* [nginx实际应用](#nginx实际应用)
-    * [nginx常用命令](#nginx常用命令)
+* [健康检查机制](#健康检查机制)
+* [可观测性](#可观测性)
+    * [关键指标](#关键指标)
+        * [基本活动指标](#基本活动指标)
+            * [告警指标：连接断开](#告警指标连接断开)
+            * [告警指标：每秒请求](#告警指标每秒请求)
+        * [错误指标](#错误指标)
+            * [告警指标：服务器错误率](#告警指标服务器错误率)
+            * [收集错误指标](#收集错误指标)
+        * [性能指标](#性能指标)
+        * [反向代理指标](#反向代理指标)
+            * [活动指标](#活动指标)
+            * [错误指标](#错误指标-1)
+            * [可用性指标](#可用性指标)
+            * [收集上游指标](#收集上游指标)
+* [实际应用](#实际应用)
+    * [常用命令](#常用命令)
     * [http反向代理](#http反向代理)
     * [https反向代理](#https反向代理)
     * [负载均衡](#负载均衡)
@@ -205,17 +220,43 @@ PHP 这个软体提供给Apache 使用的模组！这也是我们能否在Apache
 阻塞：调用在发出去之后，在消息返回之前，当前进/线程会被挂起，直到有消息返回，当前进/线程才会被激活。  
 非阻塞：调用在发出去后，不会阻塞当前进/线程，而会立即返回。
 
-## nginx概述
+## 概述
 nginx是一款轻量级web服务器/反向代理服务器以及电子邮件（IMAP/POP3）代理服务器，在BSD-like协议下发行。特点是占有内存少，并发能力强。第一个公开版本发布于2004-10-4
 
 ### LNMP架构图
 ![](images/LNMP_arch.png)
 
-## nginx架构
+## tengine安装
+源码家目录下的auto/options目录记录了哪些模块是编译时默认加载的（YES），modules目录下包含了tengine自己的模块，可以在编译时通过--add-module modules/module_name来安装
+
+编译安装完成时的输出：
+```
+Configuration summary
+  + using system PCRE library
+  + using system OpenSSL library
+  + using system zlib library
+  + jemalloc library is disabled
+
+  nginx path prefix: "/usr/local/nginx"
+  nginx binary file: "/usr/local/nginx/sbin/nginx"
+  nginx modules path: "/usr/local/nginx/modules"
+  nginx configuration prefix: "/usr/local/nginx/conf"
+  nginx configuration file: "/usr/local/nginx/conf/nginx.conf"
+  nginx pid file: "/usr/local/nginx/logs/nginx.pid"
+  nginx error log file: "/usr/local/nginx/logs/error.log"
+  nginx http access log file: "/usr/local/nginx/logs/access.log"
+  nginx http client request body temporary files: "client_body_temp"
+  nginx http proxy temporary files: "proxy_temp"
+  nginx http fastcgi temporary files: "fastcgi_temp"
+  nginx http uwsgi temporary files: "uwsgi_temp"
+  nginx http scgi temporary files: "scgi_temp"
+```
+
+## 架构
 nginx在启动后，会有一个master进程和多个woker进程。master进程主要用来管理worker进程，包含：接收来自外界的信号，向各worker进程发送信号，监控worker进程的运行状态，当woker进程退出后（异常情况下），会自动重新启动新的worker进程。而基本的网络事件，则是放在了worker进程中来处理了。多个worker进程之间是对等的，他们同等竞争来自客户端的请求，各进程互相之间是独立的。一个请求，只可能在一个worker进程中处理，一个worker进程，不可能处理其他进程的请求。woker进程的个数是可以设置的，一般我们会设置与cpu核数一致，这里面的原因与nginx的进程模型以及事件处理模型是分不开的。nginx的进程模型，可以由下图来表示：   
 ![](images/nginx_arch.png)  
 
-### kill -HUP pid / nginx -s reload原理
+### kill -s SIGHUP pid / nginx -s reload原理
 首先master进程在接收到信号后，会先重新加载配置文件，然后再启动新的worker进程，并向所有老的worker进程发送信号，告诉他们可以光荣退休了。新的worker再启动后，就开始接收新的请求，而老的worker在收到来自master的信号后，就不再接收新的请求，并在当前进程中的所有未处理完的请求处理完后，再退出。
 
 Apache同步阻塞，Nginx异步非阻塞
@@ -241,7 +282,7 @@ Nginx配置use epool后，以异步非阻塞方式工作，能够轻松处理百
 #### 为什么推荐设置worker个数为cpu核数
 更多的worker数，只会导致进程来竞争cpu资源，从而带来不必要的上下文切换。而且，nginx为了更好的利用多核特性，提供了cpu亲缘性的绑定选项，我们可以将某一个进程绑定再某一个核上，这样就不会因为进程的切换带来cache的失效。像这种小的优化在nginx中非常常见，同时也说明了nginx作者的苦心孤诣。比如，nginx在做4个字节的字符串比较时，会将4个字符转换成一个int型，再作比较，以减少cpu的指令数等等。
 
-## nginx基本概念
+## 基本概念
 
 ### connection
 在nginx中connection就是对tcp连接的封装，其中包括连接的socket，读事件，写事件。利用nginx封装的connection，我们可以很方便的使用nginx来处理与连接相关的事情，比如，建立连接，发送与接受数据等。而nginx中的http请求的处理就是建立在connection之上的，所以nginx不仅可以作为一个web服务器，也可以作为邮件服务器。当然，利用nginx提供的connection，我们可以与任何后端服务打交道。
@@ -301,7 +342,7 @@ lingering_close，字面意思就是延迟关闭，也就是说，当nginx要关
 
 在上面这个场景中，我们可以看到，关键点是服务端给客户端发送了RST包，导致自己发送的数据在客户端忽略掉了。所以，解决问题的重点是，让服务端别发RST包。再想想，我们发送RST是因为我们关掉了连接，关掉连接是因为我们不想再处理此连接了，也不会有任何数据产生了。对于全双工的TCP连接来说，我们只需要关掉写就行了，读可以继续进行，我们只需要丢掉读到的任何数据就行了，这样的话，当我们关掉连接后，客户端再发过来的数据，就不会再收到RST了。当然最终我们还是需要关掉这个读端的，所以我们会设置一个超时时间，在这个时间过后，就关掉读，客户端再发送数据来就不管了，作为服务端我会认为，都这么长时间了，发给你的错误信息也应该读到了，再慢就不关我事了，要怪就怪你RP不好了。当然，正常的客户端，在读取到数据后，会关掉连接，此时服务端就会在超时时间内关掉读端。这些正是lingering_close所做的事情。协议栈提供 SO_LINGER 这个选项，它的一种配置情况就是来处理lingering_close的情况的，不过nginx是自己实现的lingering_close。lingering_close存在的意义就是来读取剩下的客户端发来的数据，所以nginx会有一个读超时时间，通过lingering_timeout选项来设置，如果在lingering_timeout时间内还没有收到数据，则直接关掉连接。nginx还支持设置一个总的读取时间，通过lingering_time来设置，这个时间也就是nginx在关闭写之后，保留socket的时间，客户端需要在这个时间内发送完所有的数据，否则nginx在这个时间过后，会直接关掉连接。当然，nginx是支持配置是否打开lingering_close选项的，通过lingering_close选项来配置。 那么，我们在实际应用中，是否应该打开lingering_close呢？这个就没有固定的推荐值了，如Maxim Dounin所说，lingering_close的主要作用是保持更好的客户端兼容性，但是却需要消耗更多的额外资源（比如连接会一直占着）。
 
-## nginx的配置系统
+## 配置系统
 nginx的配置系统由一个主配置文件和其他一些辅助的配置文件构成。这些配置文件均是纯文本文件，全部位于nginx安装目录下的conf目录下。
 
 配置文件中以#开始的行，或者是前面有若干空格或者TAB，然后再跟#的行，都被认为是注释，也就是只对编辑查看文件的用户有意义，程序在读取这些注释行的时候，其实际的内容是被忽略的。
@@ -430,7 +471,7 @@ root
 当然，这里只是一些示例。具体有哪些配置指令，以及这些配置指令可以出现在什么样的上下文中，需要参考nginx的使用文档。
 ```
 
-## nginx的模块体系结构
+## 模块体系结构
 nginx的内部结构是由核心部分和一系列的功能模块所组成。这样划分是为了使得每个模块的功能相对简单，便于开发，同时也便于对系统进行功能扩展。为了便于描述，下文中我们将使用nginx core来称呼nginx的核心功能部分。
 
 nginx提供了web服务器的基础功能，同时提供了web服务反向代理，email服务反向代理功能。nginx core实现了底层的通讯协议，为其他模块和nginx进程构建了基本的运行时环境，并且构建了其他各模块的协作基础。除此之外，或者说大部分与协议相关的，或者应用相关的功能都是在这些模块中所实现的。
@@ -452,7 +493,7 @@ upstream:   upstream模块实现反向代理的功能，将真正的请求转发
 load-balancer:  负载均衡模块，实现特定的算法，在众多的后端服务器中，选择一个服务器出来作为某个请求的转发服务器。
 ```
 
-### nginx的请求处理
+### 请求处理
 nginx使用一个多进程模型来对外提供服务，其中一个master进程，多个worker进程。master进程负责管理nginx本身和其他worker进程。
 
 所有实际上的业务处理逻辑都在worker进程。worker进程中有一个函数，执行无限循环，不断处理收到的来自客户端的请求，并进行处理，直到整个nginx服务被停止。
@@ -543,14 +584,81 @@ postpone:   这个filter是负责subrequest的，也就是子请求的。
 copy:   将一些需要复制的buf(文件或者内存)重新复制一份然后交给剩余的body filter处理。
 ```
 
-## nginx健康检查机制
-
+## 健康检查机制
 https://mp.weixin.qq.com/s/VyWfY6ad0gW9mmMonJ69bQ
 
+## 可观测性
 
-## nginx实际应用
+### 关键指标
+通过监控 Nginx ，您可以发现两类问题：1、 Nginx 本身资源问题，2、Web 基础结构中其他地方的开发问题。大多数 Nginx 用户将从监控中受益的一些指标包括 requests per second（每秒请求数），它提供了最终用户活动组合的高级视图； server error rate（服务器错误率），它指代您的服务器请求处理失败或失效在总请求中占的比率；和 request processing time（请求处理时间），它描述您的服务器处理客户端请求所花费的时间（这可能表明环境中请求速度变慢或其他问题）。
 
-### nginx常用命令
+一般来说，至少要注意三个关键类别的指标：
+
+基本活动指标
+
+错误指标
+
+性能指标
+
+#### 基本活动指标
+Accepts（接受），Handled（处理）和 Requests（请求）会随着计数器不断增加。Active（活动），Waiting（等待），Reading（读）和 Writing（写）随请求量的变化而变化。
+
+##### 告警指标：连接断开
+已 Dropped（丢弃）的连接数等于accept（接收）和 handled（处理）之间的差值，或者直接可以用 Nginx Plus提供的指标。在正常情况下，断开的连接应为零。如果您每单位时间断开连接的速率开始上升，请寻找导致资源饱和状态可能的因素。
+
+##### 告警指标：每秒请求
+以固定的时间间隔采样请求数据(Nginx 开源版本的 Requests，或 Nginx Plus中的 Total )可以为您提供每单位时间内接收的请求数量——通常是分钟或秒。监控这个指标可以提醒你进入的网络流量的峰值，无论合法或恶意的，还是突然的下降，这通常代表欧着存在问题。每秒请求的剧烈变化可以提醒您环境中某个地方正在发生的问题，虽然它并不能确切地告诉您这些问题发生在哪里。注意，所有的请求都会被记数，不管它们的 url 是什么。
+
+#### 错误指标
+通过nginx日志或者nginx plus
+
+4xx  客户端错误计数，例如“ 403 Forbidden”或“ 404 Not Found” 
+
+5xx 码  服务器错误计数，例如“ 500 Internal Server Error”或“ 502 Bad Gateway”
+
+##### 告警指标：服务器错误率
+您的服务器错误率等于每单位时间（通常为 1 到 5 分钟）的 5xx 错误数（例如“ 502 Bad Gateway”）除以请求总数（包含 1xx，2xx，3xx，4xx，5xx）。如果您的错误率随着时间而开始攀升，则可能需要进行调查。如果突然增加，则可能需要采取紧急措施，因为客户端可能会向最终用户报告错误。
+
+关于客户端错误的注释：4xx 更多的代表客户端的错误，而且从 4xx 中获取的信息是有限的，因为它更多的代表客户端异常，并不能提供具体对特定 URL 的了解。换句话说，4xx 的变化可能是噪音，例如，Web 扫描程序盲目地寻找漏洞。
+
+##### 收集错误指标 
+尽管开源 Nginx 不会直接提供可用于可观测性的错误率，但是至少有两种方法可以捕获该信息：
+
+1. 使用商业支持的 Nginx Plus 随附的扩展状态模块
+
+2. 配置 Nginx 的日志模块，在访问日志中写入响应代码
+
+#### 性能指标
+请求时间    处理每个请求的时间，以秒为单位
+
+Nginx 记录的请求时间度量记录了每个请求的处理时间，从读取第一个客户端字节到完成请求。较长的响应时间可能指向上游也就是服务器端的响应问题。
+
+Nginx 和 Nginx Plus 用户可以通过将 $request_time 变量添加到访问日志格式来捕获处理时间的数据。
+
+#### 反向代理指标
+```
+名称                                   描述    指标类型    Availability
+上游服务器的活跃连接    当前活跃的客户端连接    Resource：利用率    Nginx Plus
+上游服务器产生的 5xx 状态码 服务器端错误    Work：错误数量  Nginx Plus
+每个上游可用的服务器组  通过健康检查的服务器    Resource：Availability  Nginx Plus
+```
+Nginx Plus 首先按组细分上游的指标，然后按单个服务器细分。因此，例如您的反向代理将请求分配给五个上游 Web 服务器，则可以一眼看出这些单独的服务器中是否有服务器超负荷运转，以及上游服务器组中是否有足够多的健康服务器来确保良好的响应时间。
+
+##### 活动指标
+每个上游服务器的活动连接数可以帮助您验证反向代理是否在服务器组中正确的分配了工作。如果您将 Nginx 用作负载均衡，若任何一台服务器处理的连接数存在显著偏差，可能表明该服务器正在努力及时处理请求，或者您所配置的负载平衡方法(例如轮询或 IP 散列)对您的流量模式来说还存在优化空间。
+
+##### 错误指标
+回顾一下上面的错误指标部分，诸如“ 502 错误的网关”或“ 503服务暂时不可用”之类的 5xx（服务器错误）代码是一个值得监控的指标，尤其是在总响应代码中所占的比例。 Nginx Plus 可以使您轻松获取每个上游服务器 5xx 状态码的数量，以及响应总数量，以确定具体服务器的错误率。
+
+##### 可用性指标
+对于 Web 服务器的运行状况的另一个视角， Nginx 还可以使您可以通过以下方式轻松地监控上游组的运行状况： 每个组中当前可用的服务器。在大型反向代理设置中，只要您的可用服务器池能够处理负载，您可能就不会非常在意单独一台服务器的运行状态。但是，监控每个上游组中处于运行状态的服务器总数可以非常全面地查看 Web 服务器的总体运行状况。
+
+##### 收集上游指标
+Nginx Plus 的上游指标公开在 Nginx Plus监控仪表板上，也可以通过 JSON 接口提供指标到几乎任何外部监控平台。
+
+## 实际应用
+
+### 常用命令
 ```
 nginx -s stop       快速关闭Nginx，可能不保存相关信息，并迅速终止web服务。
 nginx -s quit       平稳关闭Nginx，保存相关信息，有安排的结束web服务。
@@ -1332,24 +1440,54 @@ location = /50x.html{
 在http块里添加一行：server_tokens off;
 
 #### nginx状态统计
-
-pv：page view页面浏览量
+由ngx_http_stub_status_module提供，nginx默认不会编译
 
 打开状态统计页面：在server配置块添加状态统计信息功能
+```
+location = /basic_status {
+    stub_status;
+}
+```
 
-localtion = /sc_status { stub_status; }
+访问/basic_status
+```
+Active connections: 291
+server accepts handled requests
+ 16630948 16630948 31070465
+Reading: 6 Writing: 179 Waiting: 106
+```
 
 统计数据的意思：这些信息存放在nginx内存中，nginx重启数据就会丢失
-
 ```
-Active connections：1  # 目前活跃的用户，处于establish状态
-server accepts handled requests  # accepts累计接收客户端连接的次数，handled连接后的累计处理数量，requests累计请求数
-3 3 3
-Reading：0 Writing：1 Waiting：0  # Reading当前正在连接的数，Writing当前正在回复的数，Waiting当前正在连接的闲置数（没有动作的）
+Active connections
+当前活动客户端连接数（包括Waiting连接数）。
+accepts
+接受的客户端连接总数。
+handled
+已处理的连接总数。通常和accepts参数值相同，除非达到某些资源限制（例如， worker_connections限制）。
+requests
+客户端请求总数。
+Reading
+nginx 正在读取请求标头的当前连接数。
+Writing
+nginx 将响应写回客户端的当前连接数。
+Waiting
+当前等待请求的空闲客户端连接数。
+```
+
+该ngx_http_stub_status_module模块支持以下嵌入变量 (1.3.14)：
+```
+$connections_active
+与值相同Active connections；
+$connections_reading
+与值相同Reading；
+$connections_writing
+与值相同Writing；
+$connections_waiting
+与值相同Waiting。
 ```
 
 拿到统计数据：
-
 ```
 拿active：curl http://192.168.50.131/status 2>/dev/null|awk '/Active/{print $NF}'
 拿requests：curl http://192.168.50.131/status 2>/dev/null|awk 'NR==3{print $NF}'
