@@ -1920,11 +1920,11 @@ functools.parial就是帮助我们创建一个偏函数的，不需要我们自�
 ```
 
 ## 模块
+requests、numpy、matplotlib 等模块都是标准模块，但你需要通过 pip 安装，是官方提供的，其他就属于第三方模块
 
-pyhon本身就内置了很多非常有用的模块，只要安装完毕，这些模块就可以立即使用。
+pyhon本身就内置了很多非常有用的模块，只要python安装完毕，这些模块就可以立即使用。
 
 我们以内建的sys模块为例，编写一个hello的模块：
-
 ```
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
@@ -3242,7 +3242,7 @@ All subprocesses done.
 
 subprocess模块可以让我们非常方便地启动一个子进程，然后控制其输入和输出。
 
-下面的例子演示了如何在Python代码中运行命令nslookup www.python.org，这和命令行直接运行的效果是一样的：
+下面的例子演示了如何在Python代码中运行命令nslookup `www.python.org`，这和命令行直接运行的效果是一样的：
 ```
 import subprocess
 

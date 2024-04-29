@@ -58,6 +58,7 @@
             * [错误指标](#错误指标-1)
             * [可用性指标](#可用性指标)
             * [收集上游指标](#收集上游指标)
+    * [监控脚本参考](#监控脚本参考)
 * [实际应用](#实际应用)
     * [常用命令](#常用命令)
     * [http反向代理](#http反向代理)
@@ -655,6 +656,48 @@ Nginx Plus 首先按组细分上游的指标，然后按单个服务器细分。
 
 ##### 收集上游指标
 Nginx Plus 的上游指标公开在 Nginx Plus监控仪表板上，也可以通过 JSON 接口提供指标到几乎任何外部监控平台。
+
+### 监控脚本参考
+```
+#!/bin/sh
+
+errorExit() {
+    echo "*** $*" 1>&2
+    exit 1
+}
+
+curl --silent --max-time 2 --insecure https://localhost:${APISERVER_DEST_PORT}/ -o /dev/null || errorExit "Error GET https://localhost:${APISERVER_DEST_PORT}/"
+if ip addr | grep -q ${APISERVER_VIP}; then
+    curl --silent --max-time 2 --insecure https://${APISERVER_VIP}:${APISERVER_DEST_PORT}/ -o /dev/null || errorExit "Error GET https://${APISERVER_VIP}:${APISERVER_DEST_PORT}/"
+fi
+```
+
+```
+#!/bin/bash
+
+# Nginx 负载均衡服务器的地址
+SERVER_ADDRESS="your_server_address_here"
+
+# 函数：检查服务器状态
+check_server_status() {
+    # 发送 HTTP 请求并获取状态码
+    status_code=$(curl -s -o /dev/null -w "%{http_code}" http://$SERVER_ADDRESS)
+    
+    # 检查状态码
+    if [ $status_code -eq 200 ]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - 服务器正常工作，状态码：$status_code"
+    else
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - 服务器异常，状态码：$status_code"
+        # 这里可以加入其他告警或处理逻辑，比如发送邮件、重启服务等
+    fi
+}
+
+# 循环执行监控
+while true; do
+    check_server_status
+    sleep 5  # 每隔5秒执行一次检查
+done
+```
 
 ## 实际应用
 

@@ -19,6 +19,7 @@
     * [介绍](#介绍)
     * [基本概念](#基本概念)
 * [/proc/](#proc)
+    * [/proc/pid/stat文件](#procpidstat文件)
 * [SElinuxux](#selinuxux)
 * [系统服务daemon](#系统服务daemon)
     * [system V init](#system-v-init)
@@ -171,6 +172,85 @@ SIGSTOP：停止执行信号（Ctrl - Z）
 /proc/version   核心的版本，就是用uname -a 显示的内容啦！
 /proc/bus/* 一些汇流排的装置，还有USB 的装置也记录在此喔！
 ```
+
+### /proc/pid/stat文件
+`/proc/[pid]/stat` 文件包含了有关指定进程的各种信息，其中 `[pid]` 是进程的进程号。这个文件以一行的形式提供了关于进程的统计信息，格式如下：
+
+```
+pid (comm) state ppid pgrp session tty_nr tpgid flags minflt cminflt majflt cmajflt utime stime cutime cstime priority nice num_threads itrealvalue starttime vsize rss rsslim startcode endcode startstack kstkesp kstkeip signal blocked sigignore sigcatch wchan nswap cnswap exit_signal processor rt_priority policy delayacct_blkio_ticks guest_time cguest_time start_data end_data start_brk arg_start arg_end env_start env_end exit_code
+
+各字段的含义如下：
+
+1. **pid**：进程 ID。
+2. **comm**：进程的命令名。
+3. **state**：进程状态。可能的取值有：
+    * R：运行（Running）
+    * S：睡眠（Sleeping）
+    * D：不可中断的睡眠（Uninterruptible Sleep）
+    * Z：僵尸（Zombie）
+    * T：停止（Stopped）
+    * t：跟踪（Tracing）
+    * W：死等（Paging）
+    * X：死等（Paging）
+    * x：死等（Paging）
+    * K：死等（Paging）
+    * W：死等（Paging）
+    * P：等待下一步（Paging）
+    * N：低优先级（Paging）
+    * L：多进程（Paging）
+    * l：多进程（Paging）
+    * s：会话（Paging）
+4. **ppid**：父进程 ID。
+5. **pgrp**：进程组 ID。
+6. **session**：会话 ID。
+7. **tty_nr**：与进程关联的终端的 tty 数字。
+8. **tpgid**：进程组 ID。
+9. **flags**：进程标志（未使用）。
+10. **minflt**：发生的缺页错误的次数，但是未引发 I/O 操作。
+11. **cminflt**：子进程的缺页错误次数，但是未引发 I/O 操作。
+12. **majflt**：发生的缺页错误的次数，引发了 I/O 操作。
+13. **cmajflt**：子进程的缺页错误次数，引发了 I/O 操作。
+14. **utime**：用户态运行的 CPU 时间（以时钟滴答为单位）。
+15. **stime**：内核态运行的 CPU 时间（以时钟滴答为单位）。
+16. **cutime**：子进程用户态运行的 CPU 时间（以时钟滴答为单位）。
+17. **cstime**：子进程内核态运行的 CPU 时间（以时钟滴答为单位）。
+18. **priority**：进程的动态优先级。
+19. **nice**：进程的静态优先级。
+20. **num_threads**：进程的线程数。
+21. **itrealvalue**：（未使用）。
+22. **starttime**：进程启动时的时间（以时钟滴答为单位）。
+23. **vsize**：虚拟内存大小（以字节为单位）。
+24. **rss**：常驻集大小（以页面为单位）。
+25. **rsslim**：RSS 的软限制（以字节为单位）。
+26. **startcode**：代码段起始位置。
+27. **endcode**：代码段结束位置。
+28. **startstack**：栈段起始位置。
+29. **kstkesp**：当前栈指针（ESP）。
+30. **kstkeip**：当前指令指针（EIP）。
+31. **signal**：未决信号。
+32. **blocked**：阻塞信号。
+33. **sigignore**：忽略信号。
+34. **sigcatch**：捕获信号。
+35. **wchan**：进程当前正在等待的地址。
+36. **nswap**：交换的页数（未使用）。
+37. **cnswap**：子进程交换的页数（未使用）。
+38. **exit_signal**：终止信号。
+39. **processor**：处理器编号（未使用）。
+40. **rt_priority**：实时优先级。
+41. **policy**：调度策略。
+42. **delayacct_blkio_ticks**：延迟帐户 I/O 操作时钟滴答数（未使用）。
+43. **guest_time**：虚拟 CPU 时间（以时钟滴答为单位）。
+44. **cguest_time**：子进程的虚拟 CPU 时间（以时钟滴答为单位）。
+45. **start_data**：数据段的起始位置。
+46. **end_data**：数据段的结束位置。
+47. **start_brk**：堆的起始位置。
+48. **arg_start**：命令行参数的起始位置。
+49. **arg_end**：命令行参数的结束位置。
+50. **env_start**：环境变量的起始位置。
+51. **env_end**：环境变量的结束位置。
+52. **exit_code**：退出状态码。
+```
+请注意，每个字段之间由空格分隔，但如果某些字段的值包含空格，则会用括号括起来。
 
 ## SElinuxux
 由美国国家安全局开发NSA，属于核心模块，重点用在保护程序读取目录的权限  
