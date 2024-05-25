@@ -1,122 +1,121 @@
 # java语法
 
 ## 目录
-- [java语法](#java语法)
-  - [目录](#目录)
-  - [简介](#简介)
-    - [helloworld](#helloworld)
-    - [安装](#安装)
-      - [jdk](#jdk)
-      - [jvm](#jvm)
-  - [基本概念](#基本概念)
-  - [命名](#命名)
-  - [注释](#注释)
-  - [变量和数据类型](#变量和数据类型)
-    - [变量声明示例](#变量声明示例)
-    - [基本数据类型](#基本数据类型)
-    - [引用类型](#引用类型)
-      - [字符串](#字符串)
-        - [字符串插值](#字符串插值)
-      - [空值null](#空值null)
-      - [数组](#数组)
-        - [命令行参数](#命令行参数)
-    - [var关键字](#var关键字)
-    - [其他类型](#其他类型)
-    - [强类型弱类型，动态语言静态语言](#强类型弱类型动态语言静态语言)
-  - [运算](#运算)
-    - [算数运算符](#算数运算符)
-    - [关系运算符](#关系运算符)
-    - [逻辑运算符](#逻辑运算符)
-    - [位运算](#位运算)
-  - [输入和输出](#输入和输出)
-    - [输出](#输出)
-      - [格式化输出](#格式化输出)
-    - [输入](#输入)
-  - [if else](#if-else)
-  - [switch case](#switch-case)
-  - [循环](#循环)
-    - [while](#while)
-    - [do...while](#dowhile)
-  - [修饰符](#修饰符)
-    - [访问修饰符](#访问修饰符)
-    - [非访问修饰符](#非访问修饰符)
-  - [异常处理](#异常处理)
-  - [面向对象编程](#面向对象编程)
-    - [方法](#方法)
-      - [this变量](#this变量)
-      - [方法参数](#方法参数)
-      - [可变参数](#可变参数)
-      - [参数绑定](#参数绑定)
-    - [构造方法](#构造方法)
-      - [默认构造方法](#默认构造方法)
-      - [多构造方法](#多构造方法)
-    - [方法重载](#方法重载)
-    - [继承](#继承)
-      - [protected](#protected)
-      - [super](#super)
-      - [阻止继承](#阻止继承)
-      - [向上转型](#向上转型)
-      - [向下转型](#向下转型)
-      - [instanceof操作符](#instanceof操作符)
-      - [区分继承和组合](#区分继承和组合)
-    - [多态Override](#多态override)
-      - [方法签名](#方法签名)
-      - [复写Object方法](#复写object方法)
-      - [final](#final)
-    - [抽象类abstract](#抽象类abstract)
-      - [面向抽象编程](#面向抽象编程)
-    - [接口interface](#接口interface)
-      - [术语](#术语)
-      - [接口继承](#接口继承)
-      - [继承关系](#继承关系)
-      - [default方法](#default方法)
-    - [静态字段和静态方法static](#静态字段和静态方法static)
-      - [静态字段](#静态字段)
-      - [静态方法](#静态方法)
-      - [接口的静态字段](#接口的静态字段)
-    - [包](#包)
-      - [包的作用域](#包的作用域)
-      - [import](#import)
-      - [java文件编译顺序](#java文件编译顺序)
-      - [最佳实践](#最佳实践)
-        - [编译和运行](#编译和运行)
-    - [作用域](#作用域)
-      - [public](#public)
-      - [private](#private)
-      - [protected](#protected-1)
-      - [package](#package)
-      - [局部变量](#局部变量)
-      - [final](#final-1)
-      - [最佳实践](#最佳实践-1)
-    - [内部类](#内部类)
-      - [Inner Class](#inner-class)
-      - [Anonymous Class](#anonymous-class)
-      - [Static Nested Class](#static-nested-class)
-    - [classpath和jar](#classpath和jar)
-      - [classpath](#classpath)
-      - [两种设置方法：](#两种设置方法)
-      - [jar包](#jar包)
-      - [创建jar包](#创建jar包)
-    - [class版本](#class版本)
-      - [设置编译输出的版本](#设置编译输出的版本)
-        - [潜在问题：](#潜在问题)
-        - [设置多个jdk版本环境](#设置多个jdk版本环境)
-      - [源码版本](#源码版本)
-    - [模块](#模块)
-      - [编写模块](#编写模块)
-        - [用jdk工具来编译并创建模块](#用jdk工具来编译并创建模块)
-      - [运行模块](#运行模块)
-      - [打包JRE](#打包jre)
-        - [JRE介绍](#jre介绍)
-        - [打包JRE环境](#打包jre环境)
-      - [访问权限](#访问权限)
-  - [集合collection](#集合collection)
-    - [map](#map)
-      jdk
+<!-- vim-markdown-toc GFM -->
+
+* [简介](#简介)
+    * [helloworld](#helloworld)
+    * [安装](#安装)
+    * [jdk](#jdk)
+    * [jvm](#jvm)
+* [基本概念](#基本概念)
+* [命名](#命名)
+* [注释](#注释)
+* [变量和数据类型](#变量和数据类型)
+    * [变量声明示例](#变量声明示例)
+    * [基本数据类型](#基本数据类型)
+    * [引用类型](#引用类型)
+        * [字符串](#字符串)
+            * [字符串插值](#字符串插值)
+        * [空值null](#空值null)
+        * [数组](#数组)
+            * [命令行参数](#命令行参数)
+    * [var关键字](#var关键字)
+    * [其他类型](#其他类型)
+    * [强类型弱类型，动态语言静态语言](#强类型弱类型动态语言静态语言)
+* [运算](#运算)
+    * [算数运算符](#算数运算符)
+    * [关系运算符](#关系运算符)
+    * [逻辑运算符](#逻辑运算符)
+    * [位运算](#位运算)
+* [输入和输出](#输入和输出)
+    * [输出](#输出)
+        * [格式化输出](#格式化输出)
+    * [输入](#输入)
+* [if else](#if-else)
+* [switch case](#switch-case)
+* [循环](#循环)
+    * [while](#while)
+    * [do...while](#dowhile)
+* [修饰符](#修饰符)
+    * [访问修饰符](#访问修饰符)
+    * [非访问修饰符](#非访问修饰符)
+* [异常处理](#异常处理)
+* [面向对象编程](#面向对象编程)
+    * [方法](#方法)
+        * [this变量](#this变量)
+        * [方法参数](#方法参数)
+        * [可变参数](#可变参数)
+        * [参数绑定](#参数绑定)
+    * [构造方法](#构造方法)
+        * [默认构造方法](#默认构造方法)
+        * [多构造方法](#多构造方法)
+    * [方法重载](#方法重载)
+    * [继承](#继承)
+        * [protected](#protected)
+        * [super](#super)
+        * [阻止继承](#阻止继承)
+        * [向上转型](#向上转型)
+        * [向下转型](#向下转型)
+        * [instanceof操作符](#instanceof操作符)
+        * [区分继承和组合](#区分继承和组合)
+    * [多态Override](#多态override)
+        * [方法签名](#方法签名)
+        * [复写Object方法](#复写object方法)
+        * [final](#final)
+
+<!-- vim-markdown-toc -->
+
+## 简介
+Java 是由 Sun Microsystems 公司于 1995 年 5 月推出的高级程序设计语言。常用来开发android app。javac用来编译源码生成字节码，java用来运行字节码文件，解释型的强类型静态语言，语句用分号结束
+
+从互联网到企业平台，Java是应用最广泛的编程语言，原因在于：
+
+Java是基于JVM虚拟机的跨平台语言，一次编写，到处运行；
+
+Java程序易于编写，而且有内置垃圾收集，不必考虑内存管理；
+
+Java虚拟机拥有工业级的稳定性和高度优化的性能，且经过了长时期的考验；
+
+Java拥有最广泛的开源社区支持，各种高质量组件随时可用。
+
+Java语言常年霸占着三大市场：
+
+互联网和企业应用，这是Java EE的长期优势和市场地位；
+
+大数据平台，主要有Hadoop、Spark、Flink等，他们都是Java或Scala（一种运行于JVM的编程语言）开发的；
+
+Android移动平台。
+
+### helloworld
+```java
+// HelloWorld.java
+public class HelloWorld {
+    public static void main(String[] args) {
+        System.out.println("Hello World");
+    }
+}
+
+// 执行javac HelloWorld.java（或者javac -encoding UTF-8 HelloWorld.java ）
+// 会在当前目录下生成HelloWorld.class文件
+// 执行java HelloWorld，打印"Hello World"
+```
+这段代码是一个非常简单的Java程序，它包含一个名为Hello的公共类和一个名为main的公共静态方法。让我详细解释一下每一部分的含义：
+
+1. public class Hello { }：这是一个类的定义。关键字public表示这个类是公共的，可以被其他类访问。类名为Hello，它是一个标识符，遵循Java的命名规范（首字母大写的驼峰命名法）。大括号内是类的主体，这里为空，表示这个类没有任何属性或方法。
+
+2. public static void main(String[] args) { }：这是一个名为main的公共静态方法。在Java程序中，main方法是程序的入口点，JVM会从这里开始执行程序。关键字public表示这个方法是公共的，可以被其他类访问；static表示这个方法是静态的，可以直接通过类名调用，而不需要实例化类；void表示这个方法没有返回值；main是方法的名称；String[] args是一个参数数组，它包含了从命令行传入的参数。
+
+3. System.out.println("Hello, world!");：这是main方法中的唯一一条语句。它使用System.out.println方法在控制台打印一条消息，消息内容是"Hello, world!"。在Java中，System.out是一个PrintStream对象，它提供了各种输出方法，println方法用于打印一行字符串并换行。
+
+所以，这段代码的作用是在控制台输出"Hello, world!"。当你执行这个Java程序时，JVM会调用main方法，并执行其中的代码，从而输出"Hello, world!"到控制台。
+
+### 安装
+1. 从oracle官网下载稳定版jdk
 2. 设置环境变量JAVA_HOME（指向jdk的安装目录）和PATH
 3. 如果java -version输出的不是指定版本，说明系统存在多个jdk，需要把当前安装jdk版本路径放到PATH之前
 
-#### jdk
+### jdk
 ```
 Java Development Kit（JDK）是Sun微系统针对Java开发人员发布的免费软件开发工具包（SDK，Software development kit）。自从Java推出以来，JDK已经成为使用最广泛的Java SDK。由于JDK的一部分特性采用商业许可证，而非开源[2]。因此，2006年Sun微系统宣布将发布基于GPL的开源JDK，使JDK成为自由软件。在去掉了少量闭源特性之后，Sun微系统最终促成了GPL的OpenJDK的发布。sun已经被oracle收购
 
@@ -150,7 +149,7 @@ JDK中还包括完整的JRE（Java Runtime Environment），Java运行环境，�
 JDK中还包括各种样例程序，用以展示Java API中的各部分。
 ```
 
-#### jvm
+### jvm
 ```
 Java虚拟机（英语：Java Virtual Machine，缩写：JVM），一种能够执行Java字节码的虚拟机，以堆栈结构机器来实现。最早由Sun微系统所研发并实现第一个实现版本，是Java平台的一部分，能够执行以Java语言写作的软件程序。
 
