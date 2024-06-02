@@ -68,7 +68,7 @@
         * [现象：](#现象)
         * [原因](#原因)
         * [解决](#解决)
-* [参考资料](#参考资料)
+* [集群故障排查](#集群故障排查)
 
 <!-- vim-markdown-toc -->
 
@@ -1729,12 +1729,37 @@ COMMIT
 # Completed on Mon Mar 11 17:55:00 2024
 ```
 
-## 参考资料
-https://www.zhaohuabing.com/post/2020-05-19-k8s-certificate/
-https://blog.51cto.com/13210651/2361208
-https://kubernetes.io/docs/tasks/administer-cluster/certificates/
-https://kubernetes.io/zh-cn/docs/setup/best-practices/certificates/
-https://kubernetes.io/zh-cn/docs/tasks/administer-cluster/kubeadm/kubeadm-certs/
-https://kubernetes.io/zh-cn/docs/tasks/tls/managing-tls-in-a-cluster
-https://kubernetes.io/zh-cn/docs/tasks/tls/manual-rotation-of-ca-certificates/
-https://cert-manager.io/docs/
+## 集群故障排查
+kubectl get nodes  列举节点状态
+
+kubectl cluster-info dump  了解集群总体健康状态详情
+
+kubectl describe node 查看节点信息
+
+kubectl get nodes -o yaml  yaml查看节点详细信息
+
+/var/log/kube-apiserver.log —— API 服务器，负责提供 API 服务
+
+/var/log/kube-scheduler.log —— 调度器，负责制定调度决策
+
+/var/log/kube-controller-manager.log —— 运行大多数 Kubernetes 内置控制器的组件，除了调度（kube-scheduler 处理调度）。
+
+/var/log/kubelet.log —— 负责在节点运行容器的 kubelet 所产生的日志
+
+/var/log/kube-proxy.log —— 负责将流量转发到服务端点的 kube-proxy 所产生的日志
+
+crictl  pod和容器调试
+
+kubectl debug node/mynode -it --image=ubuntu  将 Pod 部署到要排查故障的节点上，并打开一个shell
+
+kubectl delete pod node-debugger-mynode-pdx84 --now  删除pod
+
+kubectl debug -it ephemeral-demo --image=busybox:1.28 --target=ephemeral-demo  使用临时容器调试
+
+通过pod副本调试：
+
+kubectl debug myapp -it --image=ubuntu --share-processes --copy-to=myapp-debug
+
+kubectl debug myapp -it --copy-to=myapp-debug --container=myapp -- sh
+
+kubectl debug myapp --copy-to=myapp-debug --set-image=`*=ubuntu`
