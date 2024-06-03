@@ -46,6 +46,7 @@ ctrl+w+k 移到上方窗口
 ```
 
 ### 自用vim配置
+windows和linux配置文件: ~/.vimrc
 ```
 set nobackup
 set noundofile
