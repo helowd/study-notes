@@ -66,6 +66,14 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned  允许当�
 
 rename-item -path oldname -newname newname  改名 
 
+设置初始家目录
+```
+PS D:\zj\welljoint> cat $PROFILE
+set-location -path "D:\zj\welljoint"
+PS D:\zj\welljoint> $PROFILE
+C:\Users\zj\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
+```
+
 ## 脚本执行
 绕过策略执行脚本
 ```powershell
