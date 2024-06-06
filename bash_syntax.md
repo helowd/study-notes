@@ -521,7 +521,7 @@ else
 fi
 
 # 写成一行
-if false; true; then echo 'hello world'; fi
+if [[ "true" = "true" ]]; then echo 'hello world'; fi
 ```
 
 ### test命令
