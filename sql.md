@@ -10,6 +10,7 @@
         * [DCL（Data Control Language，数据控制语言）](#dcldata-control-language数据控制语言)
         * [数据查询语言DQL（Data Query Language）](#数据查询语言dqldata-query-language)
         * [特定语法：](#特定语法)
+        * [注释](#注释)
 * [nosql](#nosql)
 * [关系型数据库](#关系型数据库)
     * [数据类型](#数据类型)
@@ -109,6 +110,18 @@ SELECT 查询表中数据
 SQL语言关键字不区分大小写！！！但是，针对不同的数据库，对于表名和列名，有的数据库区分大小写，有的数据库不区分大小写。同一个数据库，有的在Linux上区分大小写，有的在Windows上不区分大小写。
 
 所以，本教程约定：SQL关键字总是大写，以示突出，表名和列名均使用小写。
+
+#### 注释
+```
+-- 单行注释
+SELECT * FROM customers; 
+
+/*
+这是一个多行注释的示例
+可以在多行中写入详细的注释内容
+*/
+SELECT * FROM orders;
+```
 
 ## nosql
 你可能还听说过NoSQL数据库，也就是非SQL的数据库，包括MongoDB、Cassandra、Dynamo等等，它们都不是关系数据库。有很多人鼓吹现代Web程序已经无需关系数据库了，只需要使用NoSQL就可以。但事实上，SQL数据库从始至终从未被取代过。回顾一下NoSQL的发展历程：

@@ -66,6 +66,8 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned  允许当�
 
 rename-item -path oldname -newname newname  改名 
 
+Get-Content example.txt -Encoding utf8  cat以utf8编码方式来展示文件内容，可以避免中文乱码
+
 设置初始家目录
 ```
 PS D:\zj\welljoint> cat $PROFILE
