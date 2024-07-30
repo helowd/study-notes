@@ -29,6 +29,8 @@
 * [crd](#crd)
 * [operator](#operator)
 * [rbac](#rbac)
+    * [Role 或 ClusterRole](#role-或-clusterrole)
+    * [RoleBinding 和 ClusterRoleBinding](#rolebinding-和-clusterrolebinding)
 * [持久化](#持久化)
     * [持久化过程](#持久化过程)
     * [StorageClass](#storageclass)
@@ -313,26 +315,91 @@ Operator 的工作原理，实际上是利用了 Kubernetes 的自定义 API 资
 operator启动后会自动创建对应的crd
 
 ## rbac
-kubernetes中的所有api对象，都保存在etcd中，对这些api对象的操作，一定都是通过kube-apiserver实现的，所以需要apiserver来完成授权工作
+kubernetes中的所有api对象，都保存在etcd中，对这些api对象的操作，一定都是通过kube-apiserver实现的，所以需要apiserver来完成授权工作，rbac是k8s默认的权限策略
 
-Role：角色，它其实是一组规则，定义了一组对 Kubernetes API 对象的操作权限。
-Subject：被作用者，既可以是“人”，也可以是“机器”，也可以是你在 Kubernetes 里定义的“用户”。
-RoleBinding：定义了“被作用者”和“角色”的绑定关系。
+### Role 或 ClusterRole
+包含一组代表相关权限的规则。 这些权限是纯粹累加的（不存在拒绝某操作的规则）。如果你希望在名字空间内定义角色，应该使用 Role； 如果你希望定义集群范围的角色，应该使用 ClusterRole。
 
-非namespaced对象：
-ClusterRole
-ClusterFoleBinding
+role示例：
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: pod-reader
+rules:
+- apiGroups: [""] # "" 标明 core API 组
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+```
 
-kubernetes内置用户：ServiceAccount
+ClusterRole 示例
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  # "namespace" 被忽略，因为 ClusterRoles 不受名字空间限制
+  name: secret-reader
+rules:
+- apiGroups: [""]
+  # 在 HTTP 层面，用来访问 Secret 资源的名称为 "secrets"
+  resources: ["secrets"]
+  verbs: ["get", "watch", "list"]
+```
+
+### RoleBinding 和 ClusterRoleBinding
+角色绑定（Role Binding）是将角色中定义的权限赋予一个或者一组用户。 它包含若干主体（Subject）（用户、组或服务账户）的列表和对这些主体所获得的角色的引用。 RoleBinding 在指定的名字空间中执行授权，而 ClusterRoleBinding 在集群范围执行授权。
+
+一个 RoleBinding 可以引用同一的名字空间中的任何 Role。 或者，一个 RoleBinding 可以引用某 ClusterRole 并将该 ClusterRole 绑定到 RoleBinding 所在的名字空间。 如果你希望将某 ClusterRole 绑定到集群中所有名字空间，你要使用 ClusterRoleBinding。
+
+RoleBinding 示例
+```
+apiVersion: rbac.authorization.k8s.io/v1
+# 此角色绑定允许 "jane" 读取 "default" 名字空间中的 Pod
+# 你需要在该名字空间中有一个名为 “pod-reader” 的 Role
+kind: RoleBinding
+metadata:
+  name: read-pods
+  namespace: default
+subjects:
+# 你可以指定不止一个“subject（主体）”
+- kind: User
+  name: jane # "name" 是区分大小写的
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  # "roleRef" 指定与某 Role 或 ClusterRole 的绑定关系
+  kind: Role        # 此字段必须是 Role 或 ClusterRole
+  name: pod-reader  # 此字段必须与你要绑定的 Role 或 ClusterRole 的名称匹配
+  apiGroup: rbac.authorization.k8s.io
+```
+
+ClusterRoleBinding 示例
+```
+apiVersion: rbac.authorization.k8s.io/v1
+# 此集群角色绑定允许 “manager” 组中的任何人访问任何名字空间中的 Secret 资源
+kind: ClusterRoleBinding
+metadata:
+  name: read-secrets-global
+subjects:
+- kind: Group
+  name: manager      # 'name' 是区分大小写的
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: secret-reader
+  apiGroup: rbac.authorization.k8s.io
+```
+
+kubernetes内置用户：ServiceAccount  
 每个ServiceAccount都有一个secret，用来与apiserver进行交互的授权文件
-如果一个 Pod 没有声明 serviceAccountName，Kubernetes 会自动在它的 Namespace 下创建一个名叫 default 的默认 ServiceAccount，然后分配给这个 Pod。默认的ServiceAccount没有关联任何ROle，有访问APIServer的绝大多数权限
+如果一个 Pod 没有声明 serviceAccountName，Kubernetes 会自动在它的 Namespace 下创建一个名叫 default 的默认 ServiceAccount，然后分配给这个 Pod。默认的ServiceAccount没有关联任何role，有访问APIServer的绝大多数权限
 
-ServiceAccount用户：`system:serviceaccount:<ServiceAccount 名字 >`
-ServiceAccount用户组：`system:serviceaccounts:<Namespace 名字 >`
+ServiceAccount用户：`system:serviceaccount:<ServiceAccount 名字 >`  
+ServiceAccount用户组：`system:serviceaccounts:<Namespace 名字 >`  
 
-kubernetes中内置了很多个为系统保留的ClusterFole，名字都以system:，通常是绑定给kubernetes系统组件对应的sa使用的
+kubernetes中内置了很多个为系统保留的ClusterFole，名字都以system:，通常是绑定给kubernetes系统组件对应的sa使用的  
 
-cluster-admin角色，是kubernetes中的最高权限（vers=*）
+cluster-admin角色，是kubernetes中的最高权限（vers=*）  
 
 ## 持久化
 
