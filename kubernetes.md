@@ -71,6 +71,7 @@
         * [原因](#原因)
         * [解决](#解决)
 * [集群故障排查](#集群故障排查)
+* [cka](#cka)
 
 <!-- vim-markdown-toc -->
 
@@ -1830,3 +1831,6 @@ kubectl debug myapp -it --image=ubuntu --share-processes --copy-to=myapp-debug
 kubectl debug myapp -it --copy-to=myapp-debug --container=myapp -- sh
 
 kubectl debug myapp --copy-to=myapp-debug --set-image=`*=ubuntu`
+
+## cka
+
