@@ -71,7 +71,17 @@
         * [原因](#原因)
         * [解决](#解决)
 * [集群故障排查](#集群故障排查)
+* [节点管理](#节点管理)
+* [升级集群](#升级集群)
+    * [一、升级 etcd 时的注意事项](#一升级-etcd-时的注意事项)
+    * [二、确定要升级到哪个版本](#二确定要升级到哪个版本)
+    * [三、升级控制平面节点](#三升级控制平面节点)
+    * [四、升级工作节点](#四升级工作节点)
+    * [五、验证集群的状态](#五验证集群的状态)
+    * [六、从故障状态恢复](#六从故障状态恢复)
+    * [七、工作原理](#七工作原理)
 * [cka](#cka)
+    * [技巧](#技巧)
 
 <!-- vim-markdown-toc -->
 
@@ -398,7 +408,7 @@ kubernetes内置用户：ServiceAccount
 ServiceAccount用户：`system:serviceaccount:<ServiceAccount 名字 >`  
 ServiceAccount用户组：`system:serviceaccounts:<Namespace 名字 >`  
 
-kubernetes中内置了很多个为系统保留的ClusterFole，名字都以system:，通常是绑定给kubernetes系统组件对应的sa使用的  
+kubernetes中内置了很多个为系统保留的Clusterrole，名字都以`system:`前缀，通常是绑定给kubernetes系统组件对应的sa使用的  
 
 cluster-admin角色，是kubernetes中的最高权限（vers=*）  
 
@@ -1832,5 +1842,277 @@ kubectl debug myapp -it --copy-to=myapp-debug --container=myapp -- sh
 
 kubectl debug myapp --copy-to=myapp-debug --set-image=`*=ubuntu`
 
+## 节点管理
+1. 设置节点不可调度
+```
+kubectl cordon <node name>
+```
+
+2. 排空节点上的pod
+```
+kubectl drain --ignore-daemonsets <节点名称>
+```
+
+3. 节点维护好后可以重新设置节点可调度
+```
+kubectl uncordon <node name>
+```
+
+## 升级集群
+
+### 一、升级 etcd 时的注意事项
+由于 kube-apiserver 静态 Pod 始终在运行（即使你已经执行了腾空节点的操作）， 因此当你执行包括 etcd 升级在内的 kubeadm 升级时，对服务器正在进行的请求将停滞， 因为要重新启动新的 etcd 静态 Pod。作为一种解决方法，可以在运行 kubeadm upgrade apply 命令之前主动停止 kube-apiserver 进程几秒钟。这样可以允许正在进行的请求完成处理并关闭现有连接， 并最大限度地减少 etcd 停机的后果。此操作可以在控制平面节点上按如下方式完成：
+```
+killall -s SIGTERM kube-apiserver # 触发 kube-apiserver 体面关闭
+sleep 20 # 等待一下，以完成进行中的请求
+kubeadm upgrade ... # 执行 kubeadm 升级命令
+```
+
+### 二、确定要升级到哪个版本
+```
+# 在列表中查找最新的 1.31 版本
+# 它看起来应该是 1.31.x-*，其中 x 是最新的补丁版本
+sudo yum list --showduplicates kubeadm --disableexcludes=kubernetes
+```
+
+### 三、升级控制平面节点
+控制面节点上的升级过程应该每次处理一个节点。 首先选择一个要先行升级的控制面节点。该节点上必须拥有 /etc/kubernetes/admin.conf 文件
+
+1. 升级kubeadm
+```
+# 用最新的补丁版本号替换 1.31.x-* 中的 x
+sudo yum install -y kubeadm-'1.31.x-*' --disableexcludes=kubernetes
+```
+
+2. 验证kubeadm版本正确
+```
+kubeadm version
+```
+
+3. 验证升级计划
+```
+sudo kubeadm upgrade plan
+```
+此命令检查你的集群是否可被升级，并取回你要升级的目标版本。 命令也会显示一个包含组件配置版本状态的表格。
+
+kubeadm upgrade 也会自动对 kubeadm 在节点上所管理的证书执行续约操作。 如果需要略过证书续约操作，可以使用标志 --certificate-renewal=false
+
+4. 选择要升级到的目标版本，运行合适的命令。例如：
+```
+# 将 x 替换为你为此次升级所选择的补丁版本号
+sudo kubeadm upgrade apply v1.31.x
+```
+一旦该命令结束，你应该会看到：
+```
+[upgrade/successful] SUCCESS! Your cluster was upgraded to "v1.31.x". Enjoy!
+
+[upgrade/kubelet] Now that your control plane is upgraded, please proceed with upgrading your kubelets if you haven't already done so.
+```
+
+5. 手动升级你的 CNI 驱动插件。
+你的容器网络接口（CNI）驱动应该提供了程序自身的升级说明。 参阅插件页面查找你的 CNI 驱动， 并查看是否需要其他升级步骤。
+
+如果 CNI 驱动作为 DaemonSet 运行，则在其他控制平面节点上不需要此步骤。
+
+6. 对于其它控制面节点
+与第一个控制面节点相同，但是使用：
+```
+sudo kubeadm upgrade node
+```
+而不是：
+```
+sudo kubeadm upgrade apply
+```
+此外，不需要执行 kubeadm upgrade plan 和更新 CNI 驱动插件的操作。
+
+7. 腾空节点
+将节点标记为不可调度并驱逐所有负载，准备节点的维护：
+```
+# 将 <node-to-drain> 替换为你要腾空的控制面节点名称
+kubectl drain <node-to-drain> --ignore-daemonsets
+```
+
+8. 升级 kubelet 和 kubectl
+```
+# 用最新的补丁版本号替换 1.31.x-* 中的 x
+sudo yum install -y kubelet-'1.31.x-*' kubectl-'1.31.x-*' --disableexcludes=kubernetes
+```
+
+重启kubelet
+```
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+```
+
+9. 解除节点的保护
+通过将节点标记为可调度，让其重新上线：
+```
+# 将 <node-to-uncordon> 替换为你的节点名称
+kubectl uncordon <node-to-uncordon>
+```
+
+### 四、升级工作节点
+工作节点上的升级过程应该一次执行一个节点，或者一次执行几个节点， 以不影响运行工作负载所需的最小容量。
+
+1. 升级kubeadm
+```
+# 将 1.31.x-* 中的 x 替换为最新的补丁版本
+sudo yum install -y kubeadm-'1.31.x-*' --disableexcludes=kubernetes
+```
+
+2. 执行 "kubeadm upgrade"
+对于工作节点，下面的命令会升级本地的 kubelet 配置：
+```
+sudo kubeadm upgrade node
+```
+
+3. 腾空节点
+将节点标记为不可调度并驱逐所有负载，准备节点的维护：
+```
+# 在控制平面节点上执行此命令
+# 将 <node-to-drain> 替换为你正腾空的节点的名称
+kubectl drain <node-to-drain> --ignore-daemonsets
+```
+
+4. 升级kubectl和kubelet
+```
+# 将 1.31.x-* 中的 x 替换为最新的补丁版本
+sudo yum install -y kubelet-'1.31.x-*' kubectl-'1.31.x-*' --disableexcludes=kubernetes
+```
+
+重启kubelet
+```
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+```
+
+5. 取消对节点的保护
+通过将节点标记为可调度，让节点重新上线：
+```
+# 在控制平面节点上执行此命令
+# 将 <node-to-uncordon> 替换为你的节点名称
+kubectl uncordon <node-to-uncordon>
+```
+
+### 五、验证集群的状态
+在所有节点上升级 kubelet 后，通过从 kubectl 可以访问集群的任何位置运行以下命令， 验证所有节点是否再次可用：
+```
+kubectl get nodes
+```
+STATUS 应显示所有节点为 Ready 状态，并且版本号已经被更新。
+
+### 六、从故障状态恢复
+如果 kubeadm upgrade 失败并且没有回滚，例如由于执行期间节点意外关闭， 你可以再次运行 kubeadm upgrade。 此命令是幂等的，并最终确保实际状态是你声明的期望状态。
+
+要从故障状态恢复，你还可以运行 sudo kubeadm upgrade apply --force 而无需更改集群正在运行的版本。
+
+在升级期间，kubeadm 向 /etc/kubernetes/tmp 目录下的如下备份文件夹写入数据：
+```
+kubeadm-backup-etcd-<date>-<time>
+kubeadm-backup-manifests-<date>-<time>
+```
+kubeadm-backup-etcd 包含当前控制面节点本地 etcd 成员数据的备份。 如果 etcd 升级失败并且自动回滚也无法修复，则可以将此文件夹中的内容复制到 /var/lib/etcd 进行手工修复。如果使用的是外部的 etcd，则此备份文件夹为空。
+
+kubeadm-backup-manifests 包含当前控制面节点的静态 Pod 清单文件的备份版本。 如果升级失败并且无法自动回滚，则此文件夹中的内容可以复制到 /etc/kubernetes/manifests 目录实现手工恢复。 如果由于某些原因，在升级前后某个组件的清单未发生变化，则 kubeadm 也不会为之生成备份版本。
+
+说明：集群通过 kubeadm 升级后，备份目录 /etc/kubernetes/tmp 将保留，这些备份文件需要手动清理。
+
+### 七、工作原理
+kubeadm upgrade apply 做了以下工作：
+```
+检查你的集群是否处于可升级状态:
+API 服务器是可访问的
+所有节点处于 Ready 状态
+控制面是健康的
+强制执行版本偏差策略。
+确保控制面的镜像是可用的或可拉取到服务器上。
+如果组件配置要求版本升级，则生成替代配置与/或使用用户提供的覆盖版本配置。
+升级控制面组件或回滚（如果其中任何一个组件无法启动）。
+应用新的 CoreDNS 和 kube-proxy 清单，并强制创建所有必需的 RBAC 规则。
+如果旧文件在 180 天后过期，将创建 API 服务器的新证书和密钥文件并备份旧文件。
+```
+
+kubeadm upgrade node 在其他控制平节点上执行以下操作：
+```
+从集群中获取 kubeadm ClusterConfiguration。
+（可选操作）备份 kube-apiserver 证书。
+升级控制平面组件的静态 Pod 清单。
+为本节点升级 kubelet 配置
+```
+
+kubeadm upgrade node 在工作节点上完成以下工作：
+```
+从集群取回 kubeadm ClusterConfiguration。
+为本节点升级 kubelet 配置。
+```
+
 ## cka
 
+### 技巧
+1. 熟悉vim、jq、tmux的使用
+
+2. 使用kubectl的自动补全功能
+```
+source <(kubectl completion bash)
+echo "source <(kubectl completion bash)" >> ~/.bashrc
+```
+
+3. 使用k8s resource的缩写名而不是全称
+```
+Short name  Full name
+cm  configmaps
+ds  daemonsets
+deploy  deployments
+ep  endpoints
+ev  events
+hpa horizontalpodautoscalers
+ing ingresses
+limits  limitranges
+ns  namespaces
+no  nodes
+pvc persistentvolumeclaims
+pv  persistentvolumes
+po  pods
+rs  replicasets
+rc  replicationcontrollers
+quota   resourcequotas
+sa  serviceaccounts
+svc services
+```
+
+4. 采用 dry run 来生成 yaml
+```
+export do="--dry-run=client -o yaml"
+
+k run nginx --image=nginx $do > pod.yaml
+```
+
+5. 快速删除pod
+```
+export now="--force --grace-period 0"
+
+k delete pod test $now
+```
+
+6. 利用 kubectl command help 查看创建资源示例
+
+7. 采用 kubectl explain 来查看 resource 的定义
+```
+k explain pod.spec //查看 pod 的 spec
+k explain pod.spec.containers //进一步查看 pod spec 中 containers 部分的定义
+k explain pod.spec.containers.resources //进一步查看 resources 部分的定义
+k explain pod.spec.containers.resources.limits //进一步查看 limits 部分的定义
+```
+
+8. 创建临时 Pod 来进行测试
+```
+kubectl -it  run busybox --rm --image=busybox -- sh
+If you don't see a command prompt, try pressing enter.
+/ # wget -O- 172.17.254.255
+```
+
+9. 安装容器运行时
+
+10. 初始化master节点
+
+11. 安装 CNI 插件
