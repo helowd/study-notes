@@ -4,9 +4,8 @@
 ## 目录
 <!-- vim-markdown-toc GFM -->
 
-* [容器发展历史](#容器发展历史)
-* [容器与虚拟机比较](#容器与虚拟机比较)
-* [k8s概述](#k8s概述)
+* [1. 容器发展历史](#1-容器发展历史)
+* [2. k8s概述](#2-k8s概述)
     * [架构](#架构)
         * [控制平面](#控制平面)
         * [工作节点](#工作节点)
@@ -14,158 +13,75 @@
         * [容器运行时接口（CRI）](#容器运行时接口cri)
         * [定制和可扩展性](#定制和可扩展性)
         * [cgroup资源限制](#cgroup资源限制)
-* [pod](#pod)
-    * [pod中容器类型](#pod中容器类型)
-    * [pod 状态](#pod-状态)
-    * [创建pod的流程](#创建pod的流程)
-    * [删除pod的流程](#删除pod的流程)
-    * [static pod](#static-pod)
-    * [downward api: 让 Pod 里的容器能够直接获取到这个 Pod API 对象本身的信息](#downward-api-让-pod-里的容器能够直接获取到这个-pod-api-对象本身的信息)
+* [3. label](#3-label)
+* [4. annotations注解](#4-annotations注解)
+* [4. Finalizer终结器](#4-finalizer终结器)
+* [5. pod](#5-pod)
+    * [downward api](#downward-api)
     * [容器探针probe](#容器探针probe)
-        * [三种探针](#三种探针)
-        * [检查机制](#检查机制)
-        * [探测结果](#探测结果)
-        * [检查参数](#检查参数)
-* [控制器](#控制器)
-    * [**1. Pod**](#1-pod)
-        * [**简介**](#简介)
-        * [**特点**](#特点)
-        * [**适用场景**](#适用场景)
-    * [**2. Deployment**](#2-deployment)
-        * [**简介**](#简介-1)
-        * [**特点**](#特点-1)
-        * [**适用场景**](#适用场景-1)
-    * [**3. StatefulSet**](#3-statefulset)
-        * [**简介**](#简介-2)
-        * [**特点**](#特点-2)
-        * [**适用场景**](#适用场景-2)
-    * [**4. DaemonSet**](#4-daemonset)
-        * [**简介**](#简介-3)
-        * [**特点**](#特点-3)
-        * [**适用场景**](#适用场景-3)
-    * [**5. Job**](#5-job)
-        * [**简介**](#简介-4)
-        * [**特点**](#特点-4)
-        * [**适用场景**](#适用场景-4)
-    * [**6. CronJob**](#6-cronjob)
-        * [**简介**](#简介-5)
-        * [**特点**](#特点-5)
-        * [**适用场景**](#适用场景-5)
-    * [**7. ReplicaSet**](#7-replicaset)
-        * [**简介**](#简介-6)
-        * [**特点**](#特点-6)
-        * [**适用场景**](#适用场景-6)
-    * [**8. ReplicationController**](#8-replicationcontroller)
-        * [**简介**](#简介-7)
-        * [**特点**](#特点-7)
-        * [**适用场景**](#适用场景-7)
-    * [**9. HorizontalPodAutoscaler（HPA）**](#9-horizontalpodautoscalerhpa)
-        * [**简介**](#简介-8)
-        * [**特点**](#特点-8)
-        * [**适用场景**](#适用场景-8)
-    * [**10. VerticalPodAutoscaler（VPA）**](#10-verticalpodautoscalervpa)
-        * [**简介**](#简介-9)
-        * [**特点**](#特点-9)
-        * [**适用场景**](#适用场景-9)
-    * [**11. Garbage Collection（GC）相关工作负载**](#11-garbage-collectiongc相关工作负载)
-        * [**简介**](#简介-10)
-        * [**特点**](#特点-10)
-        * [**适用场景**](#适用场景-10)
-    * [**工作负载总结**](#工作负载总结)
-* [service](#service)
+* [6. 控制器](#6-控制器)
+* [7. service](#7-service)
+    * [实现原理](#实现原理)
     * [headless service](#headless-service)
-    * [clusterIP实现原理](#clusterip实现原理)
-        * [k8s中的informer](#k8s中的informer)
+    * [k8s中的informer](#k8s中的informer)
     * [ipvs模式工作原理](#ipvs模式工作原理)
-    * [nodeport实现原理](#nodeport实现原理)
-    * [loadbalancer实现原理](#loadbalancer实现原理)
-        * [**实现原理**：](#实现原理)
-    * [externalName](#externalname)
-        * [**实现原理**：](#实现原理-1)
     * [service相关排错思路](#service相关排错思路)
-* [ingress](#ingress)
-* [cni](#cni)
-    * [cni原理](#cni原理)
-* [flannel](#flannel)
-    * [udp模式](#udp模式)
-        * [udp模式下ip包用户态与内核态之间的数据拷贝](#udp模式下ip包用户态与内核态之间的数据拷贝)
-    * [vxlan模式](#vxlan模式)
-    * [host-gw模式](#host-gw模式)
-* [calico](#calico)
-    * [calico的架构](#calico的架构)
-    * [calico模式](#calico模式)
-    * [calico ipip模式](#calico-ipip模式)
-* [k8s中的dns](#k8s中的dns)
-* [持久化](#持久化)
-    * [持久化过程](#持久化过程)
+* [8. ingress](#8-ingress)
+* [9. flannel](#9-flannel)
+* [9. cni](#9-cni)
+* [11. calico](#11-calico)
+* [12. k8s中的dns](#12-k8s中的dns)
+* [13. 存储](#13-存储)
+    * [卷](#卷)
+        * [empty](#empty)
+        * [hostpath](#hostpath)
+        * [configmap](#configmap)
+        * [secret](#secret)
+    * [pv](#pv)
+    * [pvc](#pvc)
     * [StorageClass](#storageclass)
+    * [持久化过程](#持久化过程)
     * [本地持久化](#本地持久化)
-* [rbac](#rbac)
+* [14. rbac](#14-rbac)
     * [Role 或 ClusterRole](#role-或-clusterrole)
     * [RoleBinding 和 ClusterRoleBinding](#rolebinding-和-clusterrolebinding)
-* [证书](#证书)
-    * [常见证书](#常见证书)
-    * [手动生成证书](#手动生成证书)
-    * [证书管理kubeadm](#证书管理kubeadm)
-    * [手动更换ca证书（todo）](#手动更换ca证书todo)
-    * [证书api（todo）](#证书apitodo)
-    * [启用已签名的 kubelet 服务证书（todo）](#启用已签名的-kubelet-服务证书todo)
-* [cert-manager](#cert-manager)
-* [kraken](#kraken)
-* [nfs-provisioner](#nfs-provisioner)
-* [node-local-dns](#node-local-dns)
-* [Istio](#istio)
-* [api](#api)
-* [crd](#crd)
-* [operator](#operator)
-* [k8s集群所支持的规格](#k8s集群所支持的规格)
-    * [分布式一致性集群为什么通常大于3的奇数个](#分布式一致性集群为什么通常大于3的奇数个)
-    * [**1. 避免脑裂和实现仲裁**](#1-避免脑裂和实现仲裁)
-    * [**2. 容忍节点故障**](#2-容忍节点故障)
-    * [**3. 减少选主延迟**](#3-减少选主延迟)
-    * [**4. 资源利用效率**](#4-资源利用效率)
-    * [**实际应用**](#实际应用)
-    * [**总结**](#总结)
-* [高可用集群部署流程（kubeadm）](#高可用集群部署流程kubeadm)
-    * [1. 准备机器配置](#1-准备机器配置)
-    * [2. 安装容器运行时](#2-安装容器运行时)
-        * [集群内核调优参考](#集群内核调优参考)
-    * [3. 安装容器运行时接口](#3-安装容器运行时接口)
-    * [4. 安装kubeadm、kubelet、kubectl](#4-安装kubeadmkubeletkubectl)
-    * [5. 初始化master节点](#5-初始化master节点)
-    * [6. 配置kubeconfig文件](#6-配置kubeconfig文件)
-    * [7. 安装网络插件flannel，使各节点各pod能相互通信](#7-安装网络插件flannel使各节点各pod能相互通信)
-    * [注意事项：](#注意事项)
-* [debug](#debug)
+* [15. k8s集群管理](#15-k8s集群管理)
+    * [集群故障排查工具](#集群故障排查工具)
+    * [节点管理](#节点管理)
+    * [升级集群](#升级集群)
+    * [证书](#证书)
+* [16. 辅助组件](#16-辅助组件)
+    * [cert-manager](#cert-manager)
+    * [kraken](#kraken)
+    * [nfs-provisioner](#nfs-provisioner)
+    * [node-local-dns](#node-local-dns)
+    * [Istio](#istio)
+    * [api](#api)
+    * [crd](#crd)
+    * [operator](#operator)
+* [17. k8s集群部署流程（kubeadm）](#17-k8s集群部署流程kubeadm)
+    * [k8s集群所支持的规格](#k8s集群所支持的规格)
+    * [分布式一致性集群节点数](#分布式一致性集群节点数)
+    * [集群内核调优参考](#集群内核调优参考)
+* [18. debug](#18-debug)
     * [k8s master机器重启后，coredns两个pod就绪探针失败](#k8s-master机器重启后coredns两个pod就绪探针失败)
-        * [现象：](#现象)
-        * [原因](#原因)
-        * [解决](#解决)
-* [集群故障排查方法](#集群故障排查方法)
-* [节点管理](#节点管理)
-* [升级集群](#升级集群)
-    * [一、升级 etcd 时的注意事项](#一升级-etcd-时的注意事项)
-    * [二、确定要升级到哪个版本](#二确定要升级到哪个版本)
-    * [三、升级控制平面节点](#三升级控制平面节点)
-    * [四、升级工作节点](#四升级工作节点)
-    * [五、验证集群的状态](#五验证集群的状态)
-    * [六、从故障状态恢复](#六从故障状态恢复)
-    * [七、工作原理](#七工作原理)
-* [cka](#cka)
+* [19. cka](#19-cka)
     * [技巧](#技巧)
 
 <!-- vim-markdown-toc -->
 
-## 容器发展历史
+
+## 1. 容器发展历史
 一开始是Cloud Foundry利用Cgroups和Namespace机制隔离各个应用的环境，但由于环境的打包过程不如docker镜像方便进而被docker取代，而由于大规模部署应用的需求出现了swarm这类容器集群管理项目，compose项目的推出也为容器编排提供了有力帮助，这些使得docker在当时站住了主流。而后不满docker一家独大的现状，谷歌、red hat等开源领域玩家牵头建立了CNCF，并以kubernetes项目为核心来对抗docker。由于kubernetes生态迅速崛起，docker将容器运行时containerd捐赠给CNCF，从此也标志着以kubernetes为核心容器技术发展
 
 
-## 容器与虚拟机比较
+**容器与虚拟机比较**
+
 容器利用linux的cgroups（资源限制）和namespace（资源隔离）技术实现，实际上是宿主机上的一个特殊的进程，共享内核。而虚拟机利用额外的工具如hypervisor等技术实现对宿主机资源的隔离，相比容器隔离更加的彻底
 
 容器镜像：rootfs
 
-## k8s概述 
+## 2. k8s概述 
 一句话：k8s是谷歌一个容器编排的开源系统
 
 Kubernetes 是用于自动部署，扩展和管理容器化应用程序的开源系统，Kubernetes 拥有一个庞大且快速增长的生态系统
@@ -282,10 +198,205 @@ systemd 与 cgroup 集成紧密，并将为每个 systemd 单元分配一个 cgr
 当 systemd 是选定的初始化系统时，缓解这个不稳定问题的方法是针对 kubelet 和容器运行时将 systemd 用作 cgroup 驱动。
 
 
-## pod 
+## 3. label
+```
+标签：是当相同类型的资源对象越来越多的时候，为了更好的管理，可以按照标签将其分为一个组，为的是提升资源对象的管理效率。
+
+标签选择算符：就是标签的查询过滤条件。目前API支持两种标签选择器：
+
+基于等值关系的，如：“=”、“”“==”、“！=”（注：“==”也是等于的意思，yaml文件中的matchLabels字段）；
+基于集合的，如：in、notin、exists（yaml文件中的matchExpressions字段）；
+注：in:在这个集合中；notin：不在这个集合中；exists：要么全在（exists）这个集合中，要么都不在（notexists）；
+```
+
+示例
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: label-demo
+  labels:
+    environment: production
+    app: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80
+```
+
+
+## 4. annotations注解
+Kubernetes 的 **Annotations** 是一种为资源对象附加非标识性元数据的机制，通常用于存储小型的、非关键的信息。与标签（Labels）不同，Annotations 不被用于选择或分组资源，而是提供额外的信息。
+
+**常见用途：**
+- 提供调试和诊断信息。
+- 标记部署工具、管理工具的元数据。
+- 配置扩展功能（如 Ingress、Service 等的特定行为）。
+- 为运维和开发提供额外的描述信息。
+
+**特点：**
+- 注解的值可以是任意字符串。
+- 每个对象的注解可以包含多个键值对。
+- 注解的值大小受限于 etcd 的存储限制（通常约 1MB）。
+
+**注解的使用格式**
+
+在资源的 YAML 文件中，Annotations 位于 `metadata.annotations` 字段下，例如：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: example-pod
+  annotations:
+    example.com/owner: "John Doe"
+    example.com/purpose: "Demo Pod"
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+```
+
+---
+
+**常见的应用场景和示例**
+
+**1. 调试和诊断信息**
+通过注解记录创建时间、创建人等信息，便于运维管理。
+
+```yaml
+metadata:
+  annotations:
+    created-by: "automation-tool"
+    creation-timestamp: "2024-11-16T10:00:00Z"
+```
+
+---
+
+**2. 配置 Ingress 的行为**
+为 Ingress 配置注解以控制 NGINX Ingress Controller 的功能。
+
+**示例：启用 HTTP 转 HTTPS 重定向**
+```yaml
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+```
+
+**示例：设置请求超时时间**
+```yaml
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "10"
+```
+
+---
+
+**3. Service 的自定义配置**
+为 Service 添加注解，控制云提供商（如 AWS、阿里云等）负载均衡器的行为。
+
+**示例：指定负载均衡器类型**
+```yaml
+metadata:
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+```
+
+**示例：指定阿里云 SLB 的内网模式**
+```yaml
+metadata:
+  annotations:
+    service.beta.kubernetes.io/alicloud-loadbalancer-address-type: "intranet"
+```
+
+---
+
+**4. 配置 Pod 的调度行为**
+使用注解为调度器提供额外的指示信息。
+
+**示例：禁止 kubelet 重启 Pod 时拉取镜像**
+```yaml
+metadata:
+  annotations:
+    container.image.pullPolicy: "IfNotPresent"
+```
+
+**示例：为 Pod 设置自定义调度器**
+```yaml
+metadata:
+  annotations:
+    scheduler.alpha.kubernetes.io/name: "custom-scheduler"
+```
+
+---
+
+**5. 配置 Sidecar 容器自动注入**
+使用注解为 Pod 配置 Sidecar 容器注入（如 Istio 或 Linkerd）。
+
+**示例：启用 Istio Sidecar 自动注入**
+```yaml
+metadata:
+  annotations:
+    sidecar.istio.io/inject: "true"
+```
+
+---
+
+**6. 配置 Persistent Volume 的行为**
+通过注解控制存储的行为，例如动态供应时的配置。
+
+**示例：配置存储类的访问模式**
+```yaml
+metadata:
+  annotations:
+    volume.beta.kubernetes.io/mount-options: "ro,nosuid"
+```
+
+---
+
+**7. 标记资源管理工具的元数据**
+为资源打上管理工具的标记，便于追踪资源的来源。
+
+**示例：标记 Helm 部署的资源**
+```yaml
+metadata:
+  annotations:
+    meta.helm.sh/release-name: "my-release"
+    meta.helm.sh/release-namespace: "default"
+```
+
+---
+
+**8. 配置 Horizontal Pod Autoscaler (HPA) 的行为**
+通过注解为 HPA 提供指标来源或行为配置。
+
+**示例：从外部指标来源扩展**
+```yaml
+metadata:
+  annotations:
+    autoscaling.alpha.kubernetes.io/metrics: |
+      [{"type": "External", "external": {"metricName": "queue_length", "targetValue": 100}}]
+```
+
+## 4. Finalizer终结器
+在 Kubernetes 中，Finalizers 是一种机制，用于确保在资源被删除之前执行某些操作。它通常用于执行清理、资源释放或其他终止操作，以确保资源的删除流程能够顺利进行，且不会对系统造成影响。Finalizers 在 Kubernetes 资源的生命周期管理中扮演着重要角色。
+
+1. 当资源对象（如 Pod、Deployment、Namespace 等）被删除时，Kubernetes 会将该资源的状态设置为 "Terminating"。
+2. 在删除过程中，Kubernetes 会检查资源的 Finalizer 列表。如果有 Finalizer，Kubernetes 会等待 Finalizer 执行并完成清理操作。
+3. 一旦 Finalizer 执行完成，资源才会从集群中被彻底删除。
+4. 如果某个 Finalizer 在执行过程中遇到问题，资源的删除操作会被阻塞，直到该 Finalizer 执行完成或被手动移除。
+
+
+## 5. pod 
 类似于共享命名空间和文件系统卷的一组容器，是k8s集群里面最小的单位。每个pod里边可以运行一个或多个container（容器），如果一个pod中有两个container，那么container的USR（用户）、MNT（挂载点）、PID（进程号）是相互隔离的，UTS（主机名和域名）、IPC（消息队列）、NET（网络栈）是相互共享的。
 
-### pod中容器类型
+**pod中容器类型**
+
 1. pause：是每个 Pod 中的第一个启动的容器，其主要作用是为 Pod 提供一个共享的 Linux Namespace（命名空间） 环境给其他容器共用。容器本身非常轻量，仅运行一个简单的命令 sleep infinity，保持容器持续运行。
 
 2. init：容器本身非常轻量，仅运行一个简单的命令 sleep infinity，保持容器持续运行。
@@ -294,10 +405,16 @@ systemd 与 cgroup 集成紧密，并将为每个 systemd 单元分配一个 cgr
 
 4. 应用容器：跑主业务服务
 
-### pod 状态
+---
+
+**pod 状态**
+
 ![](images/pod_status.png)
 
-### 创建pod的流程
+--- 
+
+**创建pod的流程**
+
 1. 客户端提交Pod的配置信息（可以是yaml文件定义好的信息）到kube-apiserver；
 2. Apiserver收到指令后，将pod的配置信息存储到ETCD数据中心中
 3. 通知给controller-manager创建一个资源对象（repllicaSet），去创建所需要的pod
@@ -305,7 +422,10 @@ systemd 与 cgroup 集成紧密，并将为每个 systemd 单元分配一个 cgr
 5. Kubelet根据scheduler发来的资源配置单运行pod（调docker），运行成功后，将pod的运行信息返回给scheduler，scheduler将返回的pod运行状况的信息存储到etcd数据中心。如果Pod状态发生变化，Kubelet 会通过API server更新Pod状态
 6. 后由kubeproxy负责pod的网络通信，服务发布和负载均衡
 
-### 删除pod的流程
+---
+
+**删除pod的流程**
+
 Kube-apiserver会接受到用户的删除指令，默认有30秒时间等待优雅退出，超过30秒会被标记为死亡状态，此时Pod的状态Terminating，kubelet看到pod标记为Terminating就开始了关闭Pod的工作；
 
 关闭流程如下：
@@ -314,7 +434,10 @@ Kube-apiserver会接受到用户的删除指令，默认有30秒时间等待优�
 3. 进程被发送SIGTERM信号（kill -15）
 4. 当超过优雅退出的时间后，Pod中的所有进程都会被发送SIGKILL信号（kill -9）。
 
-### static pod
+---
+
+**static pod**
+
 在 Kubernetes 中，Static Pod（静态 Pod）是一种特殊类型的 Pod，与普通的 Pod 相比有一些不同之处。
 
 普通的 Pod 是由 Kubernetes API Server 管理的，它们的定义通常存储在 etcd 中，并由 kubelet 运行在集群中的节点上。而 Static Pod 是直接由 kubelet 管理的，它的定义文件通常存储在节点上的特定目录中，而不是存储在集群的 etcd 中。这使得 Static Pod 与特定的节点绑定，而不是与整个集群绑定，这样就可以方便地将它们与特定节点的生命周期关联起来。
@@ -325,7 +448,9 @@ Static Pod 主要用于在集群中启动一些基础服务或辅助服务，如
 
 需要注意的是，Static Pod 不受 Kubernetes 控制平面的管理，因此在使用 Static Pod 时需要格外小心，确保其配置与集群的其他部分保持一致，以避免引起集群的不一致性或故障。
 
-### downward api: 让 Pod 里的容器能够直接获取到这个 Pod API 对象本身的信息
+### downward api
+让 Pod 里的容器能够直接获取到这个 Pod API 对象本身的信息
+
 此yaml文件申明了一个projected类型的Volume，来源为downward api，声明了要暴露pod的metadata.labels信息给容器，这样pod的labels字段的值，就会被kubernetes自动挂载成为容器里的/etc/podinfo/labels文件
 
 projected volume包括secret，configmap，downward api，serviceaccounttoken
@@ -369,7 +494,7 @@ spec:
 
 对于包含多个容器的 Pod，只有它里面所有的容器都进入异常状态后，Pod 才会进入 Failed 状态。在此之前，Pod 都是 Running 状态。此时，Pod 的 READY 字段会显示正常容器的个数
 
-#### 三种探针
+1. 三种探针
 针对运行中的容器，kubelet 可以选择是否执行以下三种探针，以及如何针对探测结果作出反应：
 ```
 livenessProbe
@@ -380,7 +505,7 @@ startupProbe
 指示容器中的应用是否已经启动。如果提供了启动探针，则所有其他探针都会被 禁用，直到此探针成功为止。如果启动探测失败，kubelet 将杀死容器，而容器依其 重启策略进行重启。 如果容器没有提供启动探测，则默认状态为 Success。
 ```
 
-#### 检查机制
+2. 检查机制
 使用探针来检查容器有四种不同的方法。 每个探针都必须准确定义为这四种机制中的一种：
 ```
 exec
@@ -393,7 +518,7 @@ tcpSocket
 对容器的 IP 地址上的指定端口执行 TCP 检查。如果端口打开，则诊断被认为是成功的。 如果远程系统（容器）在打开连接后立即将其关闭，这算作是健康的。
 ```
 
-#### 探测结果
+3. 探测结果
 ```
 每次探测都将获得以下三种结果之一：
 
@@ -407,7 +532,7 @@ Unknown（未知）
 探测失败会让kubelet重启该容器
 ```
 
-#### 检查参数
+4. 检查参数
 ```
 每种探测方法能支持以下几个相同的检查参数，用于设置控制检查时间：
 initialDelaySeconds：初始第一次探测间隔，用于应用启动的时间，防止应用还没启动而健康检查失败
@@ -441,7 +566,8 @@ spec:
       periodSeconds: 5
 ```
 
-## 控制器
+
+## 6. 控制器
 主要基于控制循环
 ```
 for {
@@ -458,7 +584,7 @@ for {
 在 Kubernetes（K8s）中，**工作负载（Workloads）** 是对运行在集群中的应用程序的抽象。通过不同类型的工作负载，用户可以管理和调度容器化应用的生命周期。以下是 Kubernetes 中常见的工作负载类型及其特点和适用场景。
 
 ---
-
+```
 ### **1. Pod**
 #### **简介**
 - Pod 是 Kubernetes 中最小的部署单元，代表一个或多个容器的集合。
@@ -573,7 +699,7 @@ for {
 
 ### **9. HorizontalPodAutoscaler（HPA）**
 #### **简介**
-- 自动根据负载（如 CPU、内存使用率）调整 Pod 副本数量。
+- 自动根据负载（如 CPU、内存使用率）调整 Pod 副本数量。--cpu-percent  20% 是pod的limit限制值豪核的20%，例如： limit值为200m   * 20% = 40m
 
 #### **特点**
 - 动态扩缩容 Pod 副本数量。
@@ -626,10 +752,141 @@ for {
 | **VPA**             | 动态调整资源请求和限制                      | 优化资源分配              |
 
 根据业务需求选择合适的工作负载类型，可以更好地发挥 Kubernetes 的调度和管理能力。
+```
 
 
-## service
+## 7. service
 暴露集群内的服务，并对服务提供负载均衡功能，默认使用TCP协议
+
+### 实现原理
+1. clusterIP
+```
+由kube-proxy组件加上iptables（默认）来共同实现的
+
+比如现在有一个service vip是10.0.1.175/32的80端口代理着三个pod10.244.0.5:9376,10.244.0.6:9376,10.244.0.7:9376
+
+当创建这个service的时候，kube-proxy就可以通过service的informer感知到这样一个service对象的添加，然后kube-proxy就会在宿主机上创建一条iptables规则：
+-A KUBE-SERVICES -d 10.0.1.175/32 -p tcp -m comment --comment "default/hostnames: cluster IP" -m tcp --dport 80 -j KUBE-SVC-NWV5X2332I4OT4T3
+
+* `-A KUBE-SERVICES`：这表示将规则添加到名为 `KUBE-SERVICES` 的iptables链中。`-A` 选项用于添加规则到链的末尾。
+  
+* `-d 10.0.1.175/32`：这指定了目标地址为 `10.0.1.175`，后面的 `/32` 表示这是一个CIDR表示法，表示单个IP地址。
+  
+* `-p tcp`：这表示匹配传输层协议为TCP的数据包。
+  
+* `-m comment --comment "default/hostnames: cluster IP"`：这是一个注释，提供了关于规则目的的信息，这对于管理规则集合时非常有用。
+  
+* `-m tcp --dport 80`：这表示匹配目标端口为80的TCP数据包。 `-m tcp` 表示使用TCP模块来匹配数据包。
+  
+* `-j KUBE-SVC-NWV5X2332I4OT4T3`：这表示如果数据包符合以上条件，将跳转到名为 `KUBE-SVC-NWV5X2332I4OT4T3` 的目标。 `-j` 表示跳转到目标。
+
+这条规则就为这个service设置了一个固定入口地址，接着跳转到KUBE-SVC-NWV5X2332I4OT4T3：
+-A KUBE-SVC-NWV5X2332I4OT4T3 -m comment --comment "default/hostnames:" -m statistic --mode random --probability 0.33332999982 -j KUBE-SEP-WNBA2IHDGP2BOBGZ
+-A KUBE-SVC-NWV5X2332I4OT4T3 -m comment --comment "default/hostnames:" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-X3P2623AGDH6CDF3
+-A KUBE-SVC-NWV5X2332I4OT4T3 -m comment --comment "default/hostnames:" -j KUBE-SEP-57KPRZ3JQVENLNBR
+
+用-mode random的模式，随机转发到目的地，分别是 KUBE-SEP-WNBA2IHDGP2BOBGZ、KUBE-SEP-X3P2623AGDH6CDF3 和 KUBE-SEP-57KPRZ3JQVENLNBR。而这三条链指向的最终目的地，其实就是这个 Service 代理的三个 Pod。
+
+由于iptables规则是从上到下逐条进行的，所以为了保证上述三条规则每条被选中的概率都相同，我们应该将它们的 probability 字段的值分别设置为 1/3（0.333…）、1/2 和 1。
+
+这么设置的原理很简单：第一条规则被选中的概率就是 1/3；而如果第一条规则没有被选中，那么这时候就只剩下两条规则了，所以第二条规则的 probability 就必须设置为 1/2；类似地，最后一条就必须设置为 1。
+
+上述三条链的明细：
+-A KUBE-SEP-57KPRZ3JQVENLNBR -s 10.244.3.6/32 -m comment --comment "default/hostnames:" -j MARK --set-xmark 0x00004000/0x00004000
+-A KUBE-SEP-57KPRZ3JQVENLNBR -p tcp -m comment --comment "default/hostnames:" -m tcp -j DNAT --to-destination 10.244.3.6:9376
+
+-A KUBE-SEP-WNBA2IHDGP2BOBGZ -s 10.244.1.7/32 -m comment --comment "default/hostnames:" -j MARK --set-xmark 0x00004000/0x00004000
+-A KUBE-SEP-WNBA2IHDGP2BOBGZ -p tcp -m comment --comment "default/hostnames:" -m tcp -j DNAT --to-destination 10.244.1.7:9376
+
+-A KUBE-SEP-X3P2623AGDH6CDF3 -s 10.244.2.3/32 -m comment --comment "default/hostnames:" -j MARK --set-xmark 0x00004000/0x00004000
+-A KUBE-SEP-X3P2623AGDH6CDF3 -p tcp -m comment --comment "default/hostnames:" -m tcp -j DNAT --to-destination 10.244.2.3:9376
+可以看到，这三条链，其实是三条 DNAT 规则。但在 DNAT 规则之前，iptables 对流入的 IP 包还设置了一个“标志”（–set-xmark）。而 DNAT 规则的作用，就是在 PREROUTING 检查点之前，也就是在路由之前，将流入 IP 包的目的地址和端口，改成–to-destination 所指定的新的目的地址和端口。可以看到，这个目的地址和端口，正是被代理 Pod 的 IP 地址和端口。
+
+总结：这些 Endpoints 对应的 iptables 规则，正是 kube-proxy 通过监听 Pod 的变化事件，在宿主机上生成并维护的。当流量通过nodrport或者负载均衡器进入，也会执行相同的基本流程，只是在这些情况下，客户端ip地址会被更改
+```
+
+2. nodeport实现原理
+```
+外部流量到达 Node 的 NodePort 后，会被转发到 Service 的 ClusterIP
+
+当以nodeport类型，service的8080端口代理pod80端口，service的443端口代理pod的443端口。此时kube-proxy会在每台node上生成这样一条iptables规则：
+-A KUBE-NODEPORTS -p tcp -m comment --comment "default/my-nginx: nodePort" -m tcp --dport 8080 -j KUBE-SVC-67RL4FN6JRUPOJYM
+
+KUBE-SVC-67RL4FN6JRUPOJYM 其实就是一组随机模式的 iptables 规则。所以接下来的流程，就跟 ClusterIP 模式完全一样了。
+
+需要注意的是，在 NodePort 方式下，Kubernetes 会在 IP 包离开宿主机发往目的 Pod 时，对这个 IP 包做一次 SNAT 操作，如下所示：
+-A KUBE-POSTROUTING -m comment --comment "kubernetes service traffic requiring SNAT" -m mark --mark 0x4000/0x4000 -j MASQUERADE
+
+可以看到，这条规则设置在 POSTROUTING 检查点，也就是说，它给即将离开这台主机的 IP 包，进行了一次 SNAT 操作，将这个 IP 包的源地址替换成了这台宿主机上的 CNI 网桥地址，或者宿主机本身的 IP 地址（如果 CNI 网桥不存在的话）。
+
+当然，这个 SNAT 操作只需要对 Service 转发出来的 IP 包进行（否则普通的 IP 包就被影响了）。而 iptables 做这个判断的依据，就是查看该 IP 包是否有一个“0x4000”的“标志”。你应该还记得，这个标志正是在 IP 包被执行 DNAT 操作之前被打上去的。
+
+对流出包做SNAT的原因：
+           client
+             \ ^
+              \ \
+               v \
+   node 1 <--- node 2
+    | ^   SNAT
+    | |   --->
+    v |
+ endpoint
+
+当一个外部的 client 通过 node 2 的地址访问一个 Service 的时候，node 2 上的负载均衡规则，就可能把这个 IP 包转发给一个在 node 1 上的 Pod。这里没有任何问题。
+
+而当 node 1 上的这个 Pod 处理完请求之后，它就会按照这个 IP 包的源地址发出回复。
+
+可是，如果没有做 SNAT 操作的话，这时候，被转发来的 IP 包的源地址就是 client 的 IP 地址。所以此时，Pod 就会直接将回复发给client。对于 client 来说，它的请求明明发给了 node 2，收到的回复却来自 node 1，这个 client 很可能会报错。
+
+所以，在上图中，当 IP 包离开 node 2 之后，它的源 IP 地址就会被 SNAT 改成 node 2 的 CNI 网桥地址或者 node 2 自己的地址。这样，Pod 在处理完成之后就会先回复给 node 2（而不是 client），然后再由 node 2 发送给 client。
+
+当然，这也就意味着这个 Pod 只知道该 IP 包来自于 node 2，而不是外部的 client。对于 Pod 需要明确知道所有请求来源的场景来说，这是不可以的。
+
+所以这时候，你就可以将 Service 的 spec.externalTrafficPolicy 字段设置为 local，这就保证了所有 Pod 通过 Service 收到请求之后，一定可以看到真正的、外部 client 的源地址。
+
+而这个机制的实现原理也非常简单：这时候，一台宿主机上的 iptables 规则，会设置为只将 IP 包转发给运行在这台宿主机上的 Pod。所以这时候，Pod 就可以直接使用源地址将回复包发出，不需要事先进行 SNAT 了。这个流程，如下所示：
+       client
+       ^ /   \
+      / /     \
+     / v       X
+   node 1     node 2
+    ^ |
+    | |
+    | v
+ endpoint
+
+当然，这也就意味着如果在一台宿主机上，没有任何一个被代理的 Pod 存在，比如上图中的 node 2，那么你使用 node 2 的 IP 地址访问这个 Service，就是无效的。此时，你的请求会直接被 DROP 掉。
+```
+
+3. loadbalancer实现原理
+在 NodePort 的基础上，结合云服务商的负载均衡器（如 AWS ELB、GCP Load Balancer），将服务暴露到外部。
+
+- **云提供商集成**：
+  - LoadBalancer 类型的 Service 会调用云平台的 API，动态创建一个负载均衡器。
+  - 负载均衡器将外部流量转发到集群节点的 NodePort。
+
+- **内部转发**：
+  - 外部流量首先到达云负载均衡器。
+  - 云负载均衡器将流量分发到指定节点的 NodePort。
+  - 节点上的 Kube-proxy 通过 NodePort 将流量转发到后端 Pod。
+
+- **请求流程**：
+  1. 客户端请求负载均衡器的外部 IP。
+  2. 云负载均衡器将流量转发到某个节点的 NodePort。
+  3. NodePort 再将流量转发到后端 Pod。
+
+4. externalName实现原理
+通过 DNS 映射，将 Service 名称解析为外部服务的 DNS 名称。
+
+- **DNS 解析**：
+  - ExternalName 类型的 Service 不分配 ClusterIP，也不会绑定到任何后端 Pod。
+  - 它在 Kubernetes 内部仅起到 DNS 映射的作用。
+  - 当应用程序通过 Service 名称访问服务时，DNS 服务器会直接解析为配置的外部域名。
+
+- **请求流程**：
+  1. 服务消费者请求 Service 名称（如 `myservice.default.svc.cluster.local`）。
+  2. Kubernetes DNS 将此名称解析为指定的外部域名（如 `example.com`）。
+  3. 流量直接发送到外部服务。
 
 ### headless service
 访问“my-svc.my-namespace.svc.cluster.local”解析到的，直接就是 my-svc 代理的某一个 Pod 的 IP 地址。这里的区别在于，Headless Service 不需要分配一个 VIP，而是可以直接以 DNS 记录的方式解析出被代理 Pod 的 IP 地址。
@@ -651,55 +908,7 @@ spec:
     app: nginx
 ```
 
-### clusterIP实现原理
-由kube-proxy组件加上iptables（默认）来共同实现的
-
-比如现在有一个service vip是10.0.1.175/32的80端口代理着三个pod10.244.0.5:9376,10.244.0.6:9376,10.244.0.7:9376
-
-当创建这个service的时候，kube-proxy就可以通过service的informer感知到这样一个service对象的添加，然后kube-proxy就会在宿主机上创建一条iptables规则：
-```
--A KUBE-SERVICES -d 10.0.1.175/32 -p tcp -m comment --comment "default/hostnames: cluster IP" -m tcp --dport 80 -j KUBE-SVC-NWV5X2332I4OT4T3
-```
-* `-A KUBE-SERVICES`：这表示将规则添加到名为 `KUBE-SERVICES` 的iptables链中。`-A` 选项用于添加规则到链的末尾。
-    
-* `-d 10.0.1.175/32`：这指定了目标地址为 `10.0.1.175`，后面的 `/32` 表示这是一个CIDR表示法，表示单个IP地址。
-    
-* `-p tcp`：这表示匹配传输层协议为TCP的数据包。
-    
-* `-m comment --comment "default/hostnames: cluster IP"`：这是一个注释，提供了关于规则目的的信息，这对于管理规则集合时非常有用。
-    
-* `-m tcp --dport 80`：这表示匹配目标端口为80的TCP数据包。 `-m tcp` 表示使用TCP模块来匹配数据包。
-    
-* `-j KUBE-SVC-NWV5X2332I4OT4T3`：这表示如果数据包符合以上条件，将跳转到名为 `KUBE-SVC-NWV5X2332I4OT4T3` 的目标。 `-j` 表示跳转到目标。
-
-这条规则就为这个service设置了一个固定入口地址，接着跳转到KUBE-SVC-NWV5X2332I4OT4T3：
-```
--A KUBE-SVC-NWV5X2332I4OT4T3 -m comment --comment "default/hostnames:" -m statistic --mode random --probability 0.33332999982 -j KUBE-SEP-WNBA2IHDGP2BOBGZ
--A KUBE-SVC-NWV5X2332I4OT4T3 -m comment --comment "default/hostnames:" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-X3P2623AGDH6CDF3
--A KUBE-SVC-NWV5X2332I4OT4T3 -m comment --comment "default/hostnames:" -j KUBE-SEP-57KPRZ3JQVENLNBR
-```
-用-mode random的模式，随机转发到目的地，分别是 KUBE-SEP-WNBA2IHDGP2BOBGZ、KUBE-SEP-X3P2623AGDH6CDF3 和 KUBE-SEP-57KPRZ3JQVENLNBR。而这三条链指向的最终目的地，其实就是这个 Service 代理的三个 Pod。
-
-由于iptables规则是从上到下逐条进行的，所以为了保证上述三条规则每条被选中的概率都相同，我们应该将它们的 probability 字段的值分别设置为 1/3（0.333…）、1/2 和 1。
-
-这么设置的原理很简单：第一条规则被选中的概率就是 1/3；而如果第一条规则没有被选中，那么这时候就只剩下两条规则了，所以第二条规则的 probability 就必须设置为 1/2；类似地，最后一条就必须设置为 1。
-
-上述三条链的明细：
-```
--A KUBE-SEP-57KPRZ3JQVENLNBR -s 10.244.3.6/32 -m comment --comment "default/hostnames:" -j MARK --set-xmark 0x00004000/0x00004000
--A KUBE-SEP-57KPRZ3JQVENLNBR -p tcp -m comment --comment "default/hostnames:" -m tcp -j DNAT --to-destination 10.244.3.6:9376
-
--A KUBE-SEP-WNBA2IHDGP2BOBGZ -s 10.244.1.7/32 -m comment --comment "default/hostnames:" -j MARK --set-xmark 0x00004000/0x00004000
--A KUBE-SEP-WNBA2IHDGP2BOBGZ -p tcp -m comment --comment "default/hostnames:" -m tcp -j DNAT --to-destination 10.244.1.7:9376
-
--A KUBE-SEP-X3P2623AGDH6CDF3 -s 10.244.2.3/32 -m comment --comment "default/hostnames:" -j MARK --set-xmark 0x00004000/0x00004000
--A KUBE-SEP-X3P2623AGDH6CDF3 -p tcp -m comment --comment "default/hostnames:" -m tcp -j DNAT --to-destination 10.244.2.3:9376
-```
-可以看到，这三条链，其实是三条 DNAT 规则。但在 DNAT 规则之前，iptables 对流入的 IP 包还设置了一个“标志”（–set-xmark）。而 DNAT 规则的作用，就是在 PREROUTING 检查点之前，也就是在路由之前，将流入 IP 包的目的地址和端口，改成–to-destination 所指定的新的目的地址和端口。可以看到，这个目的地址和端口，正是被代理 Pod 的 IP 地址和端口。
-
-总结：这些 Endpoints 对应的 iptables 规则，正是 kube-proxy 通过监听 Pod 的变化事件，在宿主机上生成并维护的。当流量通过nodrport或者负载均衡器进入，也会执行相同的基本流程，只是在这些情况下，客户端ip地址会被更改
-
-#### k8s中的informer
+### k8s中的informer
 在 Kubernetes 中，Informer 是一种用于监视 Kubernetes 资源对象变化的机制。它是 Kubernetes 中客户端库的一部分，用于跟踪集群中特定类型资源对象的状态变化。
 
 Informer 的主要作用是从 Kubernetes API Server 中获取资源对象的信息，并在这些资源对象发生变化时通知注册的监听器或回调函数。这些变化可以包括创建、更新、删除等操作，因此 Informer 是一种非常强大的工具，用于实现对 Kubernetes 资源对象的实时监控和响应。
@@ -740,102 +949,13 @@ IPVS 模式的工作原理，其实跟 iptables 模式类似。当我们创建�
 
 这时候，任何发往 10.102.128.4:80 的请求，就都会被 IPVS 模块转发到某一个后端 Pod 上了。
 
-而相比于 iptables，IPVS 在内核中的实现其实也是基于 Netfilter 的 NAT 模式，所以在转发这一层上，理论上 IPVS 并没有显著的性能提升。但是，IPVS 并不需要在宿主机上为每个 Pod 设置 iptables 规则（netlink创建ipvs规则，底层数据结构采用了hash table），而是把对这些“规则”的处理放到了内核态，从而极大地降低了维护这些规则的代价。这也正印证了我在前面提到过的，“将重要操作放入内核态”是提高性能的重要手段。
+而相比于 iptables，IPVS 在内核中的实现其实也是基于 Netfilter 的 NAT 模式，所以在转发这一层上，理论上 IPVS 并没有显著的性能提升。但是，IPVS 并不需要在宿主机上为每个 Pod 设置 iptables 规则（netlink创建ipvs规则，底层数据结构采用了hash table，不像iptables是线性匹配规则），而是把对这些“规则”的处理放到了内核态，从而极大地降低了维护这些规则的代价。这也正印证了我在前面提到过的，“将重要操作放入内核态”是提高性能的重要手段。
 
 ipvs模式还为负载均衡提供了更多的选择：rr、wrr、lc、wlc等等
 
 不过需要注意的是，IPVS 模块只负责上述的负载均衡和代理功能。而一个完整的 Service 流程正常工作所需要的包过滤、SNAT 等操作，还是要靠 iptables 来实现。只不过，这些辅助性的 iptables 规则数量有限，也不会随着 Pod 数量的增加而增加。
 
 所以，在大规模集群里，我非常建议你为 kube-proxy 设置–proxy-mode=ipvs 来开启这个功能。它为 Kubernetes 集群规模带来的提升，还是非常巨大的。
-
-### nodeport实现原理
-外部流量到达 Node 的 NodePort 后，会被转发到 Service 的 ClusterIP
-
-当以nodeport类型，service的8080端口代理pod80端口，service的443端口代理pod的443端口。此时kube-proxy会在每台node上生成这样一条iptables规则：
-```
--A KUBE-NODEPORTS -p tcp -m comment --comment "default/my-nginx: nodePort" -m tcp --dport 8080 -j KUBE-SVC-67RL4FN6JRUPOJYM
-```
-KUBE-SVC-67RL4FN6JRUPOJYM 其实就是一组随机模式的 iptables 规则。所以接下来的流程，就跟 ClusterIP 模式完全一样了。
-
-需要注意的是，在 NodePort 方式下，Kubernetes 会在 IP 包离开宿主机发往目的 Pod 时，对这个 IP 包做一次 SNAT 操作，如下所示：
-```
--A KUBE-POSTROUTING -m comment --comment "kubernetes service traffic requiring SNAT" -m mark --mark 0x4000/0x4000 -j MASQUERADE
-```
-可以看到，这条规则设置在 POSTROUTING 检查点，也就是说，它给即将离开这台主机的 IP 包，进行了一次 SNAT 操作，将这个 IP 包的源地址替换成了这台宿主机上的 CNI 网桥地址，或者宿主机本身的 IP 地址（如果 CNI 网桥不存在的话）。
-
-当然，这个 SNAT 操作只需要对 Service 转发出来的 IP 包进行（否则普通的 IP 包就被影响了）。而 iptables 做这个判断的依据，就是查看该 IP 包是否有一个“0x4000”的“标志”。你应该还记得，这个标志正是在 IP 包被执行 DNAT 操作之前被打上去的。
-
-对流出包做SNAT的原因：
-```
-           client
-             \ ^
-              \ \
-               v \
-   node 1 <--- node 2
-    | ^   SNAT
-    | |   --->
-    v |
- endpoint
-```
-当一个外部的 client 通过 node 2 的地址访问一个 Service 的时候，node 2 上的负载均衡规则，就可能把这个 IP 包转发给一个在 node 1 上的 Pod。这里没有任何问题。
-
-而当 node 1 上的这个 Pod 处理完请求之后，它就会按照这个 IP 包的源地址发出回复。
-
-可是，如果没有做 SNAT 操作的话，这时候，被转发来的 IP 包的源地址就是 client 的 IP 地址。所以此时，Pod 就会直接将回复发给client。对于 client 来说，它的请求明明发给了 node 2，收到的回复却来自 node 1，这个 client 很可能会报错。
-
-所以，在上图中，当 IP 包离开 node 2 之后，它的源 IP 地址就会被 SNAT 改成 node 2 的 CNI 网桥地址或者 node 2 自己的地址。这样，Pod 在处理完成之后就会先回复给 node 2（而不是 client），然后再由 node 2 发送给 client。
-
-当然，这也就意味着这个 Pod 只知道该 IP 包来自于 node 2，而不是外部的 client。对于 Pod 需要明确知道所有请求来源的场景来说，这是不可以的。
-
-所以这时候，你就可以将 Service 的 spec.externalTrafficPolicy 字段设置为 local，这就保证了所有 Pod 通过 Service 收到请求之后，一定可以看到真正的、外部 client 的源地址。
-
-而这个机制的实现原理也非常简单：这时候，一台宿主机上的 iptables 规则，会设置为只将 IP 包转发给运行在这台宿主机上的 Pod。所以这时候，Pod 就可以直接使用源地址将回复包发出，不需要事先进行 SNAT 了。这个流程，如下所示：
-```
-       client
-       ^ /   \
-      / /     \
-     / v       X
-   node 1     node 2
-    ^ |
-    | |
-    | v
- endpoint
-```
-当然，这也就意味着如果在一台宿主机上，没有任何一个被代理的 Pod 存在，比如上图中的 node 2，那么你使用 node 2 的 IP 地址访问这个 Service，就是无效的。此时，你的请求会直接被 DROP 掉。
-
-### loadbalancer实现原理
-在 NodePort 的基础上，结合云服务商的负载均衡器（如 AWS ELB、GCP Load Balancer），将服务暴露到外部。
-
-#### **实现原理**：
-- **云提供商集成**：
-  - LoadBalancer 类型的 Service 会调用云平台的 API，动态创建一个负载均衡器。
-  - 负载均衡器将外部流量转发到集群节点的 NodePort。
-
-- **内部转发**：
-  - 外部流量首先到达云负载均衡器。
-  - 云负载均衡器将流量分发到指定节点的 NodePort。
-  - 节点上的 Kube-proxy 通过 NodePort 将流量转发到后端 Pod。
-
-- **请求流程**：
-  1. 客户端请求负载均衡器的外部 IP。
-  2. 云负载均衡器将流量转发到某个节点的 NodePort。
-  3. NodePort 再将流量转发到后端 Pod。
-
-### externalName
-
-通过 DNS 映射，将 Service 名称解析为外部服务的 DNS 名称。
-
-#### **实现原理**：
-- **DNS 解析**：
-  - ExternalName 类型的 Service 不分配 ClusterIP，也不会绑定到任何后端 Pod。
-  - 它在 Kubernetes 内部仅起到 DNS 映射的作用。
-  - 当应用程序通过 Service 名称访问服务时，DNS 服务器会直接解析为配置的外部域名。
-
-- **请求流程**：
-  1. 服务消费者请求 Service 名称（如 `myservice.default.svc.cluster.local`）。
-  2. Kubernetes DNS 将此名称解析为指定的外部域名（如 `example.com`）。
-  3. 流量直接发送到外部服务。
-
 
 ### service相关排错思路
 1. 区分是service本身的配置文件还是k8s集群的dns服务出了问题
@@ -866,7 +986,7 @@ KUBE-SVC-(hash) 规则对应的负载均衡链，这些规则的数目应该与 
 5. 还有一种典型问题，就是 Pod 没办法通过 Service 访问到自己。这往往就是因为 kubelet 的 hairpin-mode 没有被正确设置。关于 Hairpin 的原理我在前面已经介绍过，这里就不再赘述了。你只需要确保将 kubelet 的 hairpin-mode 设置为 hairpin-veth 或者 promiscuous-bridge 即可。
 
 
-## ingress
+## 8. ingress
 工作在七层，是service的“service”，ingress就是kubernetes中全局的反向代理，负责k8s内部所有service的负载均衡，根据定义的rules转发到不同的service上去。它是本身也是通过Nodetype或者loadbalancer类型的service来对外提供服务的。 
 
 首先需要在集群中安装ingress-controller，然后这个pod会监听ingress对象以及它所代理的后端service变化的控制器，当一个新的ingress对象创建后，ingress-controller会根据ingress对象里定义的内容生成一份对应的nginx配置文件（/etc/nginx/nginx.conf），并使用这个配置文件启动一个nginx服务，而一旦ingress对象被更新，ingress-controller就会更新这个配置文件，如果只是被代理的service对象被更新，ingress-controller所管理的nginx是不需要reload的，此外ingress-controller还允许通过configmap对象来对上述的nginx配置文件进行定制。
@@ -876,7 +996,132 @@ KUBE-SVC-(hash) 规则对应的负载均衡链，这些规则的数目应该与 
 此时 Nginx Ingress Controller 的 Service 会默认创建一个 LoadBalancer 类型的 Service。如果在公有云服务器上部署，会自动拿到LB地址
 
 
-## cni
+## 9. flannel
+实现容器跨主机通信，其后端实现主要有vxlan、host-gw、udp
+
+宿主机 Node 1 上有一个容器 container-1，它的 IP 地址是 100.96.1.2，对应的 docker0 网桥的地址是：100.96.1.1/24。 
+宿主机 Node 2 上有一个容器 container-2，它的 IP 地址是 100.96.2.3，对应的 docker0 网桥的地址是：100.96.2.1/24。
+
+container-1访问container-2
+
+安装flannel后会在宿主机创建出一系列路由规则，以Node1为例，如下：
+```
+# 在 Node 1 上
+$ ip route
+default via 10.168.0.1 dev eth0
+100.96.0.0/16 dev flannel0  proto kernel  scope link  src 100.96.1.0
+100.96.1.0/24 dev docker0  proto kernel  scope link  src 100.96.1.1
+10.168.0.0/24 dev eth0  proto kernel  scope link  src 10.168.0.2
+
+# 在 Node 2 上
+$ ip route
+default via 10.168.0.1 dev eth0
+100.96.0.0/16 dev flannel0  proto kernel  scope link  src 100.96.2.0
+100.96.2.0/24 dev docker0  proto kernel  scope link  src 100.96.2.1
+10.168.0.0/24 dev eth0  proto kernel  scope link  src 10.168.0.3
+```
+
+一、udp模式
+
+![](images/flannel_udp.png)
+
+1. 首先ip包会通过docker0出现在宿主机上，接着会匹配宿主机上的第二条路由，从而把包交给虚拟网卡flannel0处理，然后这个包由内核态（网卡设备）流向用户态（宿主机上的flanneld进程）
+
+2. flanneld收到这个包后，由于Flannel管理的容器网络里，一台宿主机上的所有容器都属于该宿主机分配的一个子网，在我们的例子中，Node 1 的子网是 100.96.1.0/24，container-1 的 IP 地址是 100.96.1.2。Node 2 的子网是 100.96.2.0/24，container-2 的 IP 地址是 100.96.2.3。而这些子网与宿主机的对应关系，正式保存在了etcd当中，即etcd保存子网对应的宿主机ip地址，对flanneld来说只要Node 1和Node 2是互通的，那么flanneld作为Node 1 上的一个普通进程，就一定能把这个ip包封装在udp中发给Node 2。
+
+3. 这个udp包的源地址就是flanneld所在的node1的地址，而目的地址则是container-2所在的宿主机node2的地址，每台宿主机上的flanneld都监听着一个8285端口，所以flanneld只要把udp包发往node2的8285端口即可
+
+4. node2上的flanneld收到这个ip包后会发给它所管理的TUN设备，即flannel0设备处理，这时是一个从用户态向内核态流动的方向，将udp包解封装后发现他的目的ip地址是100.96.2.3，就会匹配node2上第三条路由，从而把这个ip包转发给docker0网桥
+
+5. 接着docker0 网桥会扮演二层交换机的角色，将数据包发送给正确的端口，进而通过 Veth Pair 设备进入到 container-2 的 Network Namespace 里。
+
+注意：所有宿主机上的docker0网桥地址范围必须是flannel为宿主机分配的子网
+```
+$ FLANNEL_SUBNET=100.96.1.1/24
+$ dockerd --bip=$FLANNEL_SUBNET ...
+```
+
+**udp模式下ip包用户态与内核态之间的数据拷贝**
+
+![](images/flannel_udp_tun.png)
+
+第一次：用户态的容器进程发出的 IP 包经过 docker0 网桥进入内核态；
+
+第二次：IP 包根据路由表进入 TUN（flannel0）设备，从而回到用户态的 flanneld 进程；
+
+第三次：flanneld 进行 UDP 封包之后重新进入内核态，将 UDP 包通过宿主机的 eth0 发出去。
+
+此外，我们还可以看到，Flannel 进行 UDP 封装（Encapsulation）和解封装（Decapsulation）的过程，也都是在用户态完成的。在 Linux 操作系统中，上述这些上下文切换和用户态操作的代价其实是比较高的，这也正是造成 Flannel UDP 模式性能不好的主要原因。
+
+所以说，我们在进行系统级编程的时候，有一个非常重要的优化原则，就是要减少用户态到内核态的切换次数，并且把核心的处理逻辑都放在内核态进行。这也是为什么，Flannel 后来支持的VXLAN 模式，逐渐成为了主流的容器网络方案的原因。
+
+
+二、vxlan模式 
+
+vxlan，即virtual extensible lan（虚拟可扩展网），是linux内核本身就支持的一种网络，所以vxlan可以完全在内核态上实现上述的封装和解封装的工作
+
+![](images/flannel_vxlan.png)
+
+1. 每台宿主机上叫flannel.1的设备就是vxlan所需的vtep（VXLAN Tunnel End Point 虚拟隧道端点）设备，它既有ip地址也有mac地址。 container-1 的 IP 地址是 10.1.15.2，要访问的 container-2 的 IP 地址是 10.1.16.3。
+
+2. 当container-1发出请求后，这个ip包会先出现在docker0网桥，然后被路由到本机flannel.1设备进行处理
+
+3. 每台宿主机上的flanneld进程负责维护路由，比如，当 Node 2 启动并加入 Flannel 网络之后，在 Node 1（以及所有其他节点）上，flanneld 就会添加一条如下所示的路由规则：
+```
+$ route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+...
+10.1.16.0       10.1.16.0       255.255.255.0   UG    0      0        0 flannel.1
+```
+这条规则告诉了通向目的vtep设备的包应该交给flannel.1来处理
+
+4. 此时根据上面的路由记录会知道目的vtep设备的ip地址，然后会通过arp表知道目的vtep设备的mac地址。arp信息会在当flanneld进程在node2节点启动时，会自动添加node1上的：
+```
+# 在 Node 1 上
+$ ip neigh show dev flannel.1
+10.1.16.0 lladdr 5e:f8:4f:00:e3:37 PERMANENT
+```
+
+5. 得到mac地址后，linux内核会进行封包（目的vtep设备mac地址+目的容器地址），并加上VNI标志，值为1，用来表示这是一个vxlan要使用的数据帧
+
+6. 接下来会进一步封装成一个宿主机上普通包通过eth0网卡进行传输，Linux 内核会把这个数据帧封装进一个 UDP 包里发出去。
+
+7. 同时flanneld还维护着一个叫FDB（forwarding database）的转发数据库，记录着目的vtep设备mac地址对应的宿主机地址：
+```
+# 在 Node 1 上，使用“目的 VTEP 设备”的 MAC 地址进行查询
+$ bridge fdb show flannel.1 | grep 5e:f8:4f:00:e3:37
+5e:f8:4f:00:e3:37 dev flannel.1 dst 10.168.0.3 self permanent
+```
+发往我们前面提到的“目的 VTEP 设备”（MAC 地址是 5e:f8:4f:00:e3:37）的二层数据帧，应该通过 flannel.1 设备，发往 IP 地址为 10.168.0.3 的主机。显然，这台主机正是 Node 2，UDP 包要发往的目的地就找到了。
+
+最终的帧结构：  
+![](images/flannel_vxlan_frame.png)
+
+8. 接下来，node1上的flannel.1设备就可以把这个数据帧从node1的eth0网卡发送到node2的eth0网卡，node2的内核网络栈发现这个数据帧中有vxlan header，并且VNI=1，所以linux内核会对他进行解包，拿到内部数据帧把它交给node2上的flannel.1设备。而flannel.1会进一步解包，取出原始ip包，最终会进入到container-2的network namespace
+
+
+三、host-gw模式
+
+![](images/flannel_host-gw.png)
+
+1. 当node1上infra-container-1访问node2上的infra-container2时，当设置flannel使用host-gw模式后，flanneld会在宿主机上创建一条规则，以node1为例：
+```
+$ ip route
+...
+10.244.1.0/24 via 10.168.0.3 dev eth0
+```
+
+2. 这个下一跳10.168.0.3的地址正是node2的地址，所以infra-container-1发出的ip包通过宿主机二层网络到达node2上
+
+3. node2解包后看到这个目的地址为10.244.1.3，则会根据node2上的路由表，进入到cni0网桥，从而到infra-container-2中
+
+host-gw模式的工作原理，就是将每个flanne子网的下一跳设置成了子网对应的宿主机地址，flannel子网和主机的信息都是保存在etcd当中的。
+
+基于以上，所以说，Flannel host-gw 模式必须要求集群宿主机之间是二层连通的。
+
+
+## 9. cni
 Kubernetes 是通过一个叫作 CNI 的接口，维护了一个单独的网桥来代替 docker0。这个网桥的名字就叫作：CNI 网桥，它在宿主机上的设备名称默认是：cni0。
 
 flannel的vxlan模式中，在kubernetes环境里，docker0网桥会替换成cni网桥：
@@ -891,7 +1136,7 @@ flannel的vxlan模式中，在kubernetes环境里，docker0网桥会替换成cni
 
 cni网桥只是接管所有的cni插件负责的、即kubernetes创建的容器（pod），不管理由docker单独创建的容器
 
-### cni原理
+cni原理：
 1. 在kubernetes部署的时候，有一个步骤是安装kubernetes-cni包，他的目的就是在宿主机上安装cni插件所需的基础可执行文件，可在宿主机/opt/cni/bin目录下看到
 ```
 $ ls -al /opt/cni/bin/
@@ -911,7 +1156,7 @@ total 73088
 ```
 
 2. 这些cni的基础可执行文件，按功能可分为三类：
- 
+
 第一类，叫作 Main 插件，它是用来创建具体网络设备的二进制文件。比如，bridge（网桥设备）、ipvlan、loopback（lo 设备）、macvlan、ptp（Veth Pair 设备），以及 vlan。
 
 我在前面提到过的 Flannel、Weave 等项目，都属于“网桥”类型的 CNI 插件。所以在具体的实现中，它们往往会调用 bridge 这个二进制文件。这个流程，我马上就会详细介绍到。
@@ -959,125 +1204,8 @@ $ cat /etc/cni/net.d/10-flannel.conflist
 
 7. 在执行完上述操作之后，CNI 插件会把容器的 IP 地址等信息返回给 dockershim，然后被 kubelet 添加到 Pod 的 Status 字段。
 
-## flannel
-实现容器跨主机通信，其后端实现主要有vxlan、host-gw、udp
 
-宿主机 Node 1 上有一个容器 container-1，它的 IP 地址是 100.96.1.2，对应的 docker0 网桥的地址是：100.96.1.1/24。 
-宿主机 Node 2 上有一个容器 container-2，它的 IP 地址是 100.96.2.3，对应的 docker0 网桥的地址是：100.96.2.1/24。
-
-container-1访问container-2
-
-安装flannel后会在宿主机创建出一系列路由规则，以Node1为例，如下：
-```
-# 在 Node 1 上
-$ ip route
-default via 10.168.0.1 dev eth0
-100.96.0.0/16 dev flannel0  proto kernel  scope link  src 100.96.1.0
-100.96.1.0/24 dev docker0  proto kernel  scope link  src 100.96.1.1
-10.168.0.0/24 dev eth0  proto kernel  scope link  src 10.168.0.2
-
-# 在 Node 2 上
-$ ip route
-default via 10.168.0.1 dev eth0
-100.96.0.0/16 dev flannel0  proto kernel  scope link  src 100.96.2.0
-100.96.2.0/24 dev docker0  proto kernel  scope link  src 100.96.2.1
-10.168.0.0/24 dev eth0  proto kernel  scope link  src 10.168.0.3
-```
-
-### udp模式
-![](images/flannel_udp.png)
-
-1. 首先ip包会通过docker0出现在宿主机上，接着会匹配宿主机上的第二条路由，从而把包交给虚拟网卡flannel0处理，然后这个包由内核态（网卡设备）流向用户态（宿主机上的flanneld进程）
-
-2. flanneld收到这个包后，由于Flannel管理的容器网络里，一台宿主机上的所有容器都属于该宿主机分配的一个子网，在我们的例子中，Node 1 的子网是 100.96.1.0/24，container-1 的 IP 地址是 100.96.1.2。Node 2 的子网是 100.96.2.0/24，container-2 的 IP 地址是 100.96.2.3。而这些子网与宿主机的对应关系，正式保存在了etcd当中，即etcd保存子网对应的宿主机ip地址，对flanneld来说只要Node 1和Node 2是互通的，那么flanneld作为Node 1 上的一个普通进程，就一定能把这个ip包封装在udp中发给Node 2。
-
-3. 这个udp包的源地址就是flanneld所在的node1的地址，而目的地址则是container-2所在的宿主机node2的地址，每台宿主机上的flanneld都监听着一个8285端口，所以flanneld只要把udp包发往node2的8285端口即可
-
-4. node2上的flanneld收到这个ip包后会发给它所管理的TUN设备，即flannel0设备处理，这时是一个从用户态向内核态流动的方向，将udp包解封装后发现他的目的ip地址是100.96.2.3，就会匹配node2上第三条路由，从而把这个ip包转发给docker0网桥
-
-5. 接着docker0 网桥会扮演二层交换机的角色，将数据包发送给正确的端口，进而通过 Veth Pair 设备进入到 container-2 的 Network Namespace 里。
-
-注意：所有宿主机上的docker0网桥地址范围必须是flannel为宿主机分配的子网
-```
-$ FLANNEL_SUBNET=100.96.1.1/24
-$ dockerd --bip=$FLANNEL_SUBNET ...
-```
-
-#### udp模式下ip包用户态与内核态之间的数据拷贝
-![](images/flannel_udp_tun.png)
-
-第一次：用户态的容器进程发出的 IP 包经过 docker0 网桥进入内核态；
-
-第二次：IP 包根据路由表进入 TUN（flannel0）设备，从而回到用户态的 flanneld 进程；
-
-第三次：flanneld 进行 UDP 封包之后重新进入内核态，将 UDP 包通过宿主机的 eth0 发出去。
-
-此外，我们还可以看到，Flannel 进行 UDP 封装（Encapsulation）和解封装（Decapsulation）的过程，也都是在用户态完成的。在 Linux 操作系统中，上述这些上下文切换和用户态操作的代价其实是比较高的，这也正是造成 Flannel UDP 模式性能不好的主要原因。
-
-所以说，我们在进行系统级编程的时候，有一个非常重要的优化原则，就是要减少用户态到内核态的切换次数，并且把核心的处理逻辑都放在内核态进行。这也是为什么，Flannel 后来支持的VXLAN 模式，逐渐成为了主流的容器网络方案的原因。
-
-### vxlan模式 
-vxlan，即virtual extensible lan（虚拟可扩展网），是linux内核本身就支持的一种网络，所以vxlan可以完全在内核态上实现上述的封装和解封装的工作
-
-![](images/flannel_vxlan.png)
-
-1. 每台宿主机上叫flannel.1的设备就是vxlan所需的vtep（VXLAN Tunnel End Point 虚拟隧道端点）设备，它既有ip地址也有mac地址。 container-1 的 IP 地址是 10.1.15.2，要访问的 container-2 的 IP 地址是 10.1.16.3。
-
-2. 当container-1发出请求后，这个ip包会先出现在docker0网桥，然后被路由到本机flannel.1设备进行处理
-
-3. 每台宿主机上的flanneld进程负责维护路由，比如，当 Node 2 启动并加入 Flannel 网络之后，在 Node 1（以及所有其他节点）上，flanneld 就会添加一条如下所示的路由规则：
-```
-$ route -n
-Kernel IP routing table
-Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
-...
-10.1.16.0       10.1.16.0       255.255.255.0   UG    0      0        0 flannel.1
-```
-这条规则告诉了通向目的vtep设备的包应该交给flannel.1来处理
-
-4. 此时根据上面的路由记录会知道目的vtep设备的ip地址，然后会通过arp表知道目的vtep设备的mac地址。arp信息会在当flanneld进程在node2节点启动时，会自动添加node1上的：
-```
-# 在 Node 1 上
-$ ip neigh show dev flannel.1
-10.1.16.0 lladdr 5e:f8:4f:00:e3:37 PERMANENT
-```
-
-5. 得到mac地址后，linux内核会进行封包（目的vtep设备mac地址+目的容器地址），并加上VNI标志，值为1，用来表示这是一个vxlan要使用的数据帧
-
-6. 接下来会进一步封装成一个宿主机上普通包通过eth0网卡进行传输，Linux 内核会把这个数据帧封装进一个 UDP 包里发出去。
-
-7. 同时flanneld还维护着一个叫FDB（forwarding database）的转发数据库，记录着目的vtep设备mac地址对应的宿主机地址：
-```
-# 在 Node 1 上，使用“目的 VTEP 设备”的 MAC 地址进行查询
-$ bridge fdb show flannel.1 | grep 5e:f8:4f:00:e3:37
-5e:f8:4f:00:e3:37 dev flannel.1 dst 10.168.0.3 self permanent
-```
-发往我们前面提到的“目的 VTEP 设备”（MAC 地址是 5e:f8:4f:00:e3:37）的二层数据帧，应该通过 flannel.1 设备，发往 IP 地址为 10.168.0.3 的主机。显然，这台主机正是 Node 2，UDP 包要发往的目的地就找到了。
-
-最终的帧结构：  
-![](images/flannel_vxlan_frame.png)
-
-8. 接下来，node1上的flannel.1设备就可以把这个数据帧从node1的eth0网卡发送到node2的eth0网卡，node2的内核网络栈发现这个数据帧中有vxlan header，并且VNI=1，所以linux内核会对他进行解包，拿到内部数据帧把它交给node2上的flannel.1设备。而flannel.1会进一步解包，取出原始ip包，最终会进入到container-2的network namespace
-
-### host-gw模式
-![](images/flannel_host-gw.png)
-
-1. 当node1上infra-container-1访问node2上的infra-container2时，当设置flannel使用host-gw模式后，flanneld会在宿主机上创建一条规则，以node1为例：
-```
-$ ip route
-...
-10.244.1.0/24 via 10.168.0.3 dev eth0
-```
-
-2. 这个下一跳10.168.0.3的地址正是node2的地址，所以infra-container-1发出的ip包通过宿主机二层网络到达node2上
-
-3. node2解包后看到这个目的地址为10.244.1.3，则会根据node2上的路由表，进入到cni0网桥，从而到infra-container-2中
-
-host-gw模式的工作原理，就是将每个flanne子网的下一跳设置成了子网对应的宿主机地址，flannel子网和主机的信息都是保存在etcd当中的。
-
-基于以上，所以说，Flannel host-gw 模式必须要求集群宿主机之间是二层连通的。
-
-## calico
+## 11. calico
 Calico 项目提供的网络解决方案，与 Flannel 的 host-gw 模式，几乎是完全一样的。Calico 也会在每台宿主机上，添加一个格式如下所示的路由规则：
 `< 目的容器 IP 地址段 > via < 网关的 IP 地址 > dev eth0`
 其中，网关的 IP 地址，正是目的容器所在宿主机的 IP 地址。
@@ -1100,7 +1228,10 @@ BGP 的全称是 Border Gateway Protocol，即：边界网关协议。它是一�
 
 所以说，所谓 BGP，就是在大规模网络中实现节点路由信息共享的一种协议。
 
-### calico的架构
+---
+
+**calico的架构**
+
 1. Calico 的 CNI 插件。这是 Calico 与 Kubernetes 对接的部分。我已经在上一篇文章中，和你详细分享了 CNI 插件的工作原理，这里就不再赘述了。
 
 2. Felix。它是一个 DaemonSet，负责在宿主机上插入路由规则（即：写入 Linux 内核的 FIB 转发信息库），以及维护 Calico 所需的网络设备等工作。
@@ -1115,12 +1246,17 @@ BGP 的全称是 Border Gateway Protocol，即：边界网关协议。它是一�
 `10.233.2.3 dev cali5863f3 scope link`
 即：发往 10.233.2.3 的 IP 包，应该进入 cali5863f3 设备。
 
-### calico模式
+---
+
+**calico模式**
+
 默认为 node to node mesh模式，推荐用于少于100个节点的集群中，因为随着节点数量 N 的增加，这些连接的数量就会以 N²的规模快速增长，从而给集群本身的网络带来巨大的压力。更大规模的集群需要用route reflector模式
 
 在这种模式下，Calico 会指定一个或者几个专门的节点，来负责跟所有节点建立 BGP 连接从而学习到全局的路由规则。而其他节点，只需要跟这几个专门的节点交换路由信息，就可以获得整个集群的路由规则信息了。
 
-### calico ipip模式
+
+**calico ipip模式**
+
 当出现两台宿主机不在同一个网络,没办法通过二层网络把 IP 包发送到下一跳地址时需要开启ipip模式
 
 ![](images/calico_ipip.png)
@@ -1138,7 +1274,7 @@ BGP 的全称是 Border Gateway Protocol，即：边界网关协议。它是一�
 
 不难看到，当 Calico 使用 IPIP 模式的时候，集群的网络性能会因为额外的封包和解包工作而下降。在实际测试中，Calico IPIP 模式与 Flannel VXLAN 模式的性能大致相当。所以，在实际使用时，如非硬性需求，我建议你将所有宿主机节点放在一个子网里，避免使用 IPIP。
 
-## k8s中的dns
+## 12. k8s中的dns
 Kubernetes 为 Service 和 Pod 创建 DNS 记录。 你可以使用一致的 DNS 名称而非 IP 地址访问 Service。
 
  DNS 服务器（例如 CoreDNS）会监视 Kubernetes API 中的新 Service， 并为每个 Service 创建一组 DNS 记录。如果在整个集群中都启用了 DNS，则所有 Pod 都应该能够通过 DNS 名称自动解析 Service。
@@ -1158,7 +1294,118 @@ search <namespace>.svc.cluster.local svc.cluster.local cluster.local
 options ndots:5
 ```
 
-## 持久化
+## 13. 存储
+
+### 卷
+```
+解决的问题：
+1、容器崩溃时文件丢失，数据持久化
+2、多容器共享文件，数据共享
+
+内容：
+卷的核心是一个宿主机上的目录，其中可能存有数据，Pod 中的容器可以访问该目录中的数据。 所采用的特定的卷类型将决定该目录如何形成的、使用何种介质保存数据以及目录中存放的内容。
+
+使用：
+使用卷时, 在 .spec.volumes 字段中设置为 Pod 提供的卷，并在 .spec.containers[*].volumeMounts 字段中声明卷在容器中的挂载位置。
+```
+
+#### empty
+应用场景：1.init容器共享文件、2.在 Web 服务器容器服务数据时，保存内容管理器容器获取的文件。
+
+没有指定要挂载宿主机上的某个目录，直接由Pod内保部映射到宿主机上。类似于docker中的manager volume
+
+当 Pod 分派到某个节点上时，emptyDir 卷会被创建，并且在 Pod 在该节点上运行期间，卷一直存在，当 Pod 因为某些原因被从节点上删除时，emptyDir 卷中的数据也会被永久删除。容器崩溃并不会导致 Pod 被从节点上移除，因此容器崩溃期间 emptyDir 卷中的数据是安全的。适用于临时存放数据
+
+emptyDir 卷存储在该节点所使用的介质上；这里的介质可以是磁盘或 SSD 或网络存储。但是，你可以将 emptyDir.medium 字段设置为 "Memory"，以告诉 Kubernetes 为你挂载 tmpfs（基于 RAM 的文件系统）。 虽然 tmpfs 速度非常快，但是要注意它与磁盘不同。 tmpfs 在节点重启时会被清除，并且你所写入的所有文件都会计入容器的内存消耗，受容器内存限制约束。
+
+#### hostpath
+应用场景：调试、日志、访问主机文件系统 
+
+将宿主机上已存在的目录或文件挂载到容器内部。类似于docker中的bind mount挂载方式。这种数据持久化方式，运用场景不多，因为它增加了pod与节点之间的耦合。一般对于k8s集群本身的数据持久化和docker本身的数据持久化会使用这种方式，可以自行参考apiService的yaml文件
+
+#### configmap
+```
+介绍：
+用于存储配置文件、环境变量等配置信息。
+配置可以挂载到容器的文件系统中，或者以环境变量的形式传递。
+
+应用场景：
+配置管理：如应用的配置文件、连接字符串等。
+
+优点：
+易于修改和更新。
+不与容器镜像绑定，增强灵活性。
+
+缺点：
+不适合存储大规模数据。
+```
+
+#### secret
+```
+介绍：
+用于存储敏感信息（如密码、密钥、证书）。
+数据以加密方式存储，挂载到容器中时可以以文件或环境变量形式提供。
+
+应用场景：
+保护敏感数据，如数据库密码、TLS 证书等。
+
+优点：
+提供了安全的存储方式。
+支持数据加密。
+
+缺点：
+依赖 Kubernetes 的安全机制
+```
+
+### pv
+持久卷（PersistentVolume，PV） 是集群中的一块存储，可以由管理员事先制备静态， 或者使用存储类（Storage Class）来动态制备。 持久卷是集群资源，就像节点也是集群资源一样。PV 持久卷和普通的 Volume 一样， 也是使用卷插件来实现的，只是它们拥有独立于任何使用 PV 的 Pod 的生命周期。 此 API 对象中记述了存储的实现细节，无论其背后是 NFS、iSCSI 还是特定于云平台的存储系统。
+
+访问模式
+```
+ReadWriteOnce
+卷可以被一个节点以读写方式挂载。 ReadWriteOnce 访问模式也允许运行在同一节点上的多个 Pod 访问卷。
+ReadOnlyMany
+卷可以被多个节点以只读方式挂载。
+ReadWriteMany
+卷可以被多个节点以读写方式挂载。
+ReadWriteOncePod
+卷可以被单个 Pod 以读写方式挂载。 如果你想确保整个集群中只有一个 Pod 可以读取或写入该 PVC， 请使用 ReadWriteOncePod 访问模式。这只支持 CSI 卷以及需要 Kubernetes 1.22 以上版本。
+
+在命令行接口（CLI）中，访问模式也使用以下缩写形式：
+RWO - ReadWriteOnce
+ROX - ReadOnlyMany
+RWX - ReadWriteMany
+RWOP - ReadWriteOncePod
+```
+
+回收策略
+```
+retain保留：pvc被删除后，pv里任然保留pvc曾经的数据，需要手工去删除
+recycle回收：回收策略 Recycle 已被废弃。取而代之的建议方案是使用动态制备
+delete删除：删除动作会将 PersistentVolume 对象从 Kubernetes 中移除。
+```
+
+### pvc
+持久卷申领（PersistentVolumeClaim）PVC是向PV申请应用所需的容量大小，K8s集群中可能会有多个PV，PVC和PV若要关联，其定义的访问模式必须一致。定义的storageClassName也必须一致，若群集中存在相同的（名字、访问模式都一致）两个PV，那么PVC会选择向它所需容量接近的PV去申请，或者随机申请。同样 PVC 申领也可以请求特定的大小和访问模式（例如，可以挂载为 ReadWriteOnce、ReadOnlyMany、ReadWriteMany 或 ReadWriteOncePod， 请参阅访问模式）。）
+
+### StorageClass
+sc对象的作用就是创建pv的模板，sc对象会定义以下两个部分内容：
+1. PV 的属性。比如，存储类型、Volume 的大小等等。  
+2. 创建这种 PV 需要用到的存储插件。比如，Ceph 等等。
+有了这两个信息，kubernetes就能够根据用户提交的pvc找到一个对应的sc，然后kubrnetes就会调用该sc声明的存储插件，创建出需要的pv
+
+示例
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: example-nfs
+provisioner: example.com/external-nfs
+parameters:
+  server: nfs-server.example.com
+  path: /share
+  readOnly: "false"
+```
 
 ### 持久化过程
 当一个pod调度到一个节点上后，kubelet就要负责为这个pod创建它的volume目录。默认情况下这个路径在宿主机上为
@@ -1180,17 +1427,11 @@ docker run -v /var/lib/kubelet/pods/<Pod 的 ID>/volumes/kubernetes.io~<Volume �
 ```
 对应的，在删除一个pv的时候，kubernetes也需要unmount和dettach两个阶段来处理
 
-### StorageClass
-sc对象的作用就是创建pv的模板，sc对象会定义以下两个部分内容：
-1. PV 的属性。比如，存储类型、Volume 的大小等等。  
-2. 创建这种 PV 需要用到的存储插件。比如，Ceph 等等。
-有了这两个信息，kubernetes就能够根据用户提交的pvc找到一个对应的sc，然后kubrnetes就会调用该sc声明的存储插件，创建出需要的pv
-
 ### 本地持久化
 比较适用于高优先级的系统应用，需要在多个不同的节点上存储数据，并且对i/o较为敏感，相比于正常的pv，一旦这些节点宕机且不能恢复，本地数据就可能丢失，这就要求使用本地持久化的应用必须具备数据备份和恢复的能力，允许把这些数据定时备份在其他位置
 
 
-## rbac
+## 14. rbac
 kubernetes中的所有api对象，都保存在etcd中，对这些api对象的操作，一定都是通过kube-apiserver实现的，所以需要apiserver来完成授权工作，rbac是k8s默认的权限策略
 
 ### Role 或 ClusterRole
@@ -1277,11 +1518,260 @@ kubernetes中内置了很多个为系统保留的Clusterrole，名字都以`syst
 
 cluster-admin角色，是kubernetes中的最高权限（vers=*）  
 
+## 15. k8s集群管理
 
-## 证书
+### 集群故障排查工具
+kubectl get nodes  列举节点状态
+
+kubectl cluster-info dump  了解集群总体健康状态详情
+
+kubectl describe node 查看节点信息
+
+kubectl get nodes -o yaml  yaml查看节点详细信息
+
+/var/log/kube-apiserver.log —— API 服务器，负责提供 API 服务
+
+/var/log/kube-scheduler.log —— 调度器，负责制定调度决策
+
+/var/log/kube-controller-manager.log —— 运行大多数 Kubernetes 内置控制器的组件，除了调度（kube-scheduler 处理调度）。
+
+/var/log/kubelet.log —— 负责在节点运行容器的 kubelet 所产生的日志
+
+/var/log/kube-proxy.log —— 负责将流量转发到服务端点的 kube-proxy 所产生的日志
+
+crictl  pod和容器调试
+
+kubectl debug node/mynode -it --image=ubuntu  将 Pod 部署到要排查故障的节点上，并打开一个shell
+
+kubectl delete pod node-debugger-mynode-pdx84 --now  删除pod
+
+kubectl debug -it ephemeral-demo --image=busybox:1.28 --target=ephemeral-demo  使用临时容器调试
+
+通过pod副本调试：
+
+kubectl debug myapp -it --image=ubuntu --share-processes --copy-to=myapp-debug
+
+kubectl debug myapp -it --copy-to=myapp-debug --container=myapp -- sh
+
+kubectl debug myapp --copy-to=myapp-debug --set-image=`*=ubuntu`
+
+
+### 节点管理
+1. 设置节点不可调度
+```
+kubectl cordon <node name>
+```
+
+2. 排空节点上的pod
+```
+kubectl drain --ignore-daemonsets <节点名称>
+```
+
+3. 节点维护好后可以重新设置节点可调度
+```
+kubectl uncordon <node name>
+```
+
+### 升级集群
+
+一、升级 etcd 时的注意事项
+
+由于 kube-apiserver 静态 Pod 始终在运行（即使你已经执行了腾空节点的操作）， 因此当你执行包括 etcd 升级在内的 kubeadm 升级时，对服务器正在进行的请求将停滞， 因为要重新启动新的 etcd 静态 Pod。作为一种解决方法，可以在运行 kubeadm upgrade apply 命令之前主动停止 kube-apiserver 进程几秒钟。这样可以允许正在进行的请求完成处理并关闭现有连接， 并最大限度地减少 etcd 停机的后果。此操作可以在控制平面节点上按如下方式完成：
+```
+killall -s SIGTERM kube-apiserver # 触发 kube-apiserver 体面关闭
+sleep 20 # 等待一下，以完成进行中的请求
+kubeadm upgrade ... # 执行 kubeadm 升级命令
+```
+
+二、确定要升级到哪个版本
+```
+# 在列表中查找最新的 1.31 版本
+# 它看起来应该是 1.31.x-*，其中 x 是最新的补丁版本
+sudo yum list --showduplicates kubeadm --disableexcludes=kubernetes
+```
+
+三、升级控制平面节点
+
+控制面节点上的升级过程应该每次处理一个节点。 首先选择一个要先行升级的控制面节点。该节点上必须拥有 /etc/kubernetes/admin.conf 文件
+
+1. 升级kubeadm
+```
+# 用最新的补丁版本号替换 1.31.x-* 中的 x
+sudo yum install -y kubeadm-'1.31.x-*' --disableexcludes=kubernetes
+```
+
+2. 验证kubeadm版本正确
+```
+kubeadm version
+```
+
+3. 验证升级计划
+```
+sudo kubeadm upgrade plan
+```
+此命令检查你的集群是否可被升级，并取回你要升级的目标版本。 命令也会显示一个包含组件配置版本状态的表格。
+
+kubeadm upgrade 也会自动对 kubeadm 在节点上所管理的证书执行续约操作。 如果需要略过证书续约操作，可以使用标志 --certificate-renewal=false
+
+4. 选择要升级到的目标版本，运行合适的命令。例如：
+```
+# 将 x 替换为你为此次升级所选择的补丁版本号
+sudo kubeadm upgrade apply v1.31.x
+```
+一旦该命令结束，你应该会看到：
+```
+[upgrade/successful] SUCCESS! Your cluster was upgraded to "v1.31.x". Enjoy!
+
+[upgrade/kubelet] Now that your control plane is upgraded, please proceed with upgrading your kubelets if you haven't already done so.
+```
+
+5. 手动升级你的 CNI 驱动插件。
+你的容器网络接口（CNI）驱动应该提供了程序自身的升级说明。 参阅插件页面查找你的 CNI 驱动， 并查看是否需要其他升级步骤。
+
+如果 CNI 驱动作为 DaemonSet 运行，则在其他控制平面节点上不需要此步骤。
+
+6. 对于其它控制面节点
+与第一个控制面节点相同，但是使用：
+```
+sudo kubeadm upgrade node
+```
+而不是：
+```
+sudo kubeadm upgrade apply
+```
+此外，不需要执行 kubeadm upgrade plan 和更新 CNI 驱动插件的操作。
+
+7. 腾空节点
+将节点标记为不可调度并驱逐所有负载，准备节点的维护：
+```
+# 将 <node-to-drain> 替换为你要腾空的控制面节点名称
+kubectl drain <node-to-drain> --ignore-daemonsets
+```
+
+8. 升级 kubelet 和 kubectl
+```
+# 用最新的补丁版本号替换 1.31.x-* 中的 x
+sudo yum install -y kubelet-'1.31.x-*' kubectl-'1.31.x-*' --disableexcludes=kubernetes
+```
+
+重启kubelet
+```
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+```
+
+9. 解除节点的保护
+通过将节点标记为可调度，让其重新上线：
+```
+# 将 <node-to-uncordon> 替换为你的节点名称
+kubectl uncordon <node-to-uncordon>
+```
+
+四、升级工作节点
+
+工作节点上的升级过程应该一次执行一个节点，或者一次执行几个节点， 以不影响运行工作负载所需的最小容量。
+
+1. 升级kubeadm
+```
+# 将 1.31.x-* 中的 x 替换为最新的补丁版本
+sudo yum install -y kubeadm-'1.31.x-*' --disableexcludes=kubernetes
+```
+
+2. 执行 "kubeadm upgrade"
+对于工作节点，下面的命令会升级本地的 kubelet 配置：
+```
+sudo kubeadm upgrade node
+```
+
+3. 腾空节点
+将节点标记为不可调度并驱逐所有负载，准备节点的维护：
+```
+# 在控制平面节点上执行此命令
+# 将 <node-to-drain> 替换为你正腾空的节点的名称
+kubectl drain <node-to-drain> --ignore-daemonsets
+```
+
+4. 升级kubectl和kubelet
+```
+# 将 1.31.x-* 中的 x 替换为最新的补丁版本
+sudo yum install -y kubelet-'1.31.x-*' kubectl-'1.31.x-*' --disableexcludes=kubernetes
+```
+
+重启kubelet
+```
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+```
+
+5. 取消对节点的保护
+通过将节点标记为可调度，让节点重新上线：
+```
+# 在控制平面节点上执行此命令
+# 将 <node-to-uncordon> 替换为你的节点名称
+kubectl uncordon <node-to-uncordon>
+```
+
+五、验证集群的状态
+
+在所有节点上升级 kubelet 后，通过从 kubectl 可以访问集群的任何位置运行以下命令， 验证所有节点是否再次可用：
+```
+kubectl get nodes
+```
+STATUS 应显示所有节点为 Ready 状态，并且版本号已经被更新。
+
+
+六、从故障状态恢复
+
+如果 kubeadm upgrade 失败并且没有回滚，例如由于执行期间节点意外关闭， 你可以再次运行 kubeadm upgrade。 此命令是幂等的，并最终确保实际状态是你声明的期望状态。
+
+要从故障状态恢复，你还可以运行 sudo kubeadm upgrade apply --force 而无需更改集群正在运行的版本。
+
+在升级期间，kubeadm 向 /etc/kubernetes/tmp 目录下的如下备份文件夹写入数据：
+```
+kubeadm-backup-etcd-<date>-<time>
+kubeadm-backup-manifests-<date>-<time>
+```
+kubeadm-backup-etcd 包含当前控制面节点本地 etcd 成员数据的备份。 如果 etcd 升级失败并且自动回滚也无法修复，则可以将此文件夹中的内容复制到 /var/lib/etcd 进行手工修复。如果使用的是外部的 etcd，则此备份文件夹为空。
+
+kubeadm-backup-manifests 包含当前控制面节点的静态 Pod 清单文件的备份版本。 如果升级失败并且无法自动回滚，则此文件夹中的内容可以复制到 /etc/kubernetes/manifests 目录实现手工恢复。 如果由于某些原因，在升级前后某个组件的清单未发生变化，则 kubeadm 也不会为之生成备份版本。
+
+说明：集群通过 kubeadm 升级后，备份目录 /etc/kubernetes/tmp 将保留，这些备份文件需要手动清理。
+
+
+七、工作原理
+
+kubeadm upgrade apply 做了以下工作：
+```
+检查你的集群是否处于可升级状态:
+API 服务器是可访问的
+所有节点处于 Ready 状态
+控制面是健康的
+强制执行版本偏差策略。
+确保控制面的镜像是可用的或可拉取到服务器上。
+如果组件配置要求版本升级，则生成替代配置与/或使用用户提供的覆盖版本配置。
+升级控制面组件或回滚（如果其中任何一个组件无法启动）。
+应用新的 CoreDNS 和 kube-proxy 清单，并强制创建所有必需的 RBAC 规则。
+如果旧文件在 180 天后过期，将创建 API 服务器的新证书和密钥文件并备份旧文件。
+```
+
+kubeadm upgrade node 在其他控制平节点上执行以下操作：
+```
+从集群中获取 kubeadm ClusterConfiguration。
+（可选操作）备份 kube-apiserver 证书。
+升级控制平面组件的静态 Pod 清单。
+为本节点升级 kubelet 配置
+```
+
+kubeadm upgrade node 在工作节点上完成以下工作：
+```
+从集群取回 kubeadm ClusterConfiguration。
+为本节点升级 kubelet 配置。
+```
+
+### 证书
 用于控制k8s内部之间和外部通信的
 
-### 常见证书
+1. 常见证书
 通过kubeadm命令自动生成的证书目录：
 ```
 [root@dev ~]# tree /etc/kubernetes/ 
@@ -1331,12 +1821,12 @@ kubelet证书目录
 └── kubelet.key  # 服务器证书对应的私钥
 ```
 
-### 手动生成证书
+2. 手动生成证书
 easyrsa、openssl、cfssl等工具生成证书
 
 流程（cfssl为例）：下载工具，自定义配置文件内容ca-config.json，自定义csr文件，基于配置文件和csr文件生成ca，再基于ca签名和其他csr文件生成所需要的证书，再将证书放到需要目录下
 
-### 证书管理kubeadm
+3. kubeadm管理证书
 kubeadm certs check-expiration 查看证书过期状态信息  
 ```
 [zj@centos-7-01 Documents]$ sudo kubeadm certs check-expiration
@@ -1369,31 +1859,34 @@ kubeadm不管理ca证书的更新
 kubelet会自动轮换证书，不由kubeadm更新。  
 如果是HA集群需要在所有master节点执行更新证书动作
 
-### 手动更换ca证书（todo）
+4. 手动更换ca证书（todo）
 https://kubernetes.io/zh-cn/docs/tasks/tls/manual-rotation-of-ca-certificates/
 
-### 证书api（todo）
-    
-### 启用已签名的 kubelet 服务证书（todo）
+5. 证书api（todo）
+   
+6. 启用已签名的 kubelet 服务证书（todo）
 
-## cert-manager
+
+## 16. 辅助组件
+
+### cert-manager
 当把cert-manager部署在k8s集群后，他会根据请求自动生成证书，并定期检查证书的有效期，及时更新。
 
-流程：先要部署证书颁发者（issuer），后续证书的生成以及更新都由issuer来完成
+流程：先要部署证书颁发者（issuer），后续证书的生成以及更新都由issuer来完成。
 
-## kraken
+### kraken
 加速集群中docker镜像的分发，p2p模式，避免镜像都从docker仓库拉取
 
-## nfs-provisioner
+### nfs-provisioner
 根据需要自动生成nfs类型存储卷
 
-## node-local-dns
+### node-local-dns
 在各节点设置dns缓存，加速dns解析
 
-## Istio
+### Istio
 通过在pod创建时往里面添加一个envoy容器来管理pod网络的进出流量，从而实现微服务的治理。这个添加的容器的功能是由控制器Initializer实时监控完成的
 
-## api
+### api
 在 Kubernetes 项目中，一个 API 对象在 Etcd 里的完整资源路径，是由：Group（API 组）、Version（API 版本）和 Resource（API 资源类型）三个部分组成的
 ```yaml
 # Cronjob是资源类型，batch是组，v2alpha1是版本
@@ -1402,30 +1895,33 @@ kind: CronJob
 ...
 ```
 
-## crd
+### crd
 CRD 仅仅是资源的定义，而 Controller 可以去监听 CRD 的 CRUD 事件来添加自定义业务逻辑。
 
 对于 Kubernetes 里的核心 API 对象，比如：Pod、Node 等，是不需要 Group 的（即：它们 Group 是“”）
 
-## operator
+### operator
 operator=crd+controller
 
 Operator 的工作原理，实际上是利用了 Kubernetes 的自定义 API 资源（CRD），来描述我们想要部署的“有状态应用”；然后在自定义控制器里，根据自定义 API 对象的变化，来完成具体的部署和运维工作。
 
 operator启动后会自动创建对应的crd
 
-## k8s集群所支持的规格
+
+## 17. k8s集群部署流程（kubeadm）
+
+### k8s集群所支持的规格
+```
 每个节点的 Pod 数量不超过 110
 节点数不超过 5,000
 Pod 总数不超过 150,000
 容器总数不超过 300,000
+```
 
-
-### 分布式一致性集群为什么通常大于3的奇数个
+### 分布式一致性集群节点数
 集群节点数需要为奇数个，通常是为了确保**高可用性和一致性**，特别是在分布式系统中，这种设计与**分布式一致性算法**（如 Raft 和 Paxos）的工作原理密切相关。以下是需要奇数节点的具体情况及原因： 
 
----
-
+```
 ### **1. 避免脑裂和实现仲裁**
    - **场景**：在使用一致性算法的分布式系统（如 etcd、ZooKeeper、Consul）中，选主或决策需要多数节点达成共识。
    - **原因**：
@@ -1470,11 +1966,11 @@ Pod 总数不超过 150,000
 
 ### **总结**
 集群节点数选择奇数的主要目的是优化系统在节点故障情况下的高可用性和一致性，确保能够快速达成多数派共识，并降低选主延迟。如果需要更高的容错能力，可以选择更大的奇数节点数。
+```
 
-## 高可用集群部署流程（kubeadm）
 基于kubernetes-v1.29.2、dockerCE-v25.0.3、cri-dockerd-v0.3.10、flannel-v0.24.2、CentOS-7
 
-### 1. 准备机器配置
+1. 准备机器配置
 RAM：>2GB  
 cpu_cores：>2  
 节点之中不可以有重复的主机名、MAC 地址或 product_uuid  
@@ -1486,7 +1982,7 @@ sudo swapoff -a
 sudo sed -i '/.*swap.*/d' /etc/fstab 
 ```
 
-### 2. 安装容器运行时
+2. 安装容器运行时
 配置网络环境：
 ```bash
 cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
@@ -1512,7 +2008,7 @@ lsmod | grep br_netfilter
 lsmod | grep overlay
 ```
 
-#### 集群内核调优参考
+### 集群内核调优参考
 ```bash
 cat >> /etc/sysctl.d/99-k8s.conf << EOF
 #sysctls for k8s node config
@@ -1537,6 +2033,104 @@ net.ipv4.tcp_rmem=4096 12582912 16777216
 EOF
 
 sysctl --system
+
+以上配置是为 Kubernetes 集群优化节点网络、内核和文件系统性能而设置的 `sysctl` 参数。这些参数的主要目标是提升节点的稳定性、网络性能和并发能力。以下是每个参数的详细解释及其在 Kubernetes 中的意义：
+
+---
+
+### **网络相关参数**
+
+1. **`net.bridge.bridge-nf-call-ip6tables=1`**
+   - 启用桥接网络通过 IPv6 的数据包过滤。
+   - 在使用 Kubernetes 网络插件时，确保数据包在桥接时可以被 iptables 规则处理。
+
+2. **`net.bridge.bridge-nf-call-iptables=1`**
+   - 启用桥接网络通过 IPv4 的数据包过滤。
+   - 必须开启，否则 kube-proxy 和网络插件可能无法正常工作。
+
+3. **`net.ipv4.ip_forward=1`**
+   - 启用 IP 转发功能。
+   - Kubernetes 网络需要启用 IP 转发，以支持 Pod 间的通信和网络流量路由。
+
+4. **`net.core.rmem_max=16777216`**
+   - 设置内核接收缓冲区的最大值（单位：字节）。
+   - 提升高负载网络环境下的接收性能。
+
+5. **`net.core.wmem_max=16777216`**
+   - 设置内核发送缓冲区的最大值（单位：字节）。
+   - 提升高负载网络环境下的发送性能。
+
+6. **`net.ipv4.tcp_wmem=4096 12582912 16777216`**
+   - 配置 TCP 连接的发送缓冲区大小范围：
+     - 最小：4096 字节
+     - 默认：12582912 字节
+     - 最大：16777216 字节
+   - 增强 TCP 数据传输性能。
+
+7. **`net.ipv4.tcp_rmem=4096 12582912 16777216`**
+   - 配置 TCP 连接的接收缓冲区大小范围（与发送缓冲区类似）。
+   - 提升 TCP 流量的接收能力。
+
+8. **`net.ipv4.tcp_max_syn_backlog=8096`**
+   - 设置 TCP SYN 队列的最大长度（未完成握手的连接）。
+   - 提升高并发情况下对新连接的处理能力，减少丢包现象。
+
+9. **`net.core.somaxconn=32768`**
+   - 设置系统允许的最大监听队列长度。
+   - 提升高并发时的连接处理能力，减少应用层因队列溢出导致的连接丢失。
+
+10. **`net.core.netdev_max_backlog=16384`**
+    - 设置网卡数据包处理队列的最大长度。
+    - 避免网络繁忙时的数据包丢失。
+
+11. **`net.ipv4.tcp_slow_start_after_idle=0`**
+    - 禁用 TCP 在连接空闲后重新进入慢启动的机制。
+    - 在长连接的场景中（如 Kubernetes 中的组件通信），提高连接性能。
+
+---
+
+### **文件系统相关参数**
+
+1. **`fs.file-max=2097152`**
+   - 设置系统允许的最大打开文件数。
+   - 在 Kubernetes 节点运行大量 Pod 时，防止因文件描述符不足导致的系统异常。
+
+2. **`fs.inotify.max_user_watches=524288`**
+   - 设置 inotify 可以监视的最大文件数。
+   - Kubernetes 组件（如 kubelet）需要监控大量文件变化，增加此值可以避免 `Too many open files` 错误。
+
+3. **`fs.inotify.max_user_instances=8192`**
+   - 设置单个用户可创建的最大 inotify 实例数量。
+   - 提升系统对文件变化的监控能力，避免 inotify 实例不足。
+
+4. **`fs.inotify.max_queued_events=16384`**
+   - 设置 inotify 事件队列的最大长度。
+   - 防止事件过多导致队列溢出。
+
+---
+
+### **内核稳定性相关参数**
+
+1. **`kernel.softlockup_all_cpu_backtrace=1`**
+   - 在发生 CPU 死锁时记录所有 CPU 的回溯信息。
+   - 提供问题诊断线索。
+
+2. **`kernel.softlockup_panic=1`**
+   - 在检测到 CPU 死锁时触发内核 panic。
+   - 防止死锁问题进一步影响系统运行。
+
+---
+
+### **虚拟内存相关参数**
+
+1. **`vm.max_map_count=262144`**
+   - 设置进程可以创建的最大内存映射区域数量。
+   - 一些应用（如 Elasticsearch）在 Kubernetes 中运行时需要较大的映射数量。
+
+---
+
+### **总结**
+这组参数调整了系统的网络、文件系统和内核行为，优化了 Kubernetes 节点的运行环境。应用这些设置可以有效提升节点的性能和可靠性，适用于生产环境的大规模 Kubernetes 集群。
 ```
 
 按照docker官网，设置systemctl enable --now，/etc/docker/daemon.json配置文件如下
@@ -1548,13 +2142,13 @@ sysctl --system
 }
 ```
 
-### 3. 安装容器运行时接口
+3. 安装容器运行时接口
 按照cri-dockerd GitHub仓库，cri-dockerd服务启动参数需要指定--pod-infra-container-image registry.aliyuncs.com/google_containers/pause:3.9，设置systemctl enable --now
 
-### 4. 安装kubeadm、kubelet、kubectl
+4. 安装kubeadm、kubelet、kubectl
 按照kubernetes官网，设置kubelet systemctl enable --now
 
-### 5. 初始化master节点
+5. 初始化master节点
 sudo kubeadm init --config kubeadm_init_config.yaml --upload-certs
 
 重新上传证书：kubeadm init phase upload-certs --upload-certs --config=SOME_YAML_FILE
@@ -1604,16 +2198,16 @@ kind: KubeletConfiguration
 apiVersion: kubelet.config.k8s.io/v1beta1
 cgroupDriver: systemd
 containerRuntimeEndpoint: unix:///var/run/cri-dockerd.sock
-``` 
+```
 
-### 6. 配置kubeconfig文件
+6. 配置kubeconfig文件
 ```bash
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
-### 7. 安装网络插件flannel，使各节点各pod能相互通信
+7. 安装网络插件flannel，使各节点各pod能相互通信
 ```yaml
 apiVersion: v1
 kind: Namespace
@@ -1835,9 +2429,11 @@ spec:
         name: xtables-lock
 ```
 
-### 注意事项：
-1. cr、cri的配置
-2. 机器是否开启了http代理而影响了组件与apiserver的通信
+8. 注意事项
+```
+cr、cri的配置
+机器是否开启了http代理而影响了组件与apiserver的通信
+```
 
 kubeadm init
 ```
@@ -1853,12 +2449,12 @@ kubeadm join
 此时kubeadm至少需要发起一次“不安全模式”的访问到kube-apiserver，从而拿到保存在configmap中cluster-info信息，而bootstrap token扮演就是这个过程中安全验证的角色
 ```
 
-## debug
+## 18. debug
 
 ### k8s master机器重启后，coredns两个pod就绪探针失败
 环境：centos 7、k8s 1.29、docker25.0、kube-proxy使用iptables模式
 
-#### 现象：
+**现象**
 
 kubectl get pod,svc,endpoints -A -o wide
 ```
@@ -2129,10 +2725,10 @@ COMMIT
 # Completed on Mon Mar 11 16:35:18 2024
 ```
 
-#### 原因
+**原因**  
 重启过程中iptables相关规则丢失了，比如与coredns servcie相关的规则丢失，导致集群域名解析不能正常工作
 
-#### 解决 
+**解决**  
 ```bash
 systemctl stop kubelet
 systemctl stop docker
@@ -2144,7 +2740,7 @@ systemctl start docker
 # 尝试在集群正常状态下，自动保存当前的iptables规则，使得下次机器重启后iptables不被丢失
 ```
 
-结果：
+**结果**  
 
 kubectl get ...
 ```
@@ -2359,247 +2955,8 @@ COMMIT
 # Completed on Mon Mar 11 17:55:00 2024
 ```
 
-## 集群故障排查方法
-kubectl get nodes  列举节点状态
 
-kubectl cluster-info dump  了解集群总体健康状态详情
-
-kubectl describe node 查看节点信息
-
-kubectl get nodes -o yaml  yaml查看节点详细信息
-
-/var/log/kube-apiserver.log —— API 服务器，负责提供 API 服务
-
-/var/log/kube-scheduler.log —— 调度器，负责制定调度决策
-
-/var/log/kube-controller-manager.log —— 运行大多数 Kubernetes 内置控制器的组件，除了调度（kube-scheduler 处理调度）。
-
-/var/log/kubelet.log —— 负责在节点运行容器的 kubelet 所产生的日志
-
-/var/log/kube-proxy.log —— 负责将流量转发到服务端点的 kube-proxy 所产生的日志
-
-crictl  pod和容器调试
-
-kubectl debug node/mynode -it --image=ubuntu  将 Pod 部署到要排查故障的节点上，并打开一个shell
-
-kubectl delete pod node-debugger-mynode-pdx84 --now  删除pod
-
-kubectl debug -it ephemeral-demo --image=busybox:1.28 --target=ephemeral-demo  使用临时容器调试
-
-通过pod副本调试：
-
-kubectl debug myapp -it --image=ubuntu --share-processes --copy-to=myapp-debug
-
-kubectl debug myapp -it --copy-to=myapp-debug --container=myapp -- sh
-
-kubectl debug myapp --copy-to=myapp-debug --set-image=`*=ubuntu`
-
-
-## 节点管理
-1. 设置节点不可调度
-```
-kubectl cordon <node name>
-```
-
-2. 排空节点上的pod
-```
-kubectl drain --ignore-daemonsets <节点名称>
-```
-
-3. 节点维护好后可以重新设置节点可调度
-```
-kubectl uncordon <node name>
-```
-
-## 升级集群
-
-### 一、升级 etcd 时的注意事项
-由于 kube-apiserver 静态 Pod 始终在运行（即使你已经执行了腾空节点的操作）， 因此当你执行包括 etcd 升级在内的 kubeadm 升级时，对服务器正在进行的请求将停滞， 因为要重新启动新的 etcd 静态 Pod。作为一种解决方法，可以在运行 kubeadm upgrade apply 命令之前主动停止 kube-apiserver 进程几秒钟。这样可以允许正在进行的请求完成处理并关闭现有连接， 并最大限度地减少 etcd 停机的后果。此操作可以在控制平面节点上按如下方式完成：
-```
-killall -s SIGTERM kube-apiserver # 触发 kube-apiserver 体面关闭
-sleep 20 # 等待一下，以完成进行中的请求
-kubeadm upgrade ... # 执行 kubeadm 升级命令
-```
-
-### 二、确定要升级到哪个版本
-```
-# 在列表中查找最新的 1.31 版本
-# 它看起来应该是 1.31.x-*，其中 x 是最新的补丁版本
-sudo yum list --showduplicates kubeadm --disableexcludes=kubernetes
-```
-
-### 三、升级控制平面节点
-控制面节点上的升级过程应该每次处理一个节点。 首先选择一个要先行升级的控制面节点。该节点上必须拥有 /etc/kubernetes/admin.conf 文件
-
-1. 升级kubeadm
-```
-# 用最新的补丁版本号替换 1.31.x-* 中的 x
-sudo yum install -y kubeadm-'1.31.x-*' --disableexcludes=kubernetes
-```
-
-2. 验证kubeadm版本正确
-```
-kubeadm version
-```
-
-3. 验证升级计划
-```
-sudo kubeadm upgrade plan
-```
-此命令检查你的集群是否可被升级，并取回你要升级的目标版本。 命令也会显示一个包含组件配置版本状态的表格。
-
-kubeadm upgrade 也会自动对 kubeadm 在节点上所管理的证书执行续约操作。 如果需要略过证书续约操作，可以使用标志 --certificate-renewal=false
-
-4. 选择要升级到的目标版本，运行合适的命令。例如：
-```
-# 将 x 替换为你为此次升级所选择的补丁版本号
-sudo kubeadm upgrade apply v1.31.x
-```
-一旦该命令结束，你应该会看到：
-```
-[upgrade/successful] SUCCESS! Your cluster was upgraded to "v1.31.x". Enjoy!
-
-[upgrade/kubelet] Now that your control plane is upgraded, please proceed with upgrading your kubelets if you haven't already done so.
-```
-
-5. 手动升级你的 CNI 驱动插件。
-你的容器网络接口（CNI）驱动应该提供了程序自身的升级说明。 参阅插件页面查找你的 CNI 驱动， 并查看是否需要其他升级步骤。
-
-如果 CNI 驱动作为 DaemonSet 运行，则在其他控制平面节点上不需要此步骤。
-
-6. 对于其它控制面节点
-与第一个控制面节点相同，但是使用：
-```
-sudo kubeadm upgrade node
-```
-而不是：
-```
-sudo kubeadm upgrade apply
-```
-此外，不需要执行 kubeadm upgrade plan 和更新 CNI 驱动插件的操作。
-
-7. 腾空节点
-将节点标记为不可调度并驱逐所有负载，准备节点的维护：
-```
-# 将 <node-to-drain> 替换为你要腾空的控制面节点名称
-kubectl drain <node-to-drain> --ignore-daemonsets
-```
-
-8. 升级 kubelet 和 kubectl
-```
-# 用最新的补丁版本号替换 1.31.x-* 中的 x
-sudo yum install -y kubelet-'1.31.x-*' kubectl-'1.31.x-*' --disableexcludes=kubernetes
-```
-
-重启kubelet
-```
-sudo systemctl daemon-reload
-sudo systemctl restart kubelet
-```
-
-9. 解除节点的保护
-通过将节点标记为可调度，让其重新上线：
-```
-# 将 <node-to-uncordon> 替换为你的节点名称
-kubectl uncordon <node-to-uncordon>
-```
-
-### 四、升级工作节点
-工作节点上的升级过程应该一次执行一个节点，或者一次执行几个节点， 以不影响运行工作负载所需的最小容量。
-
-1. 升级kubeadm
-```
-# 将 1.31.x-* 中的 x 替换为最新的补丁版本
-sudo yum install -y kubeadm-'1.31.x-*' --disableexcludes=kubernetes
-```
-
-2. 执行 "kubeadm upgrade"
-对于工作节点，下面的命令会升级本地的 kubelet 配置：
-```
-sudo kubeadm upgrade node
-```
-
-3. 腾空节点
-将节点标记为不可调度并驱逐所有负载，准备节点的维护：
-```
-# 在控制平面节点上执行此命令
-# 将 <node-to-drain> 替换为你正腾空的节点的名称
-kubectl drain <node-to-drain> --ignore-daemonsets
-```
-
-4. 升级kubectl和kubelet
-```
-# 将 1.31.x-* 中的 x 替换为最新的补丁版本
-sudo yum install -y kubelet-'1.31.x-*' kubectl-'1.31.x-*' --disableexcludes=kubernetes
-```
-
-重启kubelet
-```
-sudo systemctl daemon-reload
-sudo systemctl restart kubelet
-```
-
-5. 取消对节点的保护
-通过将节点标记为可调度，让节点重新上线：
-```
-# 在控制平面节点上执行此命令
-# 将 <node-to-uncordon> 替换为你的节点名称
-kubectl uncordon <node-to-uncordon>
-```
-
-### 五、验证集群的状态
-在所有节点上升级 kubelet 后，通过从 kubectl 可以访问集群的任何位置运行以下命令， 验证所有节点是否再次可用：
-```
-kubectl get nodes
-```
-STATUS 应显示所有节点为 Ready 状态，并且版本号已经被更新。
-
-### 六、从故障状态恢复
-如果 kubeadm upgrade 失败并且没有回滚，例如由于执行期间节点意外关闭， 你可以再次运行 kubeadm upgrade。 此命令是幂等的，并最终确保实际状态是你声明的期望状态。
-
-要从故障状态恢复，你还可以运行 sudo kubeadm upgrade apply --force 而无需更改集群正在运行的版本。
-
-在升级期间，kubeadm 向 /etc/kubernetes/tmp 目录下的如下备份文件夹写入数据：
-```
-kubeadm-backup-etcd-<date>-<time>
-kubeadm-backup-manifests-<date>-<time>
-```
-kubeadm-backup-etcd 包含当前控制面节点本地 etcd 成员数据的备份。 如果 etcd 升级失败并且自动回滚也无法修复，则可以将此文件夹中的内容复制到 /var/lib/etcd 进行手工修复。如果使用的是外部的 etcd，则此备份文件夹为空。
-
-kubeadm-backup-manifests 包含当前控制面节点的静态 Pod 清单文件的备份版本。 如果升级失败并且无法自动回滚，则此文件夹中的内容可以复制到 /etc/kubernetes/manifests 目录实现手工恢复。 如果由于某些原因，在升级前后某个组件的清单未发生变化，则 kubeadm 也不会为之生成备份版本。
-
-说明：集群通过 kubeadm 升级后，备份目录 /etc/kubernetes/tmp 将保留，这些备份文件需要手动清理。
-
-### 七、工作原理
-kubeadm upgrade apply 做了以下工作：
-```
-检查你的集群是否处于可升级状态:
-API 服务器是可访问的
-所有节点处于 Ready 状态
-控制面是健康的
-强制执行版本偏差策略。
-确保控制面的镜像是可用的或可拉取到服务器上。
-如果组件配置要求版本升级，则生成替代配置与/或使用用户提供的覆盖版本配置。
-升级控制面组件或回滚（如果其中任何一个组件无法启动）。
-应用新的 CoreDNS 和 kube-proxy 清单，并强制创建所有必需的 RBAC 规则。
-如果旧文件在 180 天后过期，将创建 API 服务器的新证书和密钥文件并备份旧文件。
-```
-
-kubeadm upgrade node 在其他控制平节点上执行以下操作：
-```
-从集群中获取 kubeadm ClusterConfiguration。
-（可选操作）备份 kube-apiserver 证书。
-升级控制平面组件的静态 Pod 清单。
-为本节点升级 kubelet 配置
-```
-
-kubeadm upgrade node 在工作节点上完成以下工作：
-```
-从集群取回 kubeadm ClusterConfiguration。
-为本节点升级 kubelet 配置。
-```
-
-## cka
+## 19. cka
 
 ### 技巧
 1. 熟悉vim、jq、tmux的使用
