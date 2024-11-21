@@ -13,6 +13,10 @@
         * [容器运行时接口（CRI）](#容器运行时接口cri)
         * [定制和可扩展性](#定制和可扩展性)
         * [cgroup资源限制](#cgroup资源限制)
+        * [api](#api)
+        * [自定义控制器](#自定义控制器)
+        * [自定义api对象：CRD、CR](#自定义api对象crdcr)
+        * [operator](#operator)
 * [3. label](#3-label)
 * [4. annotations注解](#4-annotations注解)
 * [4. Finalizer终结器](#4-finalizer终结器)
@@ -46,6 +50,7 @@
     * [Role 或 ClusterRole](#role-或-clusterrole)
     * [RoleBinding 和 ClusterRoleBinding](#rolebinding-和-clusterrolebinding)
 * [15. k8s集群管理](#15-k8s集群管理)
+    * [集群访问控制](#集群访问控制)
     * [集群故障排查工具](#集群故障排查工具)
     * [节点管理](#节点管理)
     * [升级集群](#升级集群)
@@ -56,9 +61,7 @@
     * [nfs-provisioner](#nfs-provisioner)
     * [node-local-dns](#node-local-dns)
     * [Istio](#istio)
-    * [api](#api)
-    * [crd](#crd)
-    * [operator](#operator)
+    * [MetalLB](#metallb)
 * [17. k8s集群部署流程（kubeadm）](#17-k8s集群部署流程kubeadm)
     * [k8s集群所支持的规格](#k8s集群所支持的规格)
     * [分布式一致性集群节点数](#分布式一致性集群节点数)
@@ -196,6 +199,61 @@ systemd 与 cgroup 集成紧密，并将为每个 systemd 单元分配一个 cgr
 同时存在两个 cgroup 管理器将造成系统中针对可用的资源和使用中的资源出现两个视图。某些情况下， 将 kubelet 和容器运行时配置为使用 cgroupfs、但为剩余的进程使用 systemd 的那些节点将在资源压力增大时变得不稳定。
 
 当 systemd 是选定的初始化系统时，缓解这个不稳定问题的方法是针对 kubelet 和容器运行时将 systemd 用作 cgroup 驱动。
+
+#### api
+在 Kubernetes 项目中，一个 API 对象在 Etcd 里的完整资源路径，是由：Group（API 组）、Version（API 版本）和 Resource（API 资源类型）三个部分组成的
+```yaml
+# Cronjob是资源类型，batch是组，v2alpha1是版本
+apiVersion: batch/v2alpha1
+kind: CronJob
+...
+```
+对于 Kubernetes 里的核心 API 对象，比如：Pod、Node 等，是不需要 Group 的（即：它们 Group 是“”）
+
+#### 自定义控制器
+通过k8s开放的api，自己定义一个控制器，并注册到kube-apiserver中去，类似deployment、statefulset等，打包成镜像然后可以通过deployment的方式部署，然后部署该自定义控制器能识别crd，之后应用cr的时候，该控制器就能识别该cr，并该cr对应的pod做对应的CRUD的操作，并负责后续的运维管理
+
+#### 自定义api对象：CRD、CR 
+允许用户在k8s中添加一个跟pod、node类似的、新的api资源类型：自定义资源类型
+
+CRD 仅仅是资源的定义，而 Controller 可以去监听 CRD 的 CRUD 事件来添加自定义业务逻辑。
+
+示例：
+```
+要为k8s添加一个名叫Network的api资源类型
+
+它的作用，一旦用户创建一个Network对象，那么k8s就应该使用这个对象定义的网络参数，调用真实的网络插件，比如Neutron项目，为用户创建一个真正的“网络”，这样将来用户创建的pod，就可以声明使用这个“网络”
+
+CR声明：
+apiVersion: samplecrd.k8s.io/v1
+kind: Network
+metadata:
+  name: example-network
+spec:
+  cidr: "192.168.0.0/16"
+  gateway: "192.168.0.1"
+
+
+CRD宏观定义CR：
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: networks.samplecrd.k8s.io
+spec:
+  group: samplecrd.k8s.io
+  version: v1
+  names:
+    kind: Network
+    plural: networks
+  scope: Namespaced
+```
+
+#### operator
+operator=crd+controller
+
+Operator 的工作原理，实际上是利用了 Kubernetes 的自定义 API 资源（CRD），来描述我们想要部署的“有状态应用”；然后在自定义控制器里，根据自定义 API 对象的变化，来完成具体的部署和运维工作。operator本身也是一个deployment
+
+operator启动后会自动创建对应的crd，然后当有cr创建的时候，operator就会监听并做相应的动作
 
 
 ## 3. label
@@ -1520,6 +1578,139 @@ cluster-admin角色，是kubernetes中的最高权限（vers=*）
 
 ## 15. k8s集群管理
 
+### 集群访问控制
+1. 在将集群、用户和上下文定义在一个或多个配置文件中之后，用户可以使用 kubectl config use-context 命令快速地在集群之间进行切换
+```yaml
+apiVersion: v1
+clusters:
+- cluster:  # 指定集群
+    certificate-authority: fake-ca-file  # 集群根ca，/etc/kubernetes/pki/ca.crt
+    server: https://10.0.1.201  # 集群地址
+  name: development  # 自定义集群命名
+- cluster:
+    insecure-skip-tls-verify: true
+    server: https://10.0.1.201
+  name: test
+contexts:
+- context:  # 上下文定义（集群、命名空间、用户）
+    cluster: development
+    namespace: frontend
+    user: developer
+  name: dev-frontend
+- context:
+    cluster: development
+    namespace: storage
+    user: developer
+  name: dev-storage
+- context:
+    cluster: test
+    namespace: default
+    user: experimenter
+  name: exp-test
+current-context: dev-frontend  # 当前上下文
+kind: Config
+preferences: {}
+users:
+- name: developer
+  user:
+    client-certificate: fake-cert-file  # kubelet客户端证书
+    client-key: fake-key-seefile  # kubelet客户端证书，参考/etc/kubernetes/kubelet.conf
+- name: experimenter
+  user:
+    password: some-password
+    username: exp
+```
+
+2. 结合rbac、sa配合kubeconfig
+在 Kubernetes 中，可以通过创建一个只读权限的角色（Role）和角色绑定（RoleBinding），然后生成一个带有相关权限的 kubeconfig 文件来实现。
+
+以下是具体步骤：
+
+1. 创建一个命名空间（可选）
+如果命名空间 `a` 不存在，可以创建它：
+kubectl create namespace a
+
+2. 创建只读的角色（Role）
+编写一个 YAML 文件（`readonly-role.yaml`）定义只读权限：
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: a
+  name: readonly
+rules:
+  - apiGroups: [""]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps", "batch"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["extensions"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+```
+
+应用此文件：
+```bash
+kubectl apply -f readonly-role.yaml
+```
+
+3. 创建服务账号（ServiceAccount）
+为访问命名空间创建一个服务账号：
+```bash
+kubectl -n a create serviceaccount readonly-sa
+```
+
+4. 绑定角色和服务账号
+创建一个角色绑定（RoleBinding）将服务账号和只读角色绑定：
+```bash
+kubectl -n a create rolebinding readonly-binding \
+  --role=readonly \
+  --serviceaccount=a:readonly-sa
+```
+
+5. 获取服务账号的 Token
+获取服务账号的 Token，用于 kubeconfig：
+```bash
+SECRET_NAME=$(kubectl -n a get sa readonly-sa -o jsonpath='{.secrets[0].name}')
+TOKEN=$(kubectl -n a get secret $SECRET_NAME -o jsonpath='{.data.token}' | base64 --decode)
+```
+
+6. 生成 kubeconfig 文件
+使用以下命令生成 kubeconfig 文件（替换 `<KUBE_APISERVER>` 为集群的 API Server 地址）：
+
+```bash
+cat <<EOF > readonly-kubeconfig.yaml
+apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    server: <KUBE_APISERVER>
+    certificate-authority-data: $(kubectl config view --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}')
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    namespace: a
+    user: readonly-user
+  name: readonly-context
+current-context: readonly-context
+users:
+- name: readonly-user
+  user:
+    token: $TOKEN
+EOF
+```
+
+7. 使用生成的 kubeconfig
+将 `readonly-kubeconfig.yaml` 分发给需要只读权限的用户：
+```bash
+kubectl --kubeconfig=readonly-kubeconfig.yaml get pods -n a
+```
+这样，用户就可以使用该文件访问 `a` 命名空间的资源，只能执行只读操作。
+
+
 ### 集群故障排查工具
 kubectl get nodes  列举节点状态
 
@@ -1585,8 +1776,8 @@ kubeadm upgrade ... # 执行 kubeadm 升级命令
 
 二、确定要升级到哪个版本
 ```
-# 在列表中查找最新的 1.31 版本
-# 它看起来应该是 1.31.x-*，其中 x 是最新的补丁版本
+在列表中查找最新的 1.31 版本
+它看起来应该是 1.31.x-*，其中 x 是最新的补丁版本
 sudo yum list --showduplicates kubeadm --disableexcludes=kubernetes
 ```
 
@@ -1596,7 +1787,7 @@ sudo yum list --showduplicates kubeadm --disableexcludes=kubernetes
 
 1. 升级kubeadm
 ```
-# 用最新的补丁版本号替换 1.31.x-* 中的 x
+用最新的补丁版本号替换 1.31.x-* 中的 x
 sudo yum install -y kubeadm-'1.31.x-*' --disableexcludes=kubernetes
 ```
 
@@ -1615,7 +1806,7 @@ kubeadm upgrade 也会自动对 kubeadm 在节点上所管理的证书执行续�
 
 4. 选择要升级到的目标版本，运行合适的命令。例如：
 ```
-# 将 x 替换为你为此次升级所选择的补丁版本号
+将 x 替换为你为此次升级所选择的补丁版本号
 sudo kubeadm upgrade apply v1.31.x
 ```
 一旦该命令结束，你应该会看到：
@@ -1644,13 +1835,13 @@ sudo kubeadm upgrade apply
 7. 腾空节点
 将节点标记为不可调度并驱逐所有负载，准备节点的维护：
 ```
-# 将 <node-to-drain> 替换为你要腾空的控制面节点名称
+将 <node-to-drain> 替换为你要腾空的控制面节点名称
 kubectl drain <node-to-drain> --ignore-daemonsets
 ```
 
 8. 升级 kubelet 和 kubectl
 ```
-# 用最新的补丁版本号替换 1.31.x-* 中的 x
+用最新的补丁版本号替换 1.31.x-* 中的 x
 sudo yum install -y kubelet-'1.31.x-*' kubectl-'1.31.x-*' --disableexcludes=kubernetes
 ```
 
@@ -1663,7 +1854,7 @@ sudo systemctl restart kubelet
 9. 解除节点的保护
 通过将节点标记为可调度，让其重新上线：
 ```
-# 将 <node-to-uncordon> 替换为你的节点名称
+将 <node-to-uncordon> 替换为你的节点名称
 kubectl uncordon <node-to-uncordon>
 ```
 
@@ -1673,7 +1864,7 @@ kubectl uncordon <node-to-uncordon>
 
 1. 升级kubeadm
 ```
-# 将 1.31.x-* 中的 x 替换为最新的补丁版本
+将 1.31.x-* 中的 x 替换为最新的补丁版本
 sudo yum install -y kubeadm-'1.31.x-*' --disableexcludes=kubernetes
 ```
 
@@ -1686,14 +1877,14 @@ sudo kubeadm upgrade node
 3. 腾空节点
 将节点标记为不可调度并驱逐所有负载，准备节点的维护：
 ```
-# 在控制平面节点上执行此命令
-# 将 <node-to-drain> 替换为你正腾空的节点的名称
+在控制平面节点上执行此命令
+将 <node-to-drain> 替换为你正腾空的节点的名称
 kubectl drain <node-to-drain> --ignore-daemonsets
 ```
 
 4. 升级kubectl和kubelet
 ```
-# 将 1.31.x-* 中的 x 替换为最新的补丁版本
+将 1.31.x-* 中的 x 替换为最新的补丁版本
 sudo yum install -y kubelet-'1.31.x-*' kubectl-'1.31.x-*' --disableexcludes=kubernetes
 ```
 
@@ -1706,8 +1897,8 @@ sudo systemctl restart kubelet
 5. 取消对节点的保护
 通过将节点标记为可调度，让节点重新上线：
 ```
-# 在控制平面节点上执行此命令
-# 将 <node-to-uncordon> 替换为你的节点名称
+在控制平面节点上执行此命令
+将 <node-to-uncordon> 替换为你的节点名称
 kubectl uncordon <node-to-uncordon>
 ```
 
@@ -1886,26 +2077,8 @@ https://kubernetes.io/zh-cn/docs/tasks/tls/manual-rotation-of-ca-certificates/
 ### Istio
 通过在pod创建时往里面添加一个envoy容器来管理pod网络的进出流量，从而实现微服务的治理。这个添加的容器的功能是由控制器Initializer实时监控完成的
 
-### api
-在 Kubernetes 项目中，一个 API 对象在 Etcd 里的完整资源路径，是由：Group（API 组）、Version（API 版本）和 Resource（API 资源类型）三个部分组成的
-```yaml
-# Cronjob是资源类型，batch是组，v2alpha1是版本
-apiVersion: batch/v2alpha1
-kind: CronJob
-...
-```
-
-### crd
-CRD 仅仅是资源的定义，而 Controller 可以去监听 CRD 的 CRUD 事件来添加自定义业务逻辑。
-
-对于 Kubernetes 里的核心 API 对象，比如：Pod、Node 等，是不需要 Group 的（即：它们 Group 是“”）
-
-### operator
-operator=crd+controller
-
-Operator 的工作原理，实际上是利用了 Kubernetes 的自定义 API 资源（CRD），来描述我们想要部署的“有状态应用”；然后在自定义控制器里，根据自定义 API 对象的变化，来完成具体的部署和运维工作。
-
-operator启动后会自动创建对应的crd
+### MetalLB
+MetalLB 是一种轻量级的负载均衡解决方案，可以为 LoadBalancer 类型的 Service 提供外部 IP
 
 
 ## 17. k8s集群部署流程（kubeadm）
