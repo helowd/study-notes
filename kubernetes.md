@@ -62,6 +62,8 @@
     * [node-local-dns](#node-local-dns)
     * [Istio](#istio)
     * [MetalLB](#metallb)
+    * [OpenELB](#openelb)
+    * [Cluster Autoscaler](#cluster-autoscaler)
 * [17. k8s集群部署流程（kubeadm）](#17-k8s集群部署流程kubeadm)
     * [k8s集群所支持的规格](#k8s集群所支持的规格)
     * [分布式一致性集群节点数](#分布式一致性集群节点数)
@@ -1670,8 +1672,7 @@ kubectl -n a create rolebinding readonly-binding \
   --serviceaccount=a:readonly-sa
 ```
 
-5. 获取服务账号的 Token
-获取服务账号的 Token，用于 kubeconfig：
+5. 获取服务账号的 Token，用于 kubeconfig：
 ```bash
 SECRET_NAME=$(kubectl -n a get sa readonly-sa -o jsonpath='{.secrets[0].name}')
 TOKEN=$(kubectl -n a get secret $SECRET_NAME -o jsonpath='{.data.token}' | base64 --decode)
@@ -2079,6 +2080,14 @@ https://kubernetes.io/zh-cn/docs/tasks/tls/manual-rotation-of-ca-certificates/
 
 ### MetalLB
 MetalLB 是一种轻量级的负载均衡解决方案，可以为 LoadBalancer 类型的 Service 提供外部 IP
+
+### OpenELB
+私有云负载均衡器
+
+### Cluster Autoscaler
+你可以使用 Cluster Autoscaler 自动管理节点的数目规模。Cluster Autoscaler 可以与云驱动或 Kubernetes 的 Cluster API 集成，以完成实际所需的节点管理。
+
+当存在不可调度的 Pod 时，Cluster Autoscaler 会添加节点； 当这些节点为空时，Cluster Autoscaler 会移除节点。
 
 
 ## 17. k8s集群部署流程（kubeadm）
