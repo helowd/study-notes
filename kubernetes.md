@@ -23,6 +23,7 @@
 * [5. pod](#5-pod)
     * [downward api](#downward-api)
     * [容器探针probe](#容器探针probe)
+    * [资源管理](#资源管理)
 * [6. 控制器](#6-控制器)
 * [7. service](#7-service)
     * [实现原理](#实现原理)
@@ -64,7 +65,9 @@
     * [MetalLB](#metallb)
     * [OpenELB](#openelb)
     * [Cluster Autoscaler](#cluster-autoscaler)
+    * [openKruise](#openkruise)
 * [17. k8s集群部署流程（kubeadm）](#17-k8s集群部署流程kubeadm)
+    * [k8s常见目录](#k8s常见目录)
     * [k8s集群所支持的规格](#k8s集群所支持的规格)
     * [分布式一致性集群节点数](#分布式一致性集群节点数)
     * [集群内核调优参考](#集群内核调优参考)
@@ -72,6 +75,10 @@
     * [k8s master机器重启后，coredns两个pod就绪探针失败](#k8s-master机器重启后coredns两个pod就绪探针失败)
 * [19. cka](#19-cka)
     * [技巧](#技巧)
+* [20. 监控Prometheus + k8s](#20-监控prometheus--k8s)
+    * [USE和RED原则](#use和red原则)
+    * [Custom Metrics: Auto Scaling](#custom-metrics-auto-scaling)
+* [21. k8s日志处理](#21-k8s日志处理)
 
 <!-- vim-markdown-toc -->
 
@@ -624,6 +631,55 @@ spec:
         - /tmp/healthy
       initialDelaySeconds: 5
       periodSeconds: 5
+```
+
+### 资源管理
+1. cpu可压缩资源，当可压缩资源不足时，pod只会“饥饿”不会退出。内存不可压缩资源，当不可压缩资源不足时，Pod 就会因为 OOM（Out-Of-Memory）被内核杀掉。
+
+2. pod的cpu和内存限额，需要在每个container上配置，最后由这些配置累加得到
+
+3. cpu单位为毫核millicore，一个cpu等于1000毫核，0.5=500millicore=500m
+
+4. 内存单位Ei、Pi、Ti、Gi、Mi、Ki（或者 E、P、T、G、M、K）的方式来作为 bytes 的值，备注：`1Mi=1024*1024；1M=1000*1000`
+
+5. 在调度的时候，kube-scheduler 只会按照 requests 的值进行计算。而在真正设置 Cgroups 限制的时候，kubelet 则会按照 limits 的值来进行设置。
+
+
+**服务质量Qos**
+1. Guaranteed完全保证的资源请求和限制：当 Pod 里的每一个 Container 都同时设置了 requests 和 limits，并且 requests 和 limits 值相等的时候，这个 Pod 就属于 Guaranteed 类别。它的 qosClass 字段就会被 Kubernetes 自动设置为 Guaranteed
+
+2. Burstable部分资源保障：当 Pod 不满足 Guaranteed 的条件，但至少有一个 Container 设置了 requests。那么这个 Pod 就会被划分到 Burstable 类别。
+
+3. BestEffort尽力而为，没有资源保障：如果一个 Pod 既没有设置 requests，也没有设置 limits，那么它的 QoS 类别就是 BestEffort。
+
+QoS 划分的主要应用场景，是当宿主机资源紧张的时候，kubelet 对 Pod 进行 Eviction（即资源回收）时需要用到的。当 Eviction 发生的时候，kubelet 具体会挑选哪些 Pod 进行删除操作，就需要参考这些 Pod 的 QoS 类别了
+```
+默认Eviction阈值
+memory.available<100Mi
+nodefs.available<10%
+nodefs.inodesFree<5%
+imagefs.available<15%
+```
+
+**cpuset**
+我们知道，在使用容器的时候，你可以通过设置 cpuset 把容器绑定到某个 CPU 的核上，而不是像 cpushare 那样共享 CPU 的计算能力。
+
+这种情况下，由于操作系统在 CPU 之间进行上下文切换的次数大大减少，容器里应用的性能会得到大幅提升。事实上，cpuset 方式，是生产环境里部署在线应用类型的 Pod 时，非常常用的一种方式。
+```
+首先，你的 Pod 必须是 Guaranteed 的 QoS 类型；
+然后，你只需要将 Pod 的 CPU 资源的 requests 和 limits 设置为同一个相等的整数值即可。
+
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    resources:
+      limits:
+        memory: "200Mi"
+        cpu: "2"
+      requests:
+        memory: "200Mi"
+        cpu: "2"
 ```
 
 
@@ -1334,14 +1390,13 @@ BGP 的全称是 Border Gateway Protocol，即：边界网关协议。它是一�
 
 不难看到，当 Calico 使用 IPIP 模式的时候，集群的网络性能会因为额外的封包和解包工作而下降。在实际测试中，Calico IPIP 模式与 Flannel VXLAN 模式的性能大致相当。所以，在实际使用时，如非硬性需求，我建议你将所有宿主机节点放在一个子网里，避免使用 IPIP。
 
+
 ## 12. k8s中的dns
-Kubernetes 为 Service 和 Pod 创建 DNS 记录。 你可以使用一致的 DNS 名称而非 IP 地址访问 Service。
+Kubernetes 为 Service 和 Pod 创建 DNS 记录。 你可以使用一致的 DNS 名称而非 IP 地址访问 Service。DNS 查询可能因为执行查询的 Pod 所在的命名空间而返回不同的结果。 不指定命名空间的 DNS 查询会被限制在 Pod 所在的命名空间内。 要访问其他命名空间中的 Service，需要在 DNS 查询中指定命名空间。
 
  DNS 服务器（例如 CoreDNS）会监视 Kubernetes API 中的新 Service， 并为每个 Service 创建一组 DNS 记录。如果在整个集群中都启用了 DNS，则所有 Pod 都应该能够通过 DNS 名称自动解析 Service。
 
-例如，如果你在 Kubernetes 命名空间 my-ns 中有一个名为 my-service 的 Service， 则控制平面和 DNS 服务共同为 my-service.my-ns 生成 DNS 记录。 名字空间 my-ns 中的 Pod 应该能够通过按名检索 my-service 来找到服务 （my-service.my-ns 也可以）。
-
-其他名字空间中的 Pod 必须将名称限定为 my-service.my-ns。 这些名称将解析为分配给 Service 的集群 IP。
+例如，如果你在 Kubernetes 命名空间 my-ns 中有一个名为 my-service 的 Service， 则控制平面和 DNS 服务共同为 my-service.my-ns 生成 DNS 记录（my-svc.my-ns.svc.cluster-domain.example）。 名字空间 my-ns 中的 Pod 应该能够通过按名检索 my-service 来找到服务 （my-service.my-ns 也可以）。其他名字空间中的 Pod 必须将名称限定为 my-service.my-ns。 这些名称将解析为分配给 Service 的集群 IP。
 
 Kubernetes 还支持命名端口的 DNS SRV（Service）记录。 如果 Service my-service.my-ns 具有名为 http　的端口，且协议设置为 TCP， 则可以用 `_http._tcp.my-service.my-ns` 执行 DNS SRV 查询以发现 http 的端口号以及 IP 地址。
 
@@ -1353,6 +1408,7 @@ nameserver 10.32.0.10
 search <namespace>.svc.cluster.local svc.cluster.local cluster.local
 options ndots:5
 ```
+
 
 ## 13. 存储
 
@@ -1713,14 +1769,6 @@ kubectl --kubeconfig=readonly-kubeconfig.yaml get pods -n a
 
 
 ### 集群故障排查工具
-kubectl get nodes  列举节点状态
-
-kubectl cluster-info dump  了解集群总体健康状态详情
-
-kubectl describe node 查看节点信息
-
-kubectl get nodes -o yaml  yaml查看节点详细信息
-
 /var/log/kube-apiserver.log —— API 服务器，负责提供 API 服务
 
 /var/log/kube-scheduler.log —— 调度器，负责制定调度决策
@@ -1746,7 +1794,6 @@ kubectl debug myapp -it --image=ubuntu --share-processes --copy-to=myapp-debug
 kubectl debug myapp -it --copy-to=myapp-debug --container=myapp -- sh
 
 kubectl debug myapp --copy-to=myapp-debug --set-image=`*=ubuntu`
-
 
 ### 节点管理
 1. 设置节点不可调度
@@ -2089,8 +2136,17 @@ MetalLB 是一种轻量级的负载均衡解决方案，可以为 LoadBalancer �
 
 当存在不可调度的 Pod 时，Cluster Autoscaler 会添加节点； 当这些节点为空时，Cluster Autoscaler 会移除节点。
 
+### openKruise
+灰度发布、原地升级
+
 
 ## 17. k8s集群部署流程（kubeadm）
+
+### k8s常见目录
+配置文件目录：/etc/kubernetes
+日志目录（日志文件软链接指向容器运行时日志）：/var/log/pods
+kubelet数据配置目录：/var/lib/kubelet
+容器运行时目录：/var/lib/docker
 
 ### k8s集群所支持的规格
 ```
@@ -3208,3 +3264,71 @@ If you don't see a command prompt, try pressing enter.
 10. 初始化master节点
 
 11. 安装 CNI 插件
+
+
+## 20. 监控Prometheus + k8s
+1. 第一种 Metrics，是宿主机的监控数据。这部分数据的提供，需要借助一个由 Prometheus 维护的Node Exporter 工具。一般来说，Node Exporter 会以 DaemonSet 的方式运行在宿主机上。
+
+2. 第二种 Metrics，是来自于 Kubernetes 的 API Server、kubelet 等组件的 /metrics API。除了常规的 CPU、内存的信息外，这部分信息还主要包括了各个组件的核心监控指标。比如，对于 API Server 来说，它就会在 /metrics API 里，暴露出各个 Controller 的工作队列（Work Queue）的长度、请求的 QPS 和延迟数据等等。这些信息，是检查 Kubernetes 本身工作情况的主要依据。
+
+3. 第三种 Metrics，是 Kubernetes 相关的监控数据。这部分数据，一般叫作 Kubernetes 核心监控数据（core metrics）。这其中包括了 Pod、Node、容器、Service 等主要 Kubernetes 核心概念的 Metrics。
+
+其中，容器相关的 Metrics 主要来自于 kubelet 内置的 cAdvisor 服务。在 kubelet 启动后，cAdvisor 服务也随之启动，而它能够提供的信息，可以细化到每一个容器的 CPU 、文件系统、内存、网络等资源的使用情况。
+
+需要注意的是，这里提到的 Kubernetes 核心监控数据，其实使用的是 Kubernetes 的一个非常重要的扩展能力，叫作 Metrics Server。
+
+### USE和RED原则
+其中，USE 原则指的是，按照如下三个维度来规划资源监控指标：
+
+    利用率（Utilization），资源被有效利用起来提供服务的平均时间占比；
+
+    饱和度（Saturation），资源拥挤的程度，比如工作队列的长度；
+
+    错误率（Errors），错误的数量。
+
+而 RED 原则指的是，按照如下三个维度来规划服务监控指标：
+
+    每秒请求数量（Rate）；
+
+    每秒错误数量（Errors）；
+
+    服务响应时间（Duration）。
+
+不难发现， USE 原则主要关注的是“资源”，比如节点和容器的资源使用情况，而 RED 原则主要关注的是“服务”，比如 kube-apiserver 或者某个应用的工作情况。这两种指标，在我今天为你讲解的 Kubernetes + Prometheus 组成的监控体系中，都是可以完全覆盖到的。
+
+### Custom Metrics: Auto Scaling
+自定义提供指标（如http请求数）做hpa
+
+
+## 21. k8s日志处理
+首先需要明确的是，Kubernetes 里面对容器日志的处理方式，都叫作 cluster-level-logging，即：这个日志处理系统，与容器、Pod 以及 Node 的生命周期都是完全无关的。这种设计当然是为了保证，无论是容器挂了、Pod 被删除，甚至节点宕机的时候，应用的日志依然可以被正常获取到。
+
+一个容器来说，当应用把日志输出到 stdout 和 stderr 之后，容器项目在默认情况下就会把这些日志输出到宿主机上的一个 JSON 文件里。这样，你通过 kubectl logs 命令就可以看到这些容器的日志了。
+
+1. 第一种，在 Node 上部署 logging agent，将日志文件转发到后端存储里保存起来。这个方案的架构图如下所示。 
+
+![](./images/logging_agent.png)
+
+不难看到，这里的核心就在于 logging agent ，它一般都会以 DaemonSet 的方式运行在节点上，然后将宿主机上的容器日志目录挂载进去，最后由 logging-agent 把日志转发出去。
+
+举个例子，我们可以通过 Fluentd 项目作为宿主机上的 logging-agent，然后把日志转发到远端的 ElasticSearch 里保存起来供将来进行检索。具体的操作过程，你可以通过阅读这篇文档来了解。另外，在很多 Kubernetes 的部署里，会自动为你启用 logrotate，在日志文件超过 10MB 的时候自动对日志文件进行 rotate 操作。
+
+可以看到，在 Node 上部署 logging agent 最大的优点，在于一个节点只需要部署一个 agent，并且不会对应用和 Pod 有任何侵入性。所以，这个方案，在社区里是最常用的一种。
+
+但是也不难看到，这种方案的不足之处就在于，它要求应用输出的日志，都必须是直接输出到容器的 stdout 和 stderr 里。
+
+2. Kubernetes 容器日志方案的第二种，就是对这种特殊情况的一个处理，即：当容器的日志只能输出到某些文件里的时候，我们可以通过一个 sidecar 容器把这些日志文件重新输出到 sidecar 的 stdout 和 stderr 上，这样就能够继续使用第一种方案了。这个方案的具体工作原理，如下所示。
+
+![](./images/sidecar_log.png)
+
+3. 第三种方案，就是通过一个 sidecar 容器，直接把应用的日志文件发送到远程存储里面去。也就是相当于把方案一里的 logging agent，放在了应用 Pod 里。这种方案的架构如下所示：
+
+![](./images/sidecar_remote_log.png)
+
+4. 除此之外，还有一种方式就是在编写应用的时候，就直接指定好日志的存储后端，如下所示:
+
+![](./images/remote_log.png)
+
+在这种方案下，Kubernetes 就完全不必操心容器日志的收集了，这对于本身已经有完善的日志处理系统的公司来说，是一个非常好的选择。
+
+最后需要指出的是，无论是哪种方案，你都必须要及时将这些日志文件从宿主机上清理掉，或者给日志目录专门挂载一些容量巨大的远程盘。否则，一旦主磁盘分区被打满，整个系统就可能会陷入奔溃状态，这是非常麻烦的。
