@@ -1,7 +1,14 @@
 # helm
 
 ## 目录
+<!-- vim-markdown-toc GFM -->
 
+* [基本知识](#基本知识)
+    * [helm安装资源顺序](#helm安装资源顺序)
+    * [chart](#chart)
+    * [helm2和helm3区别](#helm2和helm3区别)
+
+<!-- vim-markdown-toc -->
 ## 基本知识
 Helm 安装 charts 到 Kubernetes 集群中，每次安装都会创建一个新的 release。你可以在 Helm 的 chart repositories 中寻找新的 chart。
 
