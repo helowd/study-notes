@@ -2,8 +2,6 @@
 文档内容基于v1.17.04版本
 
 ## 目录
-<!-- vim-markdown-toc GFM -->
-
 * [1. 容器发展历史](#1-容器发展历史)
 * [2. k8s概述](#2-k8s概述)
     * [架构](#架构)
@@ -1769,16 +1767,6 @@ kubectl --kubeconfig=readonly-kubeconfig.yaml get pods -n a
 
 
 ### 集群故障排查工具
-/var/log/kube-apiserver.log —— API 服务器，负责提供 API 服务
-
-/var/log/kube-scheduler.log —— 调度器，负责制定调度决策
-
-/var/log/kube-controller-manager.log —— 运行大多数 Kubernetes 内置控制器的组件，除了调度（kube-scheduler 处理调度）。
-
-/var/log/kubelet.log —— 负责在节点运行容器的 kubelet 所产生的日志
-
-/var/log/kube-proxy.log —— 负责将流量转发到服务端点的 kube-proxy 所产生的日志
-
 crictl  pod和容器调试
 
 kubectl debug node/mynode -it --image=ubuntu  将 Pod 部署到要排查故障的节点上，并打开一个shell
