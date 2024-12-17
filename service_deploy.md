@@ -102,7 +102,8 @@ network information servier，用来管理其他主机账号信息的服务器
 ## ntp
 network time protocol  
 一个时间服务器，原来是通过国家授时中心同步时间，然后再给其它终端提供时间同步服务的  
-UTC 标准时间虽然与GMT 时间放在同一个时区为  
+UTC 协调标准时间（全球通用）
+GMT 格林威治时间  
 ntp可以自动处理延迟带来的误差  
 电脑主机上面的BIOS 内部就含有一个原子钟在纪录与计算时间的进行  
 ntpdate手动更新主机时间
